@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:oste/features/education/vitamin/vitamin_page.dart';
+import 'package:oste/features/education/nutrisi/nutrisi_page.dart';
 import 'package:oste/features/dashboard/dashboard_page.dart';
 import 'package:oste/features/history/history_page.dart';
 import 'package:oste/features/profile/profile_page.dart';
@@ -249,6 +250,13 @@ class _EducationCard extends StatelessWidget {
               context,
               MaterialPageRoute(
                 builder: (context) => const VitaminPage(),
+              ),
+            );
+          } else if (topic.title.contains('Makanan')) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const NutrisiPage(),
               ),
             );
           }
