@@ -1,6 +1,9 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:oste/features/education/education_page.dart';
+import 'package:oste/features/history/history_page.dart';
+import 'package:oste/features/profile/profile_page.dart';
+
 
 
 /// Definisi palet warna resmi Osteo Dashboard sesuai spesifikasi
@@ -75,9 +78,45 @@ class _DashboardPageState extends State<DashboardPage> {
       child: BottomNavigationBar(
         currentIndex: _currentIndex,
         onTap: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
+          if (index == _currentIndex) return;
+
+          switch (index) {
+            case 0:
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const DashboardPage(),
+                ),
+              );
+              break;
+
+            case 1:
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const HistoryPage(),
+                ),
+              );
+              break;
+
+            case 2:
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const EducationPage(),
+                ),
+              );
+              break;
+
+            case 3:
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const ProfilePage(),
+                ),
+              );
+              break;
+          }
         },
         type: BottomNavigationBarType.fixed,
         backgroundColor: Colors.white,

@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:oste/features/dashboard/dashboard_page.dart';
 import 'package:oste/features/auth/register/register_page.dart';
+import 'package:oste/features/auth/forgot_password/forgot_password_page.dart';
 
 /// Palet warna halaman Login
 class _LoginColors {
@@ -131,7 +132,12 @@ class _LoginPageState extends State<LoginPage> {
                     alignment: Alignment.centerRight,
                     child: InkWell(
                       onTap: () {
-                        // Aksi Lupa Password sementara kosong
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const ForgotPasswordPage(),
+                          ),
+                        );
                       },
                       borderRadius: BorderRadius.circular(6),
                       child: const Padding(

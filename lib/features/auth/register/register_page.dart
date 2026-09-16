@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:oste/features/auth/login/login_page.dart';
+import 'package:oste/features/auth/register_success/register_success_page.dart';
 
 /// Palet warna halaman Register
 class _RegisterColors {
@@ -96,11 +97,11 @@ class _RegisterPageState extends State<RegisterPage> {
       ),
     );
 
-    // Pindah ke LoginPage menggunakan Navigator.pushReplacement
+    // Pindah ke RegisterSuccessPage menggunakan Navigator.pushReplacement
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
-        builder: (_) => const LoginPage(),
+        builder: (_) => const RegisterSuccessPage(),
       ),
     );
   }
