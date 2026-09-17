@@ -1,10 +1,10 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import 'package:oste/features/consultation/doctor_list_page.dart';
 import 'package:oste/features/education/education_page.dart';
+import 'package:oste/features/education/tahukah_anda/tahukah_anda_page.dart';
 import 'package:oste/features/history/history_page.dart';
 import 'package:oste/features/profile/profile_page.dart';
-import 'package:oste/features/screening/screening_page.dart';
+
 
 
 /// Definisi palet warna resmi Osteo Dashboard sesuai spesifikasi
@@ -32,7 +32,7 @@ class DashboardPage extends StatefulWidget {
 }
 
 class _DashboardPageState extends State<DashboardPage> {
-  final int _currentIndex = 0;
+  int _currentIndex = 0;
 
   @override
   Widget build(BuildContext context) {
@@ -101,7 +101,8 @@ class _DashboardPageState extends State<DashboardPage> {
               break;
 
             case 2:
-              Navigator.pushReplacement(
+              print("Klik Edukasi");
+              Navigator.push(
                 context,
                 MaterialPageRoute(
                   builder: (_) => const EducationPage(),
@@ -732,34 +733,18 @@ class _MainMenuSection extends StatelessWidget {
           childAspectRatio: 0.98,
           children: [
             _MenuItemCard(
-  title: 'Skrining',
-  subtitle: 'Cek risiko osteoporosis sekarang',
-  icon: Icons.assignment_outlined,
-  iconColor: _DashboardColors.orange,
-  iconBgColor: _DashboardColors.lightOrange,
-  onTap: () {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => const ScreeningPage(),
-      ),
-    );
-  },
-),
+              title: 'Skrining',
+              subtitle: 'Cek risiko osteoporosis sekarang',
+              icon: Icons.assignment_outlined,
+              iconColor: _DashboardColors.orange,
+              iconBgColor: _DashboardColors.lightOrange,
+            ),
             _MenuItemCard(
               title: 'Konsultasi Dokter',
               subtitle: 'Tanya langsung dengan dokter ahli',
               icon: Icons.person_pin_outlined,
-              iconColor: const Color(0xFF3B82F6),
-              iconBgColor: const Color(0xFFEFF6FF),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const DoctorListPage(),
-                  ),
-                );
-              },
+              iconColor: Color(0xFF3B82F6),
+              iconBgColor: Color(0xFFEFF6FF),
             ),
             _MenuItemCard(
               title: 'Edukasi',
@@ -781,16 +766,8 @@ class _MainMenuSection extends StatelessWidget {
               title: 'Riwayat',
               subtitle: 'Lihat hasil skrining dan aktivitasmu',
               icon: Icons.access_time_filled_rounded,
-              iconColor: const Color(0xFF8B5CF6),
-              iconBgColor: const Color(0xFFF3E8FF),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const HistoryPage(),
-                  ),
-                );
-              },
+              iconColor: Color(0xFF8B5CF6),
+              iconBgColor: Color(0xFFF3E8FF),
             ),
           ],
         ),
@@ -818,8 +795,8 @@ class _MenuItemCard extends StatelessWidget {
   });
 
   @override
-Widget build(BuildContext context) {
-  return Container(
+  Widget build(BuildContext context) {
+    return Container(
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
@@ -923,22 +900,22 @@ class _EducationBannerSection extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             // Sisi kiri: teks edukasi & tombol aksi
-Expanded(
-  flex: 11,
-  child: Padding(
-    padding: const EdgeInsets.fromLTRB(18, 16, 8, 16),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Tahukah anda?',
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w700,
-            color: _DashboardColors.textDark,
-            letterSpacing: -0.2,
-          ),
-        ),
+            Expanded(
+              flex: 11,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(18, 16, 8, 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Tahukah anda?',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: _DashboardColors.textDark,
+                        letterSpacing: -0.2,
+                      ),
+                    ),
                     const SizedBox(height: 6),
                     const Text(
                       'Setelah usia 50 tahun, kepadatan tulang mulai berkurang secara alami.',
@@ -952,7 +929,14 @@ Expanded(
                     const SizedBox(height: 12),
                     // Tombol 'Baca selengkapnya >'
                     InkWell(
-                      onTap: () {},
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const TahukahAndaPage(),
+                          ),
+                        );
+                      },
                       borderRadius: BorderRadius.circular(20),
                       child: Container(
                         padding: const EdgeInsets.symmetric(

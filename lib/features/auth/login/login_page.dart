@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:oste/features/dashboard/dashboard_page.dart';
 import 'package:oste/features/auth/register/register_page.dart';
 import 'package:oste/features/auth/forgot_password/forgot_password_page.dart';
+import 'package:oste/features/auth/google_login/google_account_picker_page.dart';
 
 /// Palet warna halaman Login
 class _LoginColors {
@@ -455,8 +456,13 @@ class _LoginPageState extends State<LoginPage> {
         child: InkWell(
           borderRadius: BorderRadius.circular(28),
           onTap: () {
-            // Aksi login Google sementara kosong
-          },
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const GoogleAccountPickerPage(),
+              ),
+            );
+          }
           child: const Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [

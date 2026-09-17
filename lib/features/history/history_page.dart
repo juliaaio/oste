@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:oste/features/dashboard/dashboard_page.dart';
 import 'package:oste/features/education/education_page.dart';
 import 'package:oste/features/history/widgets/empty_history_widget.dart';
@@ -6,6 +6,7 @@ import 'package:oste/features/history/widgets/history_card.dart';
 import 'package:oste/features/history/widgets/history_header.dart';
 import 'package:oste/features/profile/profile_page.dart';
 import 'package:oste/features/screening/screening_page.dart';
+import 'package:oste/features/history/history_detail_page.dart';
 
 // ---------------------------------------------------------------------------
 // Model data dummy riwayat skrining
@@ -249,7 +250,7 @@ class _HistoryListSection extends StatelessWidget {
           child: ListView.separated(
             padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
             itemCount: entries.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 12),
+            separatorBuilder: (_, _) => const SizedBox(height: 12),
             itemBuilder: (context, index) {
               final e = entries[index];
               return HistoryCard(
@@ -258,9 +259,14 @@ class _HistoryListSection extends StatelessWidget {
                 probabilitas: e.probabilitas,
                 status: e.status,
                 isPositive: e.isPositive,
-                onTap: () {
-                  // Navigasi ke halaman detail akan ditambahkan nanti.
-                },
+               onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const HistoryDetailPage(),
+                    ),
+                  );
+                }
               );
             },
           ),

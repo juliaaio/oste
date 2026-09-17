@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 
 // ---------------------------------------------------------------------------
 // Palet warna sesuai DashboardPage
@@ -10,7 +10,6 @@ class _CardColors {
   static const Color border         = Color(0xFFEAEAEA);
   static const Color abuMuda        = Color(0xFFF5F5F5);
   static const Color orange         = Color(0xFFF59E0B);
-  static const Color primaryYellow  = Color(0xFFF7C948);
 
   // Badge positif (terindikasi osteoporosis)
   static const Color badgePosBg     = Color(0xFFFFE8EC);
