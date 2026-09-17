@@ -1,48 +1,48 @@
 import 'package:flutter/material.dart';
 import 'package:oste/features/consultation/consultation_history_card.dart';
 import 'package:oste/features/consultation/consultation_summary_page.dart';
-import 'package:oste/features/dashboard/dashboard_page.dart';
+import 'package:oste/models/doctor_model.dart';
 import 'package:oste/services/consultation_history_service.dart';
 
-/// Halaman Riwayat Konsultasi & Aktivitas Pasien
-class HistoryPage extends StatelessWidget {
-  const HistoryPage({super.key});
+/// Halaman Riwayat Konsultasi (Dapat difilter khusus dokter tertentu atau menampilkan semua)
+class ConsultationHistoryPage extends StatelessWidget {
+  final Doctor? doctor;
+
+  const ConsultationHistoryPage({
+    super.key,
+    this.doctor,
+  });
 
   @override
   Widget build(BuildContext context) {
     final historyService = ConsultationHistoryService();
+
+    final title = doctor != null
+        ? 'Riwayat: ${doctor!.name}'
+        : 'Riwayat Konsultasi';
 
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        centerTitle: true,
         leading: IconButton(
           icon: const Icon(
             Icons.arrow_back_rounded,
             color: Color(0xFF1E293B),
             size: 24,
           ),
-          onPressed: () {
-            if (Navigator.canPop(context)) {
-              Navigator.pop(context);
-            } else {
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const DashboardPage(),
-                ),
-              );
-            }
-          },
+          onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
-          'Riwayat Konsultasi',
-          style: TextStyle(
-            color: Color(0xFF1E293B),
+        centerTitle: true,
+        title: Text(
+          title,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(
+            fontSize: 17,
             fontWeight: FontWeight.w800,
-            fontSize: 18,
+            color: Color(0xFF1E293B),
             letterSpacing: -0.3,
           ),
         ),
@@ -51,7 +51,9 @@ class HistoryPage extends StatelessWidget {
         child: AnimatedBuilder(
           animation: historyService,
           builder: (context, _) {
-            final histories = historyService.allConsultations;
+            final histories = doctor != null
+                ? historyService.getConsultationsByDoctorId(doctor!.id)
+                : historyService.allConsultations;
 
             if (histories.isEmpty) {
               return Center(
@@ -72,24 +74,26 @@ class HistoryPage extends StatelessWidget {
                           ),
                         ),
                         child: const Icon(
-                          Icons.history_rounded,
+                          Icons.history_toggle_off_rounded,
                           size: 38,
                           color: Color(0xFFF59E0B),
                         ),
                       ),
                       const SizedBox(height: 18),
-                      const Text(
-                        'Belum Ada Riwayat Konsultasi',
+                      Text(
+                        doctor != null
+                            ? 'Belum ada riwayat konsultasi dengan ${doctor!.name}'
+                            : 'Belum ada riwayat konsultasi',
                         textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 16,
+                        style: const TextStyle(
+                          fontSize: 15,
                           fontWeight: FontWeight.w700,
                           color: Color(0xFF1E293B),
                         ),
                       ),
                       const SizedBox(height: 8),
                       const Text(
-                        'Konsultasi dokter yang telah Anda selesaikan akan otomatis tercatat dan dapat ditinjau kembali di sini.',
+                        'Konsultasi yang telah selesai akan tersimpan secara otomatis di sini.',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 13,

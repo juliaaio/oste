@@ -1,6 +1,5 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import 'package:oste/features/dashboard/dashboard_page.dart';
 import 'package:oste/features/auth/login/login_page.dart';
 
 /// Palet warna utama halaman Welcome

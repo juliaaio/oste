@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:oste/features/consultation/doctor_list_page.dart';
 import 'package:oste/features/education/education_page.dart';
 import 'package:oste/features/history/history_page.dart';
 import 'package:oste/features/profile/profile_page.dart';
@@ -31,7 +32,7 @@ class DashboardPage extends StatefulWidget {
 }
 
 class _DashboardPageState extends State<DashboardPage> {
-  int _currentIndex = 0;
+  final int _currentIndex = 0;
 
   @override
   Widget build(BuildContext context) {
@@ -741,8 +742,16 @@ class _MainMenuSection extends StatelessWidget {
               title: 'Konsultasi Dokter',
               subtitle: 'Tanya langsung dengan dokter ahli',
               icon: Icons.person_pin_outlined,
-              iconColor: Color(0xFF3B82F6),
-              iconBgColor: Color(0xFFEFF6FF),
+              iconColor: const Color(0xFF3B82F6),
+              iconBgColor: const Color(0xFFEFF6FF),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const DoctorListPage(),
+                  ),
+                );
+              },
             ),
             _MenuItemCard(
               title: 'Edukasi',
@@ -764,8 +773,16 @@ class _MainMenuSection extends StatelessWidget {
               title: 'Riwayat',
               subtitle: 'Lihat hasil skrining dan aktivitasmu',
               icon: Icons.access_time_filled_rounded,
-              iconColor: Color(0xFF8B5CF6),
-              iconBgColor: Color(0xFFF3E8FF),
+              iconColor: const Color(0xFF8B5CF6),
+              iconBgColor: const Color(0xFFF3E8FF),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const HistoryPage(),
+                  ),
+                );
+              },
             ),
           ],
         ),
