@@ -152,7 +152,7 @@ class _ScreeningPageState extends State<ScreeningPage> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => const HasilPage(),
+        builder: (_) => const HasilScreeningPage(),
       ),
     );
   }
