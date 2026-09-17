@@ -4,7 +4,7 @@ import 'package:oste/features/consultation/doctor_list_page.dart';
 import 'package:oste/features/education/education_page.dart';
 import 'package:oste/features/history/history_page.dart';
 import 'package:oste/features/profile/profile_page.dart';
-
+import 'package:oste/features/screening/screening_page.dart';
 
 
 /// Definisi palet warna resmi Osteo Dashboard sesuai spesifikasi
@@ -732,12 +732,20 @@ class _MainMenuSection extends StatelessWidget {
           childAspectRatio: 0.98,
           children: [
             _MenuItemCard(
-              title: 'Skrining',
-              subtitle: 'Cek risiko osteoporosis sekarang',
-              icon: Icons.assignment_outlined,
-              iconColor: _DashboardColors.orange,
-              iconBgColor: _DashboardColors.lightOrange,
-            ),
+  title: 'Skrining',
+  subtitle: 'Cek risiko osteoporosis sekarang',
+  icon: Icons.assignment_outlined,
+  iconColor: _DashboardColors.orange,
+  iconBgColor: _DashboardColors.lightOrange,
+  onTap: () {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const ScreeningPage(),
+      ),
+    );
+  },
+),
             _MenuItemCard(
               title: 'Konsultasi Dokter',
               subtitle: 'Tanya langsung dengan dokter ahli',
@@ -810,8 +818,8 @@ class _MenuItemCard extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
+Widget build(BuildContext context) {
+  return Container(
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
@@ -915,22 +923,22 @@ class _EducationBannerSection extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             // Sisi kiri: teks edukasi & tombol aksi
-            Expanded(
-              flex: 11,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(18, 16, 8, 16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Tahukah anda?',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        color: _DashboardColors.textDark,
-                        letterSpacing: -0.2,
-                      ),
-                    ),
+Expanded(
+  flex: 11,
+  child: Padding(
+    padding: const EdgeInsets.fromLTRB(18, 16, 8, 16),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Tahukah anda?',
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w700,
+            color: _DashboardColors.textDark,
+            letterSpacing: -0.2,
+          ),
+        ),
                     const SizedBox(height: 6),
                     const Text(
                       'Setelah usia 50 tahun, kepadatan tulang mulai berkurang secara alami.',
