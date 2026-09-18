@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:oste/features/screening/hasil_page.dart';
+import 'package:oste/services/screening_service.dart';
 /// Palet warna utama halaman Skrining Osteoporosis
 class _ScreeningColors {
   static const Color background = Color(0xFFFAF9F5);
@@ -149,10 +150,43 @@ class _ScreeningPageState extends State<ScreeningPage> {
       ),
     );
 
+    final age = int.tryParse(_ageController.text.trim()) ?? 0;
+    final height = double.tryParse(_heightController.text.trim().replaceAll(',', '.')) ?? 0;
+    final weight = double.tryParse(_weightController.text.trim().replaceAll(',', '.')) ?? 0;
+    final bmi = _calculatedBmi ?? (height > 0 ? weight / ((height / 100) * (height / 100)) : 0);
+    final bmiCategory = _calculatedBmiCategory ?? 'Normal';
+
+    final input = ScreeningInput(
+      age: age,
+      gender: _selectedGender!,
+      height: height,
+      weight: weight,
+      bmi: bmi,
+      bmiCategory: bmiCategory,
+      hormonal: _selectedHormonal!,
+      race: _selectedRace!,
+      alcohol: _selectedAlcohol!,
+      smoking: _selectedSmoking!,
+      calcium: _selectedCalcium!,
+      vitaminD: _selectedVitaminD!,
+      physicalActivity: _selectedPhysicalActivity!,
+      medicalCondition: _selectedMedicalCondition!,
+      medication: _selectedMedication!,
+      fractureHistory: _selectedFractureHistory!,
+    );
+
+    final result = ScreeningService().calculate(input);
+
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => const HasilScreeningPage(),
+        builder: (_) => HasilScreeningPage(
+          scorePercentage: result.scorePercentage,
+          riskTitle: result.riskTitle,
+          riskDescription: result.riskDescription,
+          predictionData: result.predictionData,
+          recommendations: result.recommendations,
+        ),
       ),
     );
   }

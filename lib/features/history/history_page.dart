@@ -1,63 +1,16 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
+import 'package:oste/features/consultation/consultation_history_card.dart';
+import 'package:oste/features/consultation/consultation_summary_page.dart';
 import 'package:oste/features/dashboard/dashboard_page.dart';
 import 'package:oste/features/education/education_page.dart';
+import 'package:oste/features/history/models/history_model.dart';
 import 'package:oste/features/history/widgets/empty_history_widget.dart';
 import 'package:oste/features/history/widgets/history_card.dart';
 import 'package:oste/features/history/widgets/history_header.dart';
 import 'package:oste/features/profile/profile_page.dart';
+import 'package:oste/features/screening/hasil_page.dart';
 import 'package:oste/features/screening/screening_page.dart';
-import 'package:oste/features/history/history_detail_page.dart';
-
-// ---------------------------------------------------------------------------
-// Model data dummy riwayat skrining
-// ---------------------------------------------------------------------------
-class _HistoryEntry {
-  final String tanggal;
-  final String waktu;
-  final double probabilitas;
-  final String status;
-  final bool isPositive;
-
-  const _HistoryEntry({
-    required this.tanggal,
-    required this.waktu,
-    required this.probabilitas,
-    required this.status,
-    required this.isPositive,
-  });
-}
-
-/// Data dummy riwayat skrining – ganti dengan data nyata dari API/database nanti.
-const List<_HistoryEntry> _dummyHistory = [
-  _HistoryEntry(
-    tanggal: '12 September 2025',
-    waktu: 'Pukul 14.30 WIB',
-    probabilitas: 58,
-    status: 'Terindikasi Osteoporosis',
-    isPositive: true,
-  ),
-  _HistoryEntry(
-    tanggal: '15 Agustus 2025',
-    waktu: 'Pukul 09.12 WIB',
-    probabilitas: 32,
-    status: 'Tidak Terindikasi Osteoporosis',
-    isPositive: false,
-  ),
-  _HistoryEntry(
-    tanggal: '10 Juli 2025',
-    waktu: 'Pukul 16.20 WIB',
-    probabilitas: 76,
-    status: 'Terindikasi Osteoporosis',
-    isPositive: true,
-  ),
-  _HistoryEntry(
-    tanggal: '05 Juni 2025',
-    waktu: 'Pukul 10.05 WIB',
-    probabilitas: 28,
-    status: 'Tidak Terindikasi Osteoporosis',
-    isPositive: false,
-  ),
-];
+import 'package:oste/services/history_service.dart';
 
 // ---------------------------------------------------------------------------
 // Palet warna lokal (konsisten dengan DashboardPage)
@@ -70,18 +23,17 @@ class _HistoryPageColors {
   static const Color orange     = Color(0xFFF59E0B);
 }
 
-/// Halaman Riwayat Skrining Osteoporosis.
+/// Halaman Riwayat (Skrining Osteoporosis & Konsultasi Medis).
 ///
-/// Menampilkan [HistoryHeader] di bagian atas, diikuti daftar [HistoryCard]
-/// jika ada riwayat, atau [EmptyHistoryWidget] jika belum ada riwayat.
+/// Menampilkan [HistoryHeader] di bagian atas, diikuti daftar riwayat
+/// jika ada, atau [EmptyHistoryWidget] jika belum ada riwayat.
 class HistoryPage extends StatelessWidget {
   const HistoryPage({super.key});
 
-  /// Ganti nilai ini ke `false` untuk melihat tampilan kosong.
-  static const bool hasHistory = true;
-
   @override
   Widget build(BuildContext context) {
+    final historyService = HistoryService();
+
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
@@ -95,9 +47,12 @@ class HistoryPage extends StatelessWidget {
 
             // ── Konten utama ─────────────────────────────────────────
             Expanded(
-              child: hasHistory
-                  ? _HistoryListSection(entries: _dummyHistory)
-                  : EmptyHistoryWidget(
+              child: AnimatedBuilder(
+                animation: historyService,
+                builder: (context, _) {
+                  final entries = historyService.allHistories;
+                  if (entries.isEmpty) {
+                    return EmptyHistoryWidget(
                       onStartScreening: () {
                         Navigator.push(
                           context,
@@ -106,7 +61,11 @@ class HistoryPage extends StatelessWidget {
                           ),
                         );
                       },
-                    ),
+                    );
+                  }
+                  return _HistoryListSection(entries: entries);
+                },
+              ),
             ),
           ],
         ),
@@ -193,12 +152,20 @@ class HistoryPage extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------------------
-// Section daftar riwayat (hanya ditampilkan saat hasHistory == true)
+// Section daftar riwayat
 // ---------------------------------------------------------------------------
 class _HistoryListSection extends StatelessWidget {
-  final List<_HistoryEntry> entries;
+  final List<HistoryModel> entries;
 
   const _HistoryListSection({required this.entries});
+
+  static String _formatDate(DateTime dt) {
+    const months = [
+      'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+      'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+    ];
+    return '${dt.day} ${months[dt.month - 1]} ${dt.year}';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -223,7 +190,7 @@ class _HistoryListSection extends StatelessWidget {
               // Tombol Urutkan
               Row(
                 children: [
-                  Text(
+                  const Text(
                     'Urutkan',
                     style: TextStyle(
                       fontSize: 13,
@@ -250,23 +217,57 @@ class _HistoryListSection extends StatelessWidget {
           child: ListView.separated(
             padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
             itemCount: entries.length,
-            separatorBuilder: (_, _) => const SizedBox(height: 12),
+            separatorBuilder: (_, index) {
+              // Berikan jarak pemisah yang proporsional
+              final current = entries[index];
+              if (current.type == HistoryType.consultation) {
+                return const SizedBox(height: 2);
+              }
+              return const SizedBox(height: 12);
+            },
             itemBuilder: (context, index) {
               final e = entries[index];
+
+              // Riwayat Konsultasi
+              if (e.type == HistoryType.consultation && e.consultation != null) {
+                return ConsultationHistoryCard(
+                  consultation: e.consultation!,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => ConsultationSummaryPage(
+                          consultation: e.consultation!,
+                        ),
+                      ),
+                    );
+                  },
+                );
+              }
+
+              // Riwayat Skrining
               return HistoryCard(
-                tanggal: e.tanggal,
+                tanggal: _formatDate(e.tanggal),
                 waktu: e.waktu,
-                probabilitas: e.probabilitas,
+                probabilitas: e.probabilitas.toDouble(),
                 status: e.status,
                 isPositive: e.isPositive,
-               onTap: () {
+                onTap: () {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => const HistoryDetailPage(),
+                      builder: (_) => HasilScreeningPage(
+                        scorePercentage: e.probabilitas.toDouble(),
+                        riskTitle: e.riskCategory ?? (e.isPositive ? 'risiko sedang' : 'risiko rendah'),
+                        riskDescription: e.summary ?? '',
+                        predictionData: e.predictionData,
+                        recommendations: e.recommendations,
+                        screeningId: e.id,
+                        autoSave: false,
+                      ),
                     ),
                   );
-                }
+                },
               );
             },
           ),

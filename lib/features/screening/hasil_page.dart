@@ -1,6 +1,8 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:oste/features/consultation/doctor_list_page.dart';
+import 'package:oste/features/history/models/history_model.dart';
+import 'package:oste/services/history_service.dart';
 
 /// Palet warna resmi halaman Hasil Skrining Osteoporosis
 class _HasilColors {
@@ -36,12 +38,14 @@ class PredictionItem {
 }
 
 /// Halaman Hasil Skrining Osteoporosis
-class HasilScreeningPage extends StatelessWidget {
+class HasilScreeningPage extends StatefulWidget {
   final double scorePercentage;
   final String riskTitle;
   final String riskDescription;
   final List<PredictionItem>? predictionData;
   final List<String>? recommendations;
+  final String? screeningId;
+  final bool autoSave;
 
   const HasilScreeningPage({
     super.key,
@@ -51,6 +55,8 @@ class HasilScreeningPage extends StatelessWidget {
         'Anda memiliki risiko sedang untuk mengalami osteoporosis.',
     this.predictionData,
     this.recommendations,
+    this.screeningId,
+    this.autoSave = true,
   });
 
   // Data default 14 input pengguna sesuai screenshot referensi
@@ -137,9 +143,53 @@ class HasilScreeningPage extends StatelessWidget {
   ];
 
   @override
+  State<HasilScreeningPage> createState() => _HasilScreeningPageState();
+}
+
+class _HasilScreeningPageState extends State<HasilScreeningPage> {
+  @override
+  void initState() {
+    super.initState();
+    if (widget.autoSave) {
+      _saveToHistory();
+    }
+  }
+
+  void _saveToHistory() {
+    final now = DateTime.now();
+    final timeStr =
+        'Pukul ${now.hour.toString().padLeft(2, '0')}.${now.minute.toString().padLeft(2, '0')} WIB';
+    final isPos = widget.scorePercentage >= 35;
+    final statusStr =
+        isPos ? 'Terindikasi Osteoporosis' : 'Tidak Terindikasi Osteoporosis';
+
+    final items =
+        widget.predictionData ?? HasilScreeningPage._defaultPredictionData;
+    final recs =
+        widget.recommendations ?? HasilScreeningPage._defaultRecommendations;
+
+    final history = HistoryModel.fromScreening(
+      id: widget.screeningId ?? 'screen_${now.millisecondsSinceEpoch}',
+      tanggal: now,
+      waktu: timeStr,
+      probabilitas: widget.scorePercentage.toInt(),
+      status: statusStr,
+      isPositive: isPos,
+      riskCategory: widget.riskTitle,
+      summary: widget.riskDescription,
+      predictionData: items,
+      recommendations: recs,
+    );
+
+    HistoryService().addScreening(history);
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final items = predictionData ?? _defaultPredictionData;
-    final recs = recommendations ?? _defaultRecommendations;
+    final items =
+        widget.predictionData ?? HasilScreeningPage._defaultPredictionData;
+    final recs =
+        widget.recommendations ?? HasilScreeningPage._defaultRecommendations;
 
     return Scaffold(
       backgroundColor: _HasilColors.background,
@@ -242,7 +292,7 @@ class HasilScreeningPage extends StatelessWidget {
                       CustomPaint(
                         size: const Size(160, 160),
                         painter: _CircularGaugePainter(
-                          percentage: scorePercentage / 100.0,
+                          percentage: widget.scorePercentage / 100.0,
                         ),
                       ),
                       // Teks persentase & Skor Risiko
@@ -250,7 +300,7 @@ class HasilScreeningPage extends StatelessWidget {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
-                            '${scorePercentage.toInt()}%',
+                            '${widget.scorePercentage.toInt()}%',
                             style: const TextStyle(
                               fontSize: 34,
                               fontWeight: FontWeight.w800,
@@ -276,7 +326,7 @@ class HasilScreeningPage extends StatelessWidget {
               const SizedBox(height: 24),
 
               // -------------------------------------------------------------
-              // 3. Card Peringatan Risiko Sedang
+              // 3. Card Peringatan Risiko Sedang / Tinggi / Rendah
               // -------------------------------------------------------------
               Container(
                 decoration: BoxDecoration(
@@ -297,7 +347,7 @@ class HasilScreeningPage extends StatelessWidget {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      riskDescription,
+                      widget.riskDescription,
                       textAlign: TextAlign.center,
                       style: const TextStyle(
                         fontSize: 13,
@@ -325,7 +375,7 @@ class HasilScreeningPage extends StatelessWidget {
               ),
               const SizedBox(height: 4),
               Text(
-                'Berdasarkan data yang Anda masukkan, model memprediksi kemungkinan Anda mengalami osteoporosis sebesar ${scorePercentage.toInt()}%.',
+                'Berdasarkan data yang Anda masukkan, model memprediksi kemungkinan Anda mengalami osteoporosis sebesar ${widget.scorePercentage.toInt()}%.',
                 style: const TextStyle(
                   fontSize: 12.5,
                   fontWeight: FontWeight.w400,

@@ -1,13 +1,14 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:oste/features/consultation/consultation_page.dart';
 import 'package:oste/features/education/education_page.dart';
 import 'package:oste/features/education/tahukah_anda/tahukah_anda_page.dart';
 import 'package:oste/features/history/history_page.dart';
 import 'package:oste/features/profile/profile_page.dart';
+import 'package:oste/features/screening/hasil_page.dart';
 import 'package:oste/features/screening/screening_page.dart';
-import 'package:oste/features/consultation/consultation_page.dart';
-
-
+import 'package:oste/services/history_service.dart';
+import 'package:oste/services/user_service.dart';
 
 /// Definisi palet warna resmi Osteo Dashboard sesuai spesifikasi
 class _DashboardColors {
@@ -34,7 +35,7 @@ class DashboardPage extends StatefulWidget {
 }
 
 class _DashboardPageState extends State<DashboardPage> {
-  int _currentIndex = 0;
+  final int _currentIndex = 0;
 
   @override
   Widget build(BuildContext context) {
@@ -103,7 +104,6 @@ class _DashboardPageState extends State<DashboardPage> {
               break;
 
             case 2:
-              print("Klik Edukasi");
               Navigator.push(
                 context,
                 MaterialPageRoute(
@@ -178,77 +178,85 @@ class _HeaderSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        // Avatar foto profil Risma
-        Container(
-          width: 52,
-          height: 52,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: _DashboardColors.abuMuda,
-            border: Border.all(
-              color: _DashboardColors.border,
-              width: 1.5,
+    return AnimatedBuilder(
+      animation: UserService(),
+      builder: (context, _) {
+        final user = UserService().currentUser;
+        final displayName = user != null ? user.firstName : 'Pengguna';
+
+        return Row(
+          children: [
+            // Avatar foto profil
+            Container(
+              width: 52,
+              height: 52,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: _DashboardColors.abuMuda,
+                border: Border.all(
+                  color: _DashboardColors.border,
+                  width: 1.5,
+                ),
+              ),
+              child: ClipOval(
+                child: Image.network(
+                  'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=200&q=80',
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) {
+                    return const Center(
+                      child: Icon(
+                        Icons.person_rounded,
+                        size: 30,
+                        color: _DashboardColors.textMuted,
+                      ),
+                    );
+                  },
+                  loadingBuilder: (context, child, loadingProgress) {
+                    if (loadingProgress == null) return child;
+                    return const Center(
+                      child: SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: _DashboardColors.primaryButterYellow,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
             ),
-          ),
-          child: ClipOval(
-            child: Image.network(
-              'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=200&q=80',
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) {
-                return const Center(
-                  child: Icon(
-                    Icons.person_rounded,
-                    size: 30,
-                    color: _DashboardColors.textMuted,
-                  ),
-                );
-              },
-              loadingBuilder: (context, child, loadingProgress) {
-                if (loadingProgress == null) return child;
-                return const Center(
-                  child: SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: _DashboardColors.primaryButterYellow,
+            const SizedBox(width: 14),
+            // Nama pengguna & teks penyemangat
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Hai, $displayName 👋',
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: _DashboardColors.textDark,
+                      letterSpacing: -0.3,
                     ),
                   ),
-                );
-              },
+                  const SizedBox(height: 3),
+                  const Text(
+                    'Semangat jaga kesehatan tulangmu!',
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w400,
+                      color: _DashboardColors.textMuted,
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ),
-        const SizedBox(width: 14),
-        // Nama pengguna & teks penyemangat
-        const Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Hai, Risma 👋',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                  color: _DashboardColors.textDark,
-                  letterSpacing: -0.3,
-                ),
-              ),
-              SizedBox(height: 3),
-              Text(
-                'Semangat jaga kesehatan tulangmu!',
-                style: TextStyle(
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.w400,
-                  color: _DashboardColors.textMuted,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
+          ],
+        );
+      },
     );
   }
 }
@@ -431,149 +439,293 @@ class _CuteBoneMascotPainter extends CustomPainter {
 class _LatestScreeningSection extends StatelessWidget {
   const _LatestScreeningSection();
 
+  static String _formatDate(DateTime dt) {
+    const months = [
+      'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+      'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+    ];
+    return '${dt.day} ${months[dt.month - 1]} ${dt.year}';
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Judul section dan tanggal
-        const Text(
-          'Hasil Skrining Terbaru',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w700,
-            color: _DashboardColors.textDark,
-            letterSpacing: -0.2,
-          ),
+    final historyService = HistoryService();
+
+    return AnimatedBuilder(
+      animation: historyService,
+      builder: (context, _) {
+        final latest = historyService.latestScreening;
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Judul section dan tanggal
+            const Text(
+              'Hasil Skrining Terbaru',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: _DashboardColors.textDark,
+                letterSpacing: -0.2,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              latest != null ? _formatDate(latest.tanggal) : 'Belum ada riwayat',
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w400,
+                color: _DashboardColors.textLight,
+              ),
+            ),
+            const SizedBox(height: 12),
+            if (latest == null)
+              _buildPlaceholder(context)
+            else
+              _buildResultCard(context, latest),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildPlaceholder(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF9F0),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: const Color(0xFFFDE68A).withValues(alpha: 0.8),
+          width: 1.2,
         ),
-        const SizedBox(height: 2),
-        const Text(
-          '20 Mei 2025',
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w400,
-            color: _DashboardColors.textLight,
-          ),
-        ),
-        const SizedBox(height: 12),
-        // Card Hasil Skrining
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: const Color(0xFFFFF5F6),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: const Color(0xFFFFDDE3),
-              width: 1,
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFFBEB),
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: const Color(0xFFFDE68A),
+                width: 1.5,
+              ),
+            ),
+            child: const Icon(
+              Icons.assignment_outlined,
+              size: 24,
+              color: _DashboardColors.orange,
             ),
           ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              // Gauge lingkaran persentase 58%
-              const SizedBox(
-                width: 104,
-                height: 104,
-                child: CustomPaint(
-                  painter: _ScreeningGaugePainter(percentage: 0.58),
-                  child: Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          '58%',
-                          style: TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.w800,
-                            color: _DashboardColors.orange,
-                            letterSpacing: -0.5,
-                          ),
+          const SizedBox(width: 14),
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Belum Ada Hasil Skrining',
+                  style: TextStyle(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w700,
+                    color: _DashboardColors.textDark,
+                    letterSpacing: -0.2,
+                  ),
+                ),
+                SizedBox(height: 3),
+                Text(
+                  'Lakukan skrining untuk mengetahui tingkat risiko osteoporosis Anda.',
+                  style: TextStyle(
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w400,
+                    color: _DashboardColors.textMuted,
+                    height: 1.35,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 10),
+          InkWell(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const ScreeningPage(),
+                ),
+              );
+            },
+            borderRadius: BorderRadius.circular(20),
+            child: Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 14,
+                vertical: 8,
+              ),
+              decoration: BoxDecoration(
+                color: _DashboardColors.primaryButterYellow,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: const Text(
+                'Mulai',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: _DashboardColors.textDark,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildResultCard(BuildContext context, dynamic latest) {
+    final bool isPos = latest.isPositive;
+    final Color bgColor = isPos ? const Color(0xFFFFF5F6) : const Color(0xFFF0FDF4);
+    final Color borderColor = isPos ? const Color(0xFFFFDDE3) : const Color(0xFFBBF7D0);
+    final Color statusColor = isPos ? _DashboardColors.redAlert : const Color(0xFF16A34A);
+    final String statusText = isPos ? 'Terindikasi\nOsteoporosis' : 'Tidak Terindikasi\nOsteoporosis';
+
+    return InkWell(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => HasilScreeningPage(
+              scorePercentage: latest.probabilitas.toDouble(),
+              riskTitle: latest.riskCategory ?? (isPos ? 'risiko sedang' : 'risiko rendah'),
+              riskDescription: latest.summary ?? '',
+              predictionData: latest.predictionData,
+              recommendations: latest.recommendations,
+              screeningId: latest.id,
+              autoSave: false,
+            ),
+          ),
+        );
+      },
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: borderColor,
+            width: 1,
+          ),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            // Gauge lingkaran persentase
+            SizedBox(
+              width: 104,
+              height: 104,
+              child: CustomPaint(
+                painter: _ScreeningGaugePainter(
+                  percentage: (latest.probabilitas / 100.0).clamp(0.0, 1.0),
+                ),
+                child: Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        '${latest.probabilitas}%',
+                        style: const TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w800,
+                          color: _DashboardColors.orange,
+                          letterSpacing: -0.5,
                         ),
-                        Text(
-                          'Probabilitas\nOsteoporosis',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 8.5,
-                            fontWeight: FontWeight.w500,
-                            color: _DashboardColors.textMuted,
-                            height: 1.15,
-                          ),
+                      ),
+                      const Text(
+                        'Probabilitas\nOsteoporosis',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 8.5,
+                          fontWeight: FontWeight.w500,
+                          color: _DashboardColors.textMuted,
+                          height: 1.15,
                         ),
-                        SizedBox(height: 4),
-                        Icon(
-                          Icons.info_outline_rounded,
-                          size: 11,
-                          color: _DashboardColors.textLight,
-                        ),
-                      ],
-                    ),
+                      ),
+                      const SizedBox(height: 4),
+                      const Icon(
+                        Icons.info_outline_rounded,
+                        size: 11,
+                        color: _DashboardColors.textLight,
+                      ),
+                    ],
                   ),
                 ),
               ),
-              const SizedBox(width: 14),
-              // Deskripsi diagnosis
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        // Maskot kecil merah
-                        const SizedBox(
-                          width: 28,
-                          height: 34,
-                          child: CustomPaint(
-                            painter: _RedScreeningMascotPainter(),
-                          ),
+            ),
+            const SizedBox(width: 14),
+            // Deskripsi diagnosis
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      SizedBox(
+                        width: 28,
+                        height: 34,
+                        child: CustomPaint(
+                          painter: _RedScreeningMascotPainter(isPositive: isPos),
                         ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'HASIL SKRINING',
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w700,
-                                  color: _DashboardColors.textMuted.withValues(alpha: 0.9),
-                                  letterSpacing: 0.5,
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              const Text(
-                                'Terindikasi\nOsteoporosis',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w800,
-                                  color: _DashboardColors.redAlert,
-                                  height: 1.2,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    const Text(
-                      'Berdasarkan data yang Anda masukkan, model memprediksi kemungkinan Anda mengalami osteoporosis sebesar 58%.',
-                      style: TextStyle(
-                        fontSize: 10.5,
-                        fontWeight: FontWeight.w400,
-                        color: _DashboardColors.textMuted,
-                        height: 1.35,
                       ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'HASIL SKRINING',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                                color: _DashboardColors.textMuted.withValues(alpha: 0.9),
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              statusText,
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w800,
+                                color: statusColor,
+                                height: 1.2,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    latest.summary ??
+                        'Berdasarkan data yang Anda masukkan, model memprediksi kemungkinan Anda mengalami osteoporosis sebesar ${latest.probabilitas}%.',
+                    style: const TextStyle(
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.w400,
+                      color: _DashboardColors.textMuted,
+                      height: 1.35,
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 }
@@ -623,18 +775,19 @@ class _ScreeningGaugePainter extends CustomPainter {
       oldDelegate.percentage != percentage;
 }
 
-/// Custom painter maskot merah kecil di kartu hasil skrining
+/// Custom painter maskot merah/hijau kecil di kartu hasil skrining
 class _RedScreeningMascotPainter extends CustomPainter {
-  const _RedScreeningMascotPainter();
+  final bool isPositive;
+  const _RedScreeningMascotPainter({this.isPositive = true});
 
   @override
   void paint(Canvas canvas, Size size) {
     final paintFill = Paint()
-      ..color = const Color(0xFFFF4D6D)
+      ..color = isPositive ? const Color(0xFFFF4D6D) : const Color(0xFF4ADE80)
       ..style = PaintingStyle.fill;
 
     final paintStroke = Paint()
-      ..color = const Color(0xFFE11D48)
+      ..color = isPositive ? const Color(0xFFE11D48) : const Color(0xFF16A34A)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.6
       ..strokeCap = StrokeCap.round

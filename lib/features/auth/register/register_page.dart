@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:oste/features/auth/login/login_page.dart';
 import 'package:oste/features/auth/register_success/register_success_page.dart';
+import 'package:oste/services/user_service.dart';
 
 /// Palet warna halaman Register
 class _RegisterColors {
@@ -35,6 +36,20 @@ class _RegisterPageState extends State<RegisterPage> {
   bool _obscureConfirmPassword = true;
   bool _agreedToTerms = false;
 
+  bool get _hasMinLength => _passwordController.text.length >= 8;
+  bool get _hasUppercase => _passwordController.text.contains(RegExp(r'[A-Z]'));
+  bool get _hasLowercase => _passwordController.text.contains(RegExp(r'[a-z]'));
+  bool get _hasDigit => _passwordController.text.contains(RegExp(r'[0-9]'));
+  bool get _hasSpecialChar =>
+      _passwordController.text.contains(RegExp(r'[^a-zA-Z0-9\s]'));
+
+  bool get _isPasswordValid =>
+      _hasMinLength &&
+      _hasUppercase &&
+      _hasLowercase &&
+      _hasDigit &&
+      _hasSpecialChar;
+
   @override
   void dispose() {
     _nameController.dispose();
@@ -52,13 +67,16 @@ class _RegisterPageState extends State<RegisterPage> {
     final password = _passwordController.text;
     final confirmPassword = _confirmPasswordController.text;
 
+    final messenger = ScaffoldMessenger.of(context);
+
     // Validasi kelengkapan data
     if (name.isEmpty ||
         email.isEmpty ||
         phone.isEmpty ||
         password.isEmpty ||
         confirmPassword.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.hideCurrentSnackBar();
+      messenger.showSnackBar(
         const SnackBar(
           content: Text('Mohon isi semua data formulir registrasi.'),
           backgroundColor: Color(0xFFE11D48),
@@ -67,9 +85,22 @@ class _RegisterPageState extends State<RegisterPage> {
       return;
     }
 
+    // Validasi syarat password
+    if (!_isPasswordValid) {
+      messenger.hideCurrentSnackBar();
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('Password belum memenuhi seluruh syarat yang ditentukan.'),
+          backgroundColor: Color(0xFFE11D48),
+        ),
+      );
+      return;
+    }
+
     // Validasi kecocokan password
     if (password != confirmPassword) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.hideCurrentSnackBar();
+      messenger.showSnackBar(
         const SnackBar(
           content: Text('Password dan konfirmasi password tidak cocok.'),
           backgroundColor: Color(0xFFE11D48),
@@ -80,7 +111,8 @@ class _RegisterPageState extends State<RegisterPage> {
 
     // Validasi persetujuan syarat & ketentuan
     if (!_agreedToTerms) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.hideCurrentSnackBar();
+      messenger.showSnackBar(
         const SnackBar(
           content: Text('Anda harus menyetujui Syarat & Ketentuan serta Kebijakan Privasi.'),
           backgroundColor: Color(0xFFE11D48),
@@ -89,8 +121,27 @@ class _RegisterPageState extends State<RegisterPage> {
       return;
     }
 
-    // Jika semua validasi berhasil:
-    ScaffoldMessenger.of(context).showSnackBar(
+    // Simpan ke UserService
+    final success = UserService().register(
+      name: name,
+      email: email,
+      phone: phone,
+      password: password,
+    );
+
+    if (!success) {
+      messenger.hideCurrentSnackBar();
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('Email sudah digunakan. Gunakan email lain.'),
+          backgroundColor: Color(0xFFE11D48),
+        ),
+      );
+      return;
+    }
+
+    messenger.hideCurrentSnackBar();
+    messenger.showSnackBar(
       const SnackBar(
         content: Text('Registrasi berhasil. Silakan login.'),
         backgroundColor: Color(0xFF10B981),
@@ -231,6 +282,9 @@ class _RegisterPageState extends State<RegisterPage> {
                       });
                     },
                     textInputAction: TextInputAction.next,
+                    onChanged: (value) {
+                      setState(() {});
+                    },
                   ),
                   const SizedBox(height: 14),
 
@@ -377,6 +431,7 @@ class _RegisterPageState extends State<RegisterPage> {
     required bool obscure,
     required VoidCallback onToggle,
     required TextInputAction textInputAction,
+    ValueChanged<String>? onChanged,
   }) {
     return Container(
       decoration: BoxDecoration(
@@ -394,6 +449,7 @@ class _RegisterPageState extends State<RegisterPage> {
         controller: controller,
         obscureText: obscure,
         textInputAction: textInputAction,
+        onChanged: onChanged,
         style: const TextStyle(
           fontSize: 14,
           color: _RegisterColors.textDark,
@@ -474,40 +530,52 @@ class _RegisterPageState extends State<RegisterPage> {
             ),
           ),
           const SizedBox(height: 8),
-          _buildRequirementItem('Minimal 8 karakter'),
+          _buildRequirementItem('Minimal 8 karakter', _hasMinLength),
           const SizedBox(height: 5),
-          _buildRequirementItem('Huruf besar dan huruf kecil'),
+          _buildRequirementItem(
+            'Huruf besar dan huruf kecil',
+            _hasUppercase && _hasLowercase,
+          ),
           const SizedBox(height: 5),
-          _buildRequirementItem('Angka'),
+          _buildRequirementItem('Angka', _hasDigit),
           const SizedBox(height: 5),
-          _buildRequirementItem('Karakter khusus (contoh: !@#)'),
+          _buildRequirementItem(
+            'Karakter khusus (contoh: !@#)',
+            _hasSpecialChar,
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildRequirementItem(String text) {
+  Widget _buildRequirementItem(String text, bool isMet) {
     return Row(
       children: [
-        Container(
-          width: 13,
-          height: 13,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            border: Border.all(
-              color: const Color(0xFFD4A359),
-              width: 1.3,
-            ),
-          ),
-        ),
+        isMet
+            ? const Icon(
+                Icons.check_circle,
+                size: 13,
+                color: Color(0xFF10B981),
+              )
+            : Container(
+                width: 13,
+                height: 13,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: const Color(0xFFD4A359),
+                    width: 1.3,
+                  ),
+                ),
+              ),
         const SizedBox(width: 10),
         Expanded(
           child: Text(
             text,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 11.5,
               fontWeight: FontWeight.w400,
-              color: _RegisterColors.textMuted,
+              color: isMet ? const Color(0xFF047857) : _RegisterColors.textMuted,
             ),
           ),
         ),

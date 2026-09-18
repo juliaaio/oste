@@ -4,6 +4,7 @@ import 'package:oste/features/dashboard/dashboard_page.dart';
 import 'package:oste/features/auth/register/register_page.dart';
 import 'package:oste/features/auth/forgot_password/forgot_password_page.dart';
 import 'package:oste/features/auth/login/google_login/google_account_picker_page.dart';
+import 'package:oste/services/user_service.dart';
 
 /// Palet warna halaman Login
 class _LoginColors {
@@ -359,13 +360,56 @@ class _LoginPageState extends State<LoginPage> {
       ),
       child: ElevatedButton(
         onPressed: () {
-          // Navigasi ke DashboardPage
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (_) => const DashboardPage(),
-            ),
-          );
+          final email = _emailController.text.trim();
+          final password = _passwordController.text;
+
+          final messenger = ScaffoldMessenger.of(context);
+
+          if (email.isEmpty || password.isEmpty) {
+            messenger.hideCurrentSnackBar();
+            messenger.showSnackBar(
+              const SnackBar(
+                content: Text('Mohon masukkan email dan password.'),
+                backgroundColor: Color(0xFFE11D48),
+              ),
+            );
+            return;
+          }
+
+          final userService = UserService();
+          final result = userService.authenticate(email: email, password: password);
+
+          switch (result) {
+            case LoginResult.emailNotFound:
+              messenger.hideCurrentSnackBar();
+              messenger.showSnackBar(
+                const SnackBar(
+                  content: Text('Email belum terdaftar. Silakan daftar terlebih dahulu.'),
+                  backgroundColor: Color(0xFFE11D48),
+                ),
+              );
+              return;
+
+            case LoginResult.wrongPassword:
+              messenger.hideCurrentSnackBar();
+              messenger.showSnackBar(
+                const SnackBar(
+                  content: Text('Password salah. Silakan periksa kembali password Anda.'),
+                  backgroundColor: Color(0xFFE11D48),
+                ),
+              );
+              return;
+
+            case LoginResult.success:
+              messenger.hideCurrentSnackBar();
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const DashboardPage(),
+                ),
+              );
+              break;
+          }
         },
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.transparent,

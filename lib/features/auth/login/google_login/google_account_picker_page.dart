@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:oste/features/dashboard/dashboard_page.dart';
+import 'package:oste/models/user_model.dart';
+import 'package:oste/services/user_service.dart';
 
 /// Halaman pemilih akun Google (UI dummy, belum terintegrasi Firebase Auth).
 ///
@@ -108,6 +110,18 @@ class _PickerCard extends StatelessWidget {
             name: 'Risma Putri',
             email: 'risma@gmail.com',
             onTap: (context) {
+              UserService().loginDirect(
+                const UserModel(
+                  name: 'Risma Putri',
+                  email: 'risma@gmail.com',
+                  phone: '0812-3456-7890',
+                  password: '',
+                  gender: 'Perempuan',
+                  birthDate: '15 Mei 1998',
+                  weight: 52,
+                  height: 160,
+                ),
+              );
               Navigator.pushReplacement(
                 context,
                 MaterialPageRoute(builder: (_) => const DashboardPage()),
@@ -119,14 +133,40 @@ class _PickerCard extends StatelessWidget {
             avatar: _InitialAvatar(initial: 'R', color: Color(0xFF1A73E8)),
             name: 'Risma',
             email: 'risma@student.ac.id',
-            onTap: null,
+            onTap: (context) {
+              UserService().loginDirect(
+                const UserModel(
+                  name: 'Risma',
+                  email: 'risma@student.ac.id',
+                  phone: '',
+                  password: '',
+                ),
+              );
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (_) => const DashboardPage()),
+              );
+            },
           ),
           const Divider(height: 1, indent: 72, color: Color(0xFFF1F3F4)),
           _AccountTile(
             avatar: _InitialAvatar(initial: 'A', color: Color(0xFF7B1FA2)),
             name: 'Andini',
             email: 'andini@gmail.com',
-            onTap: null,
+            onTap: (context) {
+              UserService().loginDirect(
+                const UserModel(
+                  name: 'Andini',
+                  email: 'andini@gmail.com',
+                  phone: '',
+                  password: '',
+                ),
+              );
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (_) => const DashboardPage()),
+              );
+            },
           ),
           const Divider(height: 1, indent: 72, color: Color(0xFFF1F3F4)),
           _UseAnotherAccountTile(),

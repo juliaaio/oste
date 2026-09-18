@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:oste/features/dashboard/dashboard_page.dart';
 import 'package:oste/features/education/education_page.dart';
 import 'package:oste/features/history/history_page.dart';
+import 'package:oste/services/user_service.dart';
 
 // ---------------------------------------------------------------------------
 // Palet warna resmi Halaman Profil (konsisten dengan tema Oste)
@@ -55,194 +56,210 @@ class ProfilePage extends StatelessWidget {
           ),
         ),
       ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          physics: const ClampingScrollPhysics(),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 8),
+      body: AnimatedBuilder(
+        animation: UserService(),
+        builder: (context, _) {
+          final user = UserService().currentUser;
+          final name = user?.name ?? '-';
+          final email = user?.email ?? '-';
+          final phone = user?.phone.isNotEmpty == true ? user!.phone : '-';
+          final gender = user?.gender.isNotEmpty == true ? user!.gender : '-';
+          final birthDate = user?.birthDate.isNotEmpty == true ? user!.birthDate : '-';
+          final weightStr = user?.weight != null ? '${user!.weight!.toStringAsFixed(0)} kg' : '-';
+          final heightStr = user?.height != null ? '${user!.height!.toStringAsFixed(0)} cm' : '-';
 
-              // ── Header Profil (Foto, Nama, Email, No. HP) ────────────
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                child: Row(
-                  children: [
-                    Stack(
+          return SafeArea(
+            child: SingleChildScrollView(
+              physics: const ClampingScrollPhysics(),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 8),
+
+                  // ── Header Profil (Foto, Nama, Email, No. HP) ────────────
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                    child: Row(
                       children: [
-                        Container(
-                          width: 74,
-                          height: 74,
-                          decoration: const BoxDecoration(
-                            shape: BoxShape.circle,
-                          ),
-                          child: ClipOval(
-                            child: Image.network(
-                              'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=400&q=80',
+                        Stack(
+                          children: [
+                            Container(
                               width: 74,
                               height: 74,
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) =>
-                                  Container(
-                                color: const Color(0xFFE2E8F0),
-                                child: const Icon(
-                                  Icons.person,
-                                  size: 40,
-                                  color: _ProfileColors.textLight,
+                              decoration: const BoxDecoration(
+                                shape: BoxShape.circle,
+                              ),
+                              child: ClipOval(
+                                child: Image.network(
+                                  'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=400&q=80',
+                                  width: 74,
+                                  height: 74,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) =>
+                                      Container(
+                                    color: const Color(0xFFE2E8F0),
+                                    child: const Icon(
+                                      Icons.person,
+                                      size: 40,
+                                      color: _ProfileColors.textLight,
+                                    ),
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
-                        ),
-                        Positioned(
-                          bottom: 0,
-                          right: 0,
-                          child: Container(
-                            width: 24,
-                            height: 24,
-                            decoration: BoxDecoration(
-                              color: _ProfileColors.orange,
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: Colors.white,
-                                width: 2,
-                              ),
-                            ),
-                            child: const Center(
-                              child: Icon(
-                                Icons.edit,
-                                size: 12,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(width: 16),
-                    const Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Risma Putri',
-                            style: TextStyle(
-                              fontSize: 17,
-                              fontWeight: FontWeight.w700,
-                              color: _ProfileColors.textDark,
-                              letterSpacing: -0.2,
-                            ),
-                          ),
-                          SizedBox(height: 3),
-                          Text(
-                            'rismaputri@gmail.com',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w400,
-                              color: _ProfileColors.textMuted,
-                            ),
-                          ),
-                          SizedBox(height: 2),
-                          Text(
-                            '085301010505',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w400,
-                              color: _ProfileColors.textMuted,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 8),
-
-              // ── Garis Pemisah Penuh ──────────────────────────────────
-              const Divider(
-                height: 24,
-                thickness: 1,
-                color: _ProfileColors.divider,
-              ),
-
-              const SizedBox(height: 8),
-
-              // ── Bagian Data Pribadi ───────────────────────────────────
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          'Data Pribadi',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
-                            color: _ProfileColors.textDark,
-                            letterSpacing: -0.2,
-                          ),
-                        ),
-                        InkWell(
-                          onTap: () {
-                            // UI Only - fungsi ubah data pribadi akan ditambahkan nanti
-                          },
-                          borderRadius: BorderRadius.circular(6),
-                          child: const Padding(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: 4,
-                              vertical: 2,
-                            ),
-                            child: Row(
-                              children: [
-                                Icon(
-                                  Icons.edit_outlined,
-                                  size: 15,
+                            Positioned(
+                              bottom: 0,
+                              right: 0,
+                              child: Container(
+                                width: 24,
+                                height: 24,
+                                decoration: BoxDecoration(
                                   color: _ProfileColors.orange,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: Colors.white,
+                                    width: 2,
+                                  ),
                                 ),
-                                SizedBox(width: 4),
+                                child: const Center(
+                                  child: Icon(
+                                    Icons.edit,
+                                    size: 12,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                name,
+                                style: const TextStyle(
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.w700,
+                                  color: _ProfileColors.textDark,
+                                  letterSpacing: -0.2,
+                                ),
+                              ),
+                              const SizedBox(height: 3),
+                              Text(
+                                email,
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w400,
+                                  color: _ProfileColors.textMuted,
+                                ),
+                              ),
+                              if (phone != '-') ...[
+                                const SizedBox(height: 2),
                                 Text(
-                                  'Ubah',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w600,
-                                    color: _ProfileColors.orange,
+                                  phone,
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w400,
+                                    color: _ProfileColors.textMuted,
                                   ),
                                 ),
                               ],
-                            ),
+                            ],
                           ),
                         ),
                       ],
                     ),
+                  ),
 
-                    const SizedBox(height: 18),
+                  const SizedBox(height: 8),
 
-                    _buildDataRow('Nama Lengkap', 'Risma Putri'),
-                    _buildDivider(),
-                    _buildDataRow('Email', 'risma@gmail.com'),
-                    _buildDivider(),
-                    _buildDataRow('Nomor HP', '085301010505'),
-                    _buildDivider(),
-                    _buildDataRow('Jenis Kelamin', 'Perempuan'),
-                    _buildDivider(),
-                    _buildDataRow('Tanggal Lahir', '20 Mei 2001'),
-                    _buildDivider(),
-                    _buildDataRow('Berat Badan', '52 kg'),
-                    _buildDivider(),
-                    _buildDataRow('Tinggi Badan', '160 cm'),
+                  // ── Garis Pemisah Penuh ──────────────────────────────────
+                  const Divider(
+                    height: 24,
+                    thickness: 1,
+                    color: _ProfileColors.divider,
+                  ),
 
-                    const SizedBox(height: 28),
-                  ],
-                ),
+                  const SizedBox(height: 8),
+
+                  // ── Bagian Data Pribadi ───────────────────────────────────
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text(
+                              'Data Pribadi',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                                color: _ProfileColors.textDark,
+                                letterSpacing: -0.2,
+                              ),
+                            ),
+                            InkWell(
+                              onTap: () {
+                                // UI Only - fungsi ubah data pribadi akan ditambahkan nanti
+                              },
+                              borderRadius: BorderRadius.circular(6),
+                              child: const Padding(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: 4,
+                                  vertical: 2,
+                                ),
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.edit_outlined,
+                                      size: 15,
+                                      color: _ProfileColors.orange,
+                                    ),
+                                    SizedBox(width: 4),
+                                    Text(
+                                      'Ubah',
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w600,
+                                        color: _ProfileColors.orange,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        const SizedBox(height: 18),
+
+                        _buildDataRow('Nama Lengkap', name),
+                        _buildDivider(),
+                        _buildDataRow('Email', email),
+                        _buildDivider(),
+                        _buildDataRow('Nomor HP', phone),
+                        _buildDivider(),
+                        _buildDataRow('Jenis Kelamin', gender),
+                        _buildDivider(),
+                        _buildDataRow('Tanggal Lahir', birthDate),
+                        _buildDivider(),
+                        _buildDataRow('Berat Badan', weightStr),
+                        _buildDivider(),
+                        _buildDataRow('Tinggi Badan', heightStr),
+
+                        const SizedBox(height: 28),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-            ],
-          ),
-        ),
+            ),
+          );
+        },
       ),
       bottomNavigationBar: _buildBottomNav(context),
     );

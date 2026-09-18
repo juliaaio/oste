@@ -1,6 +1,14 @@
 import 'dart:convert';
+import 'package:oste/features/screening/hasil_page.dart';
+import 'package:oste/models/consultation_history_model.dart';
 
-/// Model data untuk riwayat skrining osteoporosis.
+/// Jenis riwayat untuk membedakan antara hasil skrining mandiri dan sesi konsultasi dokter
+enum HistoryType {
+  screening,
+  consultation,
+}
+
+/// Model data untuk riwayat (skrining osteoporosis maupun konsultasi medis).
 class HistoryModel {
   final String id;
   final DateTime tanggal;
@@ -8,6 +16,16 @@ class HistoryModel {
   final int probabilitas;
   final String status;
   final bool isPositive;
+  final HistoryType type;
+
+  // Detail tambahan khusus riwayat skrining
+  final String? riskCategory;
+  final String? summary;
+  final List<PredictionItem>? predictionData;
+  final List<String>? recommendations;
+
+  // Detail tambahan khusus riwayat konsultasi
+  final ConsultationHistory? consultation;
 
   const HistoryModel({
     required this.id,
@@ -16,7 +34,64 @@ class HistoryModel {
     required this.probabilitas,
     required this.status,
     required this.isPositive,
+    this.type = HistoryType.screening,
+    this.riskCategory,
+    this.summary,
+    this.predictionData,
+    this.recommendations,
+    this.consultation,
   });
+
+  /// Factory untuk membuat HistoryModel dari hasil skrining mandiri
+  factory HistoryModel.fromScreening({
+    required String id,
+    required DateTime tanggal,
+    required String waktu,
+    required int probabilitas,
+    required String status,
+    required bool isPositive,
+    String? riskCategory,
+    String? summary,
+    List<PredictionItem>? predictionData,
+    List<String>? recommendations,
+  }) {
+    return HistoryModel(
+      id: id,
+      tanggal: tanggal,
+      waktu: waktu,
+      probabilitas: probabilitas,
+      status: status,
+      isPositive: isPositive,
+      type: HistoryType.screening,
+      riskCategory: riskCategory,
+      summary: summary,
+      predictionData: predictionData,
+      recommendations: recommendations,
+    );
+  }
+
+  /// Factory untuk membuat HistoryModel dari data riwayat konsultasi
+  factory HistoryModel.fromConsultation(ConsultationHistory consultation) {
+    // Parse tanggal konsultasi jika memungkinkan
+    DateTime dateParsed;
+    try {
+      dateParsed = DateTime.now();
+    } catch (_) {
+      dateParsed = DateTime.now();
+    }
+
+    return HistoryModel(
+      id: consultation.id,
+      tanggal: dateParsed,
+      waktu: consultation.time,
+      probabilitas: 0,
+      status: consultation.diagnosis,
+      isPositive: false,
+      type: HistoryType.consultation,
+      summary: consultation.summary,
+      consultation: consultation,
+    );
+  }
 
   /// Mengembalikan salinan instance dengan nilai baru jika diberikan.
   HistoryModel copyWith({
@@ -26,6 +101,12 @@ class HistoryModel {
     int? probabilitas,
     String? status,
     bool? isPositive,
+    HistoryType? type,
+    String? riskCategory,
+    String? summary,
+    List<PredictionItem>? predictionData,
+    List<String>? recommendations,
+    ConsultationHistory? consultation,
   }) {
     return HistoryModel(
       id: id ?? this.id,
@@ -34,6 +115,12 @@ class HistoryModel {
       probabilitas: probabilitas ?? this.probabilitas,
       status: status ?? this.status,
       isPositive: isPositive ?? this.isPositive,
+      type: type ?? this.type,
+      riskCategory: riskCategory ?? this.riskCategory,
+      summary: summary ?? this.summary,
+      predictionData: predictionData ?? this.predictionData,
+      recommendations: recommendations ?? this.recommendations,
+      consultation: consultation ?? this.consultation,
     );
   }
 
@@ -46,6 +133,10 @@ class HistoryModel {
       'probabilitas': probabilitas,
       'status': status,
       'isPositive': isPositive,
+      'type': type.name,
+      'riskCategory': riskCategory,
+      'summary': summary,
+      'recommendations': recommendations,
     };
   }
 
@@ -60,6 +151,14 @@ class HistoryModel {
       probabilitas: (map['probabilitas'] as num?)?.toInt() ?? 0,
       status: map['status'] as String? ?? '',
       isPositive: map['isPositive'] as bool? ?? false,
+      type: map['type'] == 'consultation'
+          ? HistoryType.consultation
+          : HistoryType.screening,
+      riskCategory: map['riskCategory'] as String?,
+      summary: map['summary'] as String?,
+      recommendations: (map['recommendations'] as List<dynamic>?)
+          ?.map((e) => e.toString())
+          .toList(),
     );
   }
 
@@ -72,7 +171,7 @@ class HistoryModel {
 
   @override
   String toString() {
-    return 'HistoryModel(id: $id, tanggal: $tanggal, waktu: $waktu, probabilitas: $probabilitas, status: $status, isPositive: $isPositive)';
+    return 'HistoryModel(id: $id, tanggal: $tanggal, waktu: $waktu, probabilitas: $probabilitas, status: $status, isPositive: $isPositive, type: $type)';
   }
 
   @override
@@ -84,7 +183,8 @@ class HistoryModel {
         other.waktu == waktu &&
         other.probabilitas == probabilitas &&
         other.status == status &&
-        other.isPositive == isPositive;
+        other.isPositive == isPositive &&
+        other.type == type;
   }
 
   @override
@@ -94,6 +194,7 @@ class HistoryModel {
         waktu.hashCode ^
         probabilitas.hashCode ^
         status.hashCode ^
-        isPositive.hashCode;
+        isPositive.hashCode ^
+        type.hashCode;
   }
 }
