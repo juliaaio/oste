@@ -4,6 +4,9 @@ import 'package:oste/features/education/nutrisi/nutrisi_page.dart';
 import 'package:oste/features/dashboard/dashboard_page.dart';
 import 'package:oste/features/history/history_page.dart';
 import 'package:oste/features/profile/profile_page.dart';
+import 'package:oste/features/education/pengertian/osteoporosis_page.dart';
+import 'package:oste/features/education/olahraga/olahraga_page.dart';
+
 
 class EducationPage extends StatelessWidget {
   const EducationPage({super.key});
@@ -245,18 +248,32 @@ class _EducationCard extends StatelessWidget {
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
         onTap: () {
-          if (topic.title.contains('Vitamin')) {
+          if (topic.title.contains('Mengenal')) {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => const VitaminPage(),
+                builder: (_) => const OsteoporosisPage(),
+              ),
+            );
+          } else if (topic.title.contains('Gerakan')) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const OlahragaPage(),
               ),
             );
           } else if (topic.title.contains('Makanan')) {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => const NutrisiPage(),
+                builder: (_) => const NutrisiPage(),
+              ),
+            );
+          } else if (topic.title.contains('Vitamin')) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const VitaminPage(),
               ),
             );
           }

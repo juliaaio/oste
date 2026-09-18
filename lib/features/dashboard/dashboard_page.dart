@@ -4,6 +4,8 @@ import 'package:oste/features/education/education_page.dart';
 import 'package:oste/features/education/tahukah_anda/tahukah_anda_page.dart';
 import 'package:oste/features/history/history_page.dart';
 import 'package:oste/features/profile/profile_page.dart';
+import 'package:oste/features/screening/screening_page.dart';
+import 'package:oste/features/consultation/consultation_page.dart';
 
 
 
@@ -738,6 +740,14 @@ class _MainMenuSection extends StatelessWidget {
               icon: Icons.assignment_outlined,
               iconColor: _DashboardColors.orange,
               iconBgColor: _DashboardColors.lightOrange,
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const ScreeningPage(),
+                  ),
+                );
+              },
             ),
             _MenuItemCard(
               title: 'Konsultasi Dokter',
@@ -745,6 +755,14 @@ class _MainMenuSection extends StatelessWidget {
               icon: Icons.person_pin_outlined,
               iconColor: Color(0xFF3B82F6),
               iconBgColor: Color(0xFFEFF6FF),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const ConsultationPage(),
+                  ),
+                );
+              },
             ),
             _MenuItemCard(
               title: 'Edukasi',
@@ -762,13 +780,21 @@ class _MainMenuSection extends StatelessWidget {
             },
           ),
 
-            _MenuItemCard(
-              title: 'Riwayat',
-              subtitle: 'Lihat hasil skrining dan aktivitasmu',
-              icon: Icons.access_time_filled_rounded,
-              iconColor: Color(0xFF8B5CF6),
-              iconBgColor: Color(0xFFF3E8FF),
-            ),
+           _MenuItemCard(
+            title: 'Riwayat',
+            subtitle: 'Lihat hasil skrining dan aktivitasmu',
+            icon: Icons.access_time_filled_rounded,
+            iconColor: Color(0xFF8B5CF6),
+            iconBgColor: Color(0xFFF3E8FF),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const HistoryPage(),
+                ),
+              );
+            },
+          ),
           ],
         ),
       ],

@@ -7,7 +7,7 @@ void main() {
   testWidgets('HasilPage renders all required elements and navigates to DoctorListPage', (WidgetTester tester) async {
     await tester.pumpWidget(
       const MaterialApp(
-        home: HasilPage(),
+        home: HasilScreeningPage(),
       ),
     );
 
