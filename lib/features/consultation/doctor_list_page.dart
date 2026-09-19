@@ -51,16 +51,13 @@ class _DoctorListPageState extends State<DoctorListPage> {
             size: 24,
           ),
           onPressed: () {
-            if (Navigator.canPop(context)) {
-              Navigator.pop(context);
-            } else {
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const DashboardPage(),
-                ),
-              );
-            }
+            Navigator.pushAndRemoveUntil(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const DashboardPage(),
+              ),
+              (route) => false,
+            );
           },
         ),
         centerTitle: true,
@@ -214,16 +211,13 @@ class _DoctorListPageState extends State<DoctorListPage> {
                   child: InkWell(
                     borderRadius: BorderRadius.circular(24),
                     onTap: () {
-                      if (Navigator.canPop(context)) {
-                        Navigator.pop(context);
-                      } else {
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const DashboardPage(),
-                          ),
-                        );
-                      }
+                      Navigator.pushAndRemoveUntil(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const DashboardPage(),
+                        ),
+                        (route) => false,
+                      );
                     },
                     child: const Center(
                       child: Text(

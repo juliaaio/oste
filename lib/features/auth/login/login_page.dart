@@ -30,6 +30,18 @@ class _LoginPageState extends State<LoginPage> {
   final TextEditingController _passwordController = TextEditingController();
   bool _obscurePassword = true;
 
+  /// Validasi format email menggunakan RegExp.
+  /// Email tidak boleh kosong, tidak boleh mengandung spasi,
+  /// dan harus memiliki format yang valid (contoh: user@gmail.com).
+  bool _isValidEmail(String email) {
+    if (email.isEmpty) return false;
+    if (email.contains(' ')) return false;
+    final emailRegExp = RegExp(
+      r'^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$',
+    );
+    return emailRegExp.hasMatch(email);
+  }
+
   @override
   void dispose() {
     _emailController.dispose();
@@ -370,6 +382,19 @@ class _LoginPageState extends State<LoginPage> {
             messenger.showSnackBar(
               const SnackBar(
                 content: Text('Mohon masukkan email dan password.'),
+                backgroundColor: Color(0xFFE11D48),
+              ),
+            );
+            return;
+          }
+
+          if (!_isValidEmail(email)) {
+            messenger.hideCurrentSnackBar();
+            messenger.showSnackBar(
+              const SnackBar(
+                content: Text(
+                  'Format email tidak valid. Contoh: user@gmail.com',
+                ),
                 backgroundColor: Color(0xFFE11D48),
               ),
             );

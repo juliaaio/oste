@@ -20,7 +20,7 @@ class TahukahAndaPage extends StatelessWidget {
     const List<FaktaCardData> cards = [
       FaktaCardData(
         number: '01',
-        title: 'Setelah usia 50 tahun,',
+        title: 'Setelah usia 50 tahun',
         description:
             'kepadatan tulang mulai berkurang secara alami. Menjaga asupan kalsium dan vitamin D dapat membantu memperlambat proses tersebut.',
         isIllustrationLeft: true,
@@ -44,7 +44,7 @@ class TahukahAndaPage extends StatelessWidget {
       ),
       FaktaCardData(
         number: '04',
-        title: 'Kalsium tidak hanya dari susu,',
+        title: 'Kalsium tidak hanya dari susu',
         description:
             'tetapi juga dapat diperoleh dari sayuran hijau seperti brokoli, ikan, kacang-kacangan, serta produk olahan susu lainnya.',
         isIllustrationLeft: false,
@@ -52,7 +52,7 @@ class TahukahAndaPage extends StatelessWidget {
       ),
       FaktaCardData(
         number: '05',
-        title: 'Gaya hidup juga berpengaruh.',
+        title: 'Gaya hidup juga berpengaruh',
         description:
             'Merokok, konsumsi alkohol berlebihan, kurang aktivitas fisik, dan pola makan tidak sehat dapat meningkatkan risiko osteoporosis.',
         isIllustrationLeft: true,

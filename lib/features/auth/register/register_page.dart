@@ -43,6 +43,18 @@ class _RegisterPageState extends State<RegisterPage> {
   bool get _hasSpecialChar =>
       _passwordController.text.contains(RegExp(r'[^a-zA-Z0-9\s]'));
 
+  /// Validasi format email menggunakan RegExp.
+  /// Email tidak boleh kosong, tidak boleh mengandung spasi,
+  /// dan harus memiliki format yang valid (contoh: user@gmail.com).
+  bool _isValidEmail(String email) {
+    if (email.isEmpty) return false;
+    if (email.contains(' ')) return false;
+    final emailRegExp = RegExp(
+      r'^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$',
+    );
+    return emailRegExp.hasMatch(email);
+  }
+
   bool get _isPasswordValid =>
       _hasMinLength &&
       _hasUppercase &&
@@ -79,6 +91,20 @@ class _RegisterPageState extends State<RegisterPage> {
       messenger.showSnackBar(
         const SnackBar(
           content: Text('Mohon isi semua data formulir registrasi.'),
+          backgroundColor: Color(0xFFE11D48),
+        ),
+      );
+      return;
+    }
+
+    // Validasi format email
+    if (!_isValidEmail(email)) {
+      messenger.hideCurrentSnackBar();
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Format email tidak valid. Contoh: user@gmail.com',
+          ),
           backgroundColor: Color(0xFFE11D48),
         ),
       );
