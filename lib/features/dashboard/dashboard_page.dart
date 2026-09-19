@@ -40,29 +40,102 @@ class _DashboardPageState extends State<DashboardPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
-      body: const SafeArea(
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SizedBox(height: 16),
-                _HeaderSection(),
-                SizedBox(height: 18),
-                _BannerSection(),
-                SizedBox(height: 22),
-                _LatestScreeningSection(),
-                SizedBox(height: 22),
-                _MainMenuSection(),
-                SizedBox(height: 18),
-                _EducationBannerSection(),
-                SizedBox(height: 24),
-              ],
+      backgroundColor: const Color(0xFFFFFCF5),
+      body: Stack(
+        children: [
+
+          // Background atas
+          Positioned(
+            top: -120,
+            left: -60,
+            child: Opacity(
+              opacity: 0.08,
+              child: Container(
+                width: 260,
+                height: 260,
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Color(0xFFF7C948),
+                ),
+              ),
             ),
           ),
-        ),
+
+          // Background kanan bawah
+          Positioned(
+            bottom: -150,
+            right: -90,
+            child: Opacity(
+              opacity: 0.06,
+              child: Container(
+                width: 320,
+                height: 320,
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Color(0xFFF7C948),
+                ),
+              ),
+            ),
+          ),
+
+          // Icon tulang transparan
+          Positioned(
+            top: 90,
+            right: 30,
+            child: Opacity(
+              opacity: 0.03,
+              child: Transform.rotate(
+                angle: -0.4,
+                child: const Icon(
+                  Icons.accessibility_new_rounded,
+                  size: 140,
+                  color: Color(0xFFF7C948),
+                ),
+              ),
+            ),
+          ),
+
+          // Icon kedua
+          Positioned(
+            bottom: 200,
+            left: 10,
+            child: Opacity(
+              opacity: 0.025,
+              child: Transform.rotate(
+                angle: 0.3,
+                child: const Icon(
+                  Icons.accessibility_new_rounded,
+                  size: 110,
+                  color: Color(0xFFF7C948),
+                ),
+              ),
+            ),
+          ),
+
+          const SafeArea(
+            child: SingleChildScrollView(
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: 20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(height: 16),
+                    _HeaderSection(),
+                    SizedBox(height: 18),
+                    _BannerSection(),
+                    SizedBox(height: 22),
+                    _LatestScreeningSection(),
+                    SizedBox(height: 22),
+                    _MainMenuSection(),
+                    SizedBox(height: 18),
+                    _EducationBannerSection(),
+                    SizedBox(height: 24),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
       bottomNavigationBar: _buildBottomNavigationBar(),
     );
@@ -276,7 +349,7 @@ class _BannerSection extends StatelessWidget {
         color: _DashboardColors.lightOrange,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: const Color(0xFFFDE68A).withValues(alpha: 0.6),
+          color: const Color(0xFFFFE082),
           width: 1,
         ),
       ),

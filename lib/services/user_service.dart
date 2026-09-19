@@ -116,6 +116,7 @@ class UserService extends ChangeNotifier {
   /// Memperbarui data profil user yang sedang login.
   void updateProfile({
     String? name,
+    String? email,
     String? phone,
     String? gender,
     String? birthDate,
@@ -125,6 +126,7 @@ class UserService extends ChangeNotifier {
     if (_currentUser == null) return;
     _currentUser = _currentUser!.copyWith(
       name: name,
+      email: email,
       phone: phone,
       gender: gender,
       birthDate: birthDate,
@@ -133,9 +135,27 @@ class UserService extends ChangeNotifier {
     );
 
     // Perbarui juga di list registrasi
-    final idx = _registeredUsers.indexWhere(
-      (u) => u.email == _currentUser!.email,
+        final oldEmail = _currentUser!.email;
+
+    _currentUser = _currentUser!.copyWith(
+      name: name,
+      email: email,
+      phone: phone,
+      gender: gender,
+      birthDate: birthDate,
+      weight: weight,
+      height: height,
     );
+
+    final idx = _registeredUsers.indexWhere(
+      (u) => u.email == oldEmail,
+    );
+
+if (idx != -1) {
+  _registeredUsers[idx] = _currentUser!;
+}
+
+notifyListeners();
     if (idx >= 0) {
       _registeredUsers[idx] = _currentUser!;
     }

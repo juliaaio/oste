@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:oste/features/consultation/doctor_list_page.dart';
 import 'package:oste/features/history/models/history_model.dart';
 import 'package:oste/services/history_service.dart';
+import 'package:oste/features/dashboard/dashboard_page.dart';
+
 
 /// Palet warna resmi halaman Hasil Skrining Osteoporosis
 class _HasilColors {
@@ -199,13 +201,20 @@ class _HasilScreeningPageState extends State<HasilScreeningPage> {
         scrolledUnderElevation: 0,
         centerTitle: true,
         leading: IconButton(
-          icon: const Icon(
-            Icons.chevron_left_rounded,
-            size: 30,
-            color: _HasilColors.textDark,
-          ),
-          onPressed: () => Navigator.maybePop(context),
+        icon: const Icon(
+          Icons.chevron_left_rounded,
+          size: 30,
+          color: _HasilColors.textDark,
         ),
+        onPressed: () {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const DashboardPage(),
+            ),
+          );
+        },
+      ),
         title: const Text(
           'Skrining Penyakit',
           style: TextStyle(

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:oste/features/dashboard/dashboard_page.dart';
 import 'package:oste/features/education/education_page.dart';
 import 'package:oste/features/history/history_page.dart';
+import 'package:oste/features/profile/edit_page.dart';
 import 'package:oste/services/user_service.dart';
 
 // ---------------------------------------------------------------------------
@@ -110,22 +111,38 @@ class ProfilePage extends StatelessWidget {
                             Positioned(
                               bottom: 0,
                               right: 0,
-                              child: Container(
-                                width: 24,
-                                height: 24,
-                                decoration: BoxDecoration(
-                                  color: _ProfileColors.orange,
-                                  shape: BoxShape.circle,
-                                  border: Border.all(
-                                    color: Colors.white,
-                                    width: 2,
+                              child: GestureDetector(
+                               onTap: () async {
+                                  final result = await Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => const EditPage(
+                                        prefillFromUser: true,
+                                      ),
+                                    ),
+                                  );
+
+                                  if (result == true) {
+                                    UserService().notifyListeners();
+                                  }
+                                },
+                                child: Container(
+                                  width: 24,
+                                  height: 24,
+                                  decoration: BoxDecoration(
+                                    color: _ProfileColors.orange,
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: Colors.white,
+                                      width: 2,
+                                    ),
                                   ),
-                                ),
-                                child: const Center(
-                                  child: Icon(
-                                    Icons.edit,
-                                    size: 12,
-                                    color: Colors.white,
+                                  child: const Center(
+                                    child: Icon(
+                                      Icons.edit,
+                                      size: 12,
+                                      color: Colors.white,
+                                    ),
                                   ),
                                 ),
                               ),
@@ -203,9 +220,20 @@ class ProfilePage extends StatelessWidget {
                               ),
                             ),
                             InkWell(
-                              onTap: () {
-                                // UI Only - fungsi ubah data pribadi akan ditambahkan nanti
-                              },
+                             onTap: () async {
+                              final result = await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const EditPage(
+                                    prefillFromUser: true,
+                                  ),
+                                ),
+                              );
+
+                              if (result == true) {
+                                UserService().notifyListeners();
+                              }
+                            },
                               borderRadius: BorderRadius.circular(6),
                               child: const Padding(
                                 padding: EdgeInsets.symmetric(
