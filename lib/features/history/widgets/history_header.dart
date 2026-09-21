@@ -1,24 +1,17 @@
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
-class _HistoryColors {
-  static const Color primaryYellow  = Color(0xFFF7C948);
-  static const Color orange         = Color(0xFFF59E0B);
-  static const Color yellowCircleBg = Color(0xFFFFF8D6);
-  static const Color textDark       = Color(0xFF1E293B);
-  static const Color textMuted      = Color(0xFF64748B);
-}
-
+/// Header Halaman Riwayat sesuai desain Figma
 class HistoryHeader extends StatelessWidget {
   const HistoryHeader({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // ── Teks Judul & Subjudul ─────────────────────────────────
           const Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -26,32 +19,34 @@ class HistoryHeader extends StatelessWidget {
                 Text(
                   'Riwayat',
                   style: TextStyle(
-                    fontSize: 26,
+                    fontSize: 28,
                     fontWeight: FontWeight.w800,
-                    color: _HistoryColors.textDark,
+                    color: Color(0xFF1E293B),
                     letterSpacing: -0.5,
                     height: 1.15,
                   ),
                 ),
-                SizedBox(height: 6),
+                SizedBox(height: 8),
                 Text(
                   'Lihat kembali hasil skrining dan pantau perubahan kesehatan tulang Anda.',
                   style: TextStyle(
-                    fontSize: 13,
+                    fontSize: 13.5,
                     fontWeight: FontWeight.w400,
-                    color: _HistoryColors.textMuted,
+                    color: Color(0xFF64748B),
                     height: 1.45,
                   ),
                 ),
               ],
             ),
           ),
-          SizedBox(width: 14),
-          SizedBox(
-            width: 90,
-            height: 90,
+          const SizedBox(width: 12),
+
+          // ── Ilustrasi Bone & Clipboard Kanan Atas ─────────────────
+          const SizedBox(
+            width: 96,
+            height: 96,
             child: CustomPaint(
-              painter: _ClipboardIllustrationPainter(),
+              painter: _BoneClipboardIllustrationPainter(),
             ),
           ),
         ],
@@ -60,194 +55,187 @@ class HistoryHeader extends StatelessWidget {
   }
 }
 
-class _ClipboardIllustrationPainter extends CustomPainter {
-  const _ClipboardIllustrationPainter();
+/// CustomPainter untuk menggambar maskot tulang tersenyum bersama papan klip catatan dan jam
+class _BoneClipboardIllustrationPainter extends CustomPainter {
+  const _BoneClipboardIllustrationPainter();
 
   @override
   void paint(Canvas canvas, Size size) {
     final w = size.width;
     final h = size.height;
 
-    canvas.drawCircle(
-      Offset(w * 0.46, h * 0.52),
-      w * 0.40,
-      Paint()
-        ..color = _HistoryColors.yellowCircleBg
-        ..style = PaintingStyle.fill,
-    );
+    // ── 1. Tulang (Bone) di latar belakang ───────────────────────────
+    final boneStroke = Paint()
+      ..color = const Color(0xFFF59E0B)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 3.6
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
 
-    final sparklePaint = Paint()
-      ..color = _HistoryColors.primaryYellow
+    final boneFill = Paint()
+      ..color = const Color(0xFFFFFBEB)
       ..style = PaintingStyle.fill;
-    _sparkle(canvas, Offset(w * 0.06, h * 0.22), 5.0, sparklePaint);
-    _sparkle(canvas, Offset(w * 0.94, h * 0.12), 4.5, sparklePaint);
-    _sparkle(canvas, Offset(w * 0.88, h * 0.72), 3.5, sparklePaint);
 
-    final cbL = w * 0.14;
-    final cbT = h * 0.14;
-    final cbR = w * 0.76;
-    final cbB = h * 0.86;
-    final clipFill = Paint()
+    // Path bentuk tulang berdiri
+    final bonePath = Path();
+    // Kepala atas tulang (2 tonjolan rounded)
+    bonePath.moveTo(w * 0.44, h * 0.12);
+    bonePath.cubicTo(w * 0.42, h * 0.04, w * 0.28, h * 0.04, w * 0.26, h * 0.13);
+    bonePath.cubicTo(w * 0.20, h * 0.13, w * 0.18, h * 0.22, w * 0.25, h * 0.27);
+    // Batang kiri menuju bawah
+    bonePath.cubicTo(w * 0.25, h * 0.45, w * 0.20, h * 0.55, w * 0.18, h * 0.65);
+    // Lobe kiri bawah
+    bonePath.cubicTo(w * 0.12, h * 0.72, w * 0.20, h * 0.82, w * 0.28, h * 0.80);
+    // Lobe kanan bawah
+    bonePath.cubicTo(w * 0.35, h * 0.86, w * 0.45, h * 0.80, w * 0.42, h * 0.68);
+    // Batang kanan menuju atas
+    bonePath.cubicTo(w * 0.40, h * 0.50, w * 0.42, h * 0.35, w * 0.44, h * 0.27);
+    // Lobe kanan atas
+    bonePath.cubicTo(w * 0.52, h * 0.22, w * 0.50, h * 0.12, w * 0.44, h * 0.12);
+    bonePath.close();
+
+    canvas.drawPath(bonePath, boneFill);
+    canvas.drawPath(bonePath, boneStroke);
+
+    // Wajah tersenyum pada tulang (mata & senyum)
+    final eyePaint = Paint()
+      ..color = const Color(0xFF1E293B)
+      ..style = PaintingStyle.fill;
+
+    canvas.drawCircle(Offset(w * 0.31, h * 0.18), 1.8, eyePaint);
+    canvas.drawCircle(Offset(w * 0.41, h * 0.18), 1.8, eyePaint);
+
+    final mouthPaint = Paint()
+      ..color = const Color(0xFF1E293B)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.6
+      ..strokeCap = StrokeCap.round;
+
+    final mouthPath = Path()
+      ..moveTo(w * 0.33, h * 0.22)
+      ..quadraticBezierTo(w * 0.36, h * 0.25, w * 0.39, h * 0.22);
+    canvas.drawPath(mouthPath, mouthPaint);
+
+    // ── 2. Papan Klip (Clipboard) di depan ───────────────────────────
+    final cbStroke = Paint()
+      ..color = const Color(0xFF334155)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 3.2
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+
+    final cbFill = Paint()
       ..color = Colors.white
       ..style = PaintingStyle.fill;
+
+    final cbRRect = RRect.fromLTRBR(
+      w * 0.36,
+      h * 0.20,
+      w * 0.84,
+      h * 0.82,
+      const Radius.circular(10),
+    );
+
+    canvas.drawRRect(cbRRect, cbFill);
+    canvas.drawRRect(cbRRect, cbStroke);
+
+    // Klip penjepit di bagian atas clipboard
     final clipStroke = Paint()
-      ..color = _HistoryColors.primaryYellow
+      ..color = const Color(0xFF334155)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.2
+      ..strokeWidth = 2.8
+      ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round;
-    final cbRRect = RRect.fromLTRBR(cbL, cbT, cbR, cbB, const Radius.circular(10));
-    canvas.drawRRect(cbRRect, clipFill);
-    canvas.drawRRect(cbRRect, clipStroke);
 
-    final tabL = w * 0.34;
-    final tabT = h * 0.08;
-    final tabR = w * 0.56;
-    final tabB = h * 0.20;
-    canvas.drawRRect(
-      RRect.fromLTRBR(tabL, tabT, tabR, tabB, const Radius.circular(5)),
-      Paint()
-        ..color = _HistoryColors.primaryYellow
-        ..style = PaintingStyle.fill,
-    );
-    canvas.drawRRect(
-      RRect.fromLTRBR(tabL, tabT, tabR, tabB, const Radius.circular(5)),
-      Paint()
-        ..color = _HistoryColors.orange
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.6,
-    );
-    canvas.drawCircle(
-      Offset(w * 0.45, h * 0.14),
-      2.6,
-      Paint()..color = Colors.white,
-    );
+    final clipFill = Paint()
+      ..color = const Color(0xFFF1F5F9)
+      ..style = PaintingStyle.fill;
 
-    final linePaint = Paint()
-      ..color = const Color(0xFFD1D5DB)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.4
-      ..strokeCap = StrokeCap.round;
-    canvas.drawLine(Offset(w * 0.22, h * 0.34), Offset(w * 0.68, h * 0.34), linePaint);
-    canvas.drawLine(Offset(w * 0.22, h * 0.43), Offset(w * 0.68, h * 0.43), linePaint);
-    canvas.drawLine(Offset(w * 0.22, h * 0.52), Offset(w * 0.52, h * 0.52), linePaint);
+    final clipRRect = RRect.fromLTRBR(
+      w * 0.50,
+      h * 0.14,
+      w * 0.70,
+      h * 0.24,
+      const Radius.circular(5),
+    );
+    canvas.drawRRect(clipRRect, clipFill);
+    canvas.drawRRect(clipRRect, clipStroke);
 
-    final clockCx = w * 0.73;
-    final clockCy = h * 0.76;
-    const clockR = 17.0;
-    canvas.drawCircle(
-      Offset(clockCx, clockCy + 1.5),
-      clockR,
-      Paint()
-        ..color = const Color(0x20000000)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3),
-    );
-    canvas.drawCircle(
-      Offset(clockCx, clockCy),
-      clockR,
-      Paint()
-        ..color = _HistoryColors.yellowCircleBg
-        ..style = PaintingStyle.fill,
-    );
-    canvas.drawCircle(
-      Offset(clockCx, clockCy),
-      clockR,
-      Paint()
-        ..color = _HistoryColors.orange
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 2.2,
-    );
-    final handPaint = Paint()
-      ..color = _HistoryColors.orange
+    // ── 3. Baris Checklist di dalam Clipboard ───────────────────────
+    final checkPaint = Paint()
+      ..color = const Color(0xFF64748B)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2.0
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+
+    // Check 1
+    final c1 = Path()
+      ..moveTo(w * 0.44, h * 0.34)
+      ..lineTo(w * 0.49, h * 0.38)
+      ..lineTo(w * 0.58, h * 0.31);
+    canvas.drawPath(c1, checkPaint);
+
+    // Check 2
+    final c2 = Path()
+      ..moveTo(w * 0.44, h * 0.45)
+      ..lineTo(w * 0.49, h * 0.49)
+      ..lineTo(w * 0.58, h * 0.42);
+    canvas.drawPath(c2, checkPaint);
+
+    // Check 3
+    final c3 = Path()
+      ..moveTo(w * 0.44, h * 0.56)
+      ..lineTo(w * 0.49, h * 0.60)
+      ..lineTo(w * 0.58, h * 0.53);
+    canvas.drawPath(c3, checkPaint);
+
+    // ── 4. Ikon Jam di pojok kanan bawah ────────────────────────────
+    final clockCx = w * 0.82;
+    final clockCy = h * 0.78;
+    const clockR = 14.0;
+
+    canvas.drawCircle(
+      Offset(clockCx, clockCy),
+      clockR,
+      Paint()
+        ..color = Colors.white
+        ..style = PaintingStyle.fill,
+    );
+
+    final clockStroke = Paint()
+      ..color = const Color(0xFF1E293B)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 3.0;
+
+    canvas.drawCircle(Offset(clockCx, clockCy), clockR, clockStroke);
+
+    // Jarum jam
+    final handPaint = Paint()
+      ..color = const Color(0xFF1E293B)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.2
       ..strokeCap = StrokeCap.round;
-    final hourA = math.pi * (-0.40);
+
+    // Jarum pendek (arah jam 10)
     canvas.drawLine(
       Offset(clockCx, clockCy),
-      Offset(clockCx + 8 * math.cos(hourA), clockCy + 8 * math.sin(hourA)),
+      Offset(clockCx - 5.5, clockCy - 4.5),
       handPaint,
     );
-    final minA = -math.pi / 2;
+    // Jarum panjang (arah jam 3)
     canvas.drawLine(
       Offset(clockCx, clockCy),
-      Offset(clockCx + 12 * math.cos(minA), clockCy + 12 * math.sin(minA)),
+      Offset(clockCx + 6.5, clockCy),
       handPaint,
     );
+
+    // Titik tengah jam
     canvas.drawCircle(
       Offset(clockCx, clockCy),
-      2.2,
-      Paint()
-        ..color = _HistoryColors.orange
-        ..style = PaintingStyle.fill,
+      1.6,
+      Paint()..color = const Color(0xFF1E293B),
     );
-
-    _drawMascot(canvas, w, h);
-  }
-
-  void _drawMascot(Canvas canvas, double w, double h) {
-    final cx = w * 0.88;
-    final cy = h * 0.20;
-    canvas.drawCircle(
-      Offset(cx, cy),
-      8.5,
-      Paint()
-        ..color = _HistoryColors.primaryYellow
-        ..style = PaintingStyle.fill,
-    );
-    canvas.drawCircle(
-      Offset(cx, cy),
-      8.5,
-      Paint()
-        ..color = _HistoryColors.orange
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.5,
-    );
-    canvas.drawCircle(
-      Offset(cx - 6.5, cy - 6.5),
-      3.5,
-      Paint()
-        ..color = _HistoryColors.primaryYellow
-        ..style = PaintingStyle.fill,
-    );
-    canvas.drawCircle(
-      Offset(cx + 6.5, cy - 6.5),
-      3.5,
-      Paint()
-        ..color = _HistoryColors.primaryYellow
-        ..style = PaintingStyle.fill,
-    );
-    canvas.drawCircle(
-      Offset(cx - 3.0, cy - 1.0),
-      1.5,
-      Paint()
-        ..color = const Color(0xFF1E293B)
-        ..style = PaintingStyle.fill,
-    );
-    canvas.drawCircle(
-      Offset(cx + 3.0, cy - 1.0),
-      1.5,
-      Paint()
-        ..color = const Color(0xFF1E293B)
-        ..style = PaintingStyle.fill,
-    );
-    canvas.drawCircle(
-      Offset(cx, cy + 1.5),
-      1.0,
-      Paint()
-        ..color = _HistoryColors.orange
-        ..style = PaintingStyle.fill,
-    );
-  }
-
-  void _sparkle(Canvas canvas, Offset center, double size, Paint paint) {
-    final path = Path()
-      ..moveTo(center.dx, center.dy - size)
-      ..quadraticBezierTo(center.dx, center.dy, center.dx + size, center.dy)
-      ..quadraticBezierTo(center.dx, center.dy, center.dx, center.dy + size)
-      ..quadraticBezierTo(center.dx, center.dy, center.dx - size, center.dy)
-      ..quadraticBezierTo(center.dx, center.dy, center.dx, center.dy - size)
-      ..close();
-    canvas.drawPath(path, paint);
   }
 
   @override

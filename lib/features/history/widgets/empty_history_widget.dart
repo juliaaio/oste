@@ -1,4 +1,4 @@
-﻿import 'dart:math' as math;
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 // ---------------------------------------------------------------------------
@@ -13,93 +13,95 @@ class _EmptyHistoryColors {
 }
 
 /// Widget keadaan kosong untuk halaman Riwayat.
-///
-/// Ditampilkan ketika pengguna belum memiliki riwayat skrining apapun.
-/// Terdiri atas ilustrasi clipboard-jam, judul, teks deskripsi,
-/// dan tombol "Mulai Skrining".
 class EmptyHistoryWidget extends StatelessWidget {
-  /// Callback dipanggil ketika tombol "Mulai Skrining" ditekan.
-  /// Jika null, tombol tetap ditampilkan namun tidak melakukan navigasi.
+  final String title;
+  final String description;
+  final String buttonText;
   final VoidCallback? onStartScreening;
 
   const EmptyHistoryWidget({
     super.key,
+    this.title = 'Belum ada riwayat',
+    this.description = 'Hasil skrining Anda akan muncul di sini setelah melakukan skrining.',
+    this.buttonText = 'Mulai Skrining',
     this.onStartScreening,
   });
 
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 32),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             // ── Ilustrasi clipboard + jam ─────────────────────────────
             const SizedBox(
-              width: 200,
-              height: 200,
+              width: 170,
+              height: 170,
               child: CustomPaint(
                 painter: _ClipboardClockPainter(),
               ),
             ),
 
-            const SizedBox(height: 28),
+            const SizedBox(height: 24),
 
             // ── Judul ─────────────────────────────────────────────────
-            const Text(
-              'Belum ada riwayat',
+            Text(
+              title,
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 20,
+              style: const TextStyle(
+                fontSize: 18,
                 fontWeight: FontWeight.w800,
                 color: _EmptyHistoryColors.textDark,
                 letterSpacing: -0.4,
               ),
             ),
 
-            const SizedBox(height: 10),
+            const SizedBox(height: 8),
 
             // ── Teks deskripsi ────────────────────────────────────────
-            const Text(
-              'Hasil skrining Anda akan muncul di sini setelah melakukan skrining.',
+            Text(
+              description,
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 13.5,
+              style: const TextStyle(
+                fontSize: 13,
                 fontWeight: FontWeight.w400,
                 color: _EmptyHistoryColors.textMuted,
                 height: 1.45,
               ),
             ),
 
-            const SizedBox(height: 28),
+            if (onStartScreening != null) ...[
+              const SizedBox(height: 24),
 
-            // ── Tombol "Mulai Skrining" ───────────────────────────────
-            SizedBox(
-              width: 180,
-              height: 50,
-              child: ElevatedButton(
-                onPressed: onStartScreening,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: _EmptyHistoryColors.primaryYellow,
-                  foregroundColor: _EmptyHistoryColors.textDark,
-                  elevation: 0,
-                  shadowColor: Colors.transparent,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(30),
+              // ── Tombol Aksi ──────────────────────────────────────────
+              SizedBox(
+                width: 180,
+                height: 48,
+                child: ElevatedButton(
+                  onPressed: onStartScreening,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _EmptyHistoryColors.primaryYellow,
+                    foregroundColor: _EmptyHistoryColors.textDark,
+                    elevation: 0,
+                    shadowColor: Colors.transparent,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(30),
+                    ),
                   ),
-                ),
-                child: const Text(
-                  'Mulai Skrining',
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                    color: _EmptyHistoryColors.textDark,
-                    letterSpacing: -0.2,
+                  child: Text(
+                    buttonText,
+                    style: const TextStyle(
+                      fontSize: 14.5,
+                      fontWeight: FontWeight.w700,
+                      color: _EmptyHistoryColors.textDark,
+                      letterSpacing: -0.2,
+                    ),
                   ),
                 ),
               ),
-            ),
+            ],
           ],
         ),
       ),
@@ -108,7 +110,7 @@ class EmptyHistoryWidget extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------------------
-// Custom Painter – Ilustrasi besar clipboard + jam (versi centered/besar)
+// Custom Painter – Ilustrasi clipboard + jam
 // ---------------------------------------------------------------------------
 class _ClipboardClockPainter extends CustomPainter {
   const _ClipboardClockPainter();
@@ -118,7 +120,7 @@ class _ClipboardClockPainter extends CustomPainter {
     final w = size.width;
     final h = size.height;
 
-    // ── 1. Lingkaran latar kuning muda ───────────────────────────────
+    // 1. Lingkaran latar kuning muda
     canvas.drawCircle(
       Offset(w * 0.48, h * 0.52),
       w * 0.42,
@@ -127,18 +129,18 @@ class _ClipboardClockPainter extends CustomPainter {
         ..style = PaintingStyle.fill,
     );
 
-    // ── 2. Sparkle / kilau bintang ───────────────────────────────────
+    // 2. Sparkle / kilau bintang
     final sparklePaint = Paint()
       ..color = _EmptyHistoryColors.primaryYellow
       ..style = PaintingStyle.fill;
 
-    _sparkle(canvas, Offset(w * 0.06, h * 0.28), 7.0, sparklePaint);
-    _sparkle(canvas, Offset(w * 0.94, h * 0.18), 6.0, sparklePaint);
-    _sparkle(canvas, Offset(w * 0.90, h * 0.74), 5.0, sparklePaint);
-    _sparkle(canvas, Offset(w * 0.08, h * 0.72), 4.5, sparklePaint);
+    _sparkle(canvas, Offset(w * 0.06, h * 0.28), 6.0, sparklePaint);
+    _sparkle(canvas, Offset(w * 0.94, h * 0.18), 5.5, sparklePaint);
+    _sparkle(canvas, Offset(w * 0.90, h * 0.74), 4.5, sparklePaint);
+    _sparkle(canvas, Offset(w * 0.08, h * 0.72), 4.0, sparklePaint);
 
-    // ── 3. Badan clipboard ───────────────────────────────────────────
-    final cbL = w * 0.16;
+    // 3. Badan clipboard
+    final cbL = w * 0.18;
     final cbT = h * 0.14;
     final cbR = w * 0.78;
     final cbB = h * 0.86;
@@ -149,57 +151,56 @@ class _ClipboardClockPainter extends CustomPainter {
     final clipStroke = Paint()
       ..color = _EmptyHistoryColors.primaryYellow
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 3.0
+      ..strokeWidth = 2.8
       ..strokeJoin = StrokeJoin.round;
 
-    final cbRRect = RRect.fromLTRBR(cbL, cbT, cbR, cbB, const Radius.circular(16));
+    final cbRRect = RRect.fromLTRBR(cbL, cbT, cbR, cbB, const Radius.circular(14));
     canvas.drawRRect(cbRRect, clipFill);
     canvas.drawRRect(cbRRect, clipStroke);
 
-    // ── 4. Tab klip di atas ──────────────────────────────────────────
-    final tabL = w * 0.34;
-    final tabT = h * 0.07;
-    final tabR = w * 0.58;
+    // 4. Tab klip di atas
+    final tabL = w * 0.36;
+    final tabT = h * 0.08;
+    final tabR = w * 0.60;
     final tabB = h * 0.20;
 
     canvas.drawRRect(
-      RRect.fromLTRBR(tabL, tabT, tabR, tabB, const Radius.circular(7)),
+      RRect.fromLTRBR(tabL, tabT, tabR, tabB, const Radius.circular(6)),
       Paint()
         ..color = _EmptyHistoryColors.primaryYellow
         ..style = PaintingStyle.fill,
     );
     canvas.drawRRect(
-      RRect.fromLTRBR(tabL, tabT, tabR, tabB, const Radius.circular(7)),
+      RRect.fromLTRBR(tabL, tabT, tabR, tabB, const Radius.circular(6)),
       Paint()
         ..color = _EmptyHistoryColors.orange
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 2.0,
+        ..strokeWidth = 1.8,
     );
 
     // Lubang kecil di tab
     canvas.drawCircle(
-      Offset(w * 0.46, h * 0.135),
-      4.0,
+      Offset(w * 0.48, h * 0.14),
+      3.5,
       Paint()..color = Colors.white,
     );
 
-    // ── 5. Garis-garis teks di clipboard ─────────────────────────────
+    // 5. Garis-garis teks di clipboard
     final linePaint = Paint()
       ..color = const Color(0xFFD1D5DB)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 3.5
+      ..strokeWidth = 3.0
       ..strokeCap = StrokeCap.round;
 
-    canvas.drawLine(Offset(w * 0.24, h * 0.34), Offset(w * 0.70, h * 0.34), linePaint);
-    canvas.drawLine(Offset(w * 0.24, h * 0.44), Offset(w * 0.70, h * 0.44), linePaint);
-    canvas.drawLine(Offset(w * 0.24, h * 0.54), Offset(w * 0.54, h * 0.54), linePaint);
+    canvas.drawLine(Offset(w * 0.26, h * 0.34), Offset(w * 0.70, h * 0.34), linePaint);
+    canvas.drawLine(Offset(w * 0.26, h * 0.44), Offset(w * 0.70, h * 0.44), linePaint);
+    canvas.drawLine(Offset(w * 0.26, h * 0.54), Offset(w * 0.54, h * 0.54), linePaint);
 
-    // ── 6. Lingkaran jam di pojok kanan bawah ────────────────────────
+    // 6. Lingkaran jam di pojok kanan bawah
     final clockCx = w * 0.72;
     final clockCy = h * 0.77;
-    const clockR  = 26.0;
+    const clockR  = 23.0;
 
-    // Bayangan lembut
     canvas.drawCircle(
       Offset(clockCx, clockCy + 2.0),
       clockR,
@@ -208,7 +209,6 @@ class _ClipboardClockPainter extends CustomPainter {
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4),
     );
 
-    // Latar jam kuning muda
     canvas.drawCircle(
       Offset(clockCx, clockCy),
       clockR,
@@ -216,49 +216,42 @@ class _ClipboardClockPainter extends CustomPainter {
         ..color = _EmptyHistoryColors.yellowCircleBg
         ..style = PaintingStyle.fill,
     );
-    // Border jam
     canvas.drawCircle(
       Offset(clockCx, clockCy),
       clockR,
       Paint()
         ..color = _EmptyHistoryColors.orange
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 2.8,
+        ..strokeWidth = 2.5,
     );
 
-    // Jarum jam (pendek) – mengarah ~jam 10
     final handPaint = Paint()
       ..color = _EmptyHistoryColors.orange
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.5
+      ..strokeWidth = 2.2
       ..strokeCap = StrokeCap.round;
 
     final hourA = math.pi * (-0.40);
     canvas.drawLine(
       Offset(clockCx, clockCy),
-      Offset(clockCx + 13 * math.cos(hourA), clockCy + 13 * math.sin(hourA)),
+      Offset(clockCx + 11 * math.cos(hourA), clockCy + 11 * math.sin(hourA)),
       handPaint,
     );
 
-    // Jarum menit (panjang) – mengarah ke atas
     final minA = -math.pi / 2;
     canvas.drawLine(
       Offset(clockCx, clockCy),
-      Offset(clockCx + 19 * math.cos(minA), clockCy + 19 * math.sin(minA)),
+      Offset(clockCx + 16 * math.cos(minA), clockCy + 16 * math.sin(minA)),
       handPaint,
     );
 
-    // Titik pusat jam
     canvas.drawCircle(
       Offset(clockCx, clockCy),
-      3.0,
-      Paint()
-        ..color = _EmptyHistoryColors.orange
-        ..style = PaintingStyle.fill,
+      2.5,
+      Paint()..color = _EmptyHistoryColors.orange,
     );
   }
 
-  /// Menggambar sparkle (bintang 4 sisi) di [center] dengan ukuran [size].
   void _sparkle(Canvas canvas, Offset center, double size, Paint paint) {
     final path = Path()
       ..moveTo(center.dx, center.dy - size)

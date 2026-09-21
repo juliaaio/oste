@@ -10,7 +10,7 @@ import 'package:oste/services/user_service.dart';
 // ---------------------------------------------------------------------------
 class _ProfileColors {
   static const Color textDark     = Color(0xFF1E293B);
-  static const Color textMuted    = Color(0xFF64748B);
+  static const Color textMuted    = Color(0xFF64748B);  
   static const Color textLight    = Color(0xFF94A3B8);
   static const Color divider      = Color(0xFFF1F5F9);
   static const Color border       = Color(0xFFEAEAEA);

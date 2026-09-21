@@ -1,76 +1,240 @@
-﻿import 'package:flutter/material.dart';
-import 'package:oste/features/consultation/consultation_history_card.dart';
+import 'package:flutter/material.dart';
 import 'package:oste/features/consultation/consultation_summary_page.dart';
 import 'package:oste/features/dashboard/dashboard_page.dart';
 import 'package:oste/features/education/education_page.dart';
 import 'package:oste/features/history/models/history_model.dart';
+import 'package:oste/features/history/widgets/consultation_history_card.dart';
 import 'package:oste/features/history/widgets/empty_history_widget.dart';
-import 'package:oste/features/history/widgets/history_card.dart';
 import 'package:oste/features/history/widgets/history_header.dart';
+import 'package:oste/features/history/widgets/history_summary_card.dart';
+import 'package:oste/features/history/widgets/history_tab_bar.dart';
+import 'package:oste/features/history/widgets/screening_history_card.dart';
 import 'package:oste/features/profile/profile_page.dart';
 import 'package:oste/features/screening/hasil_page.dart';
 import 'package:oste/features/screening/screening_page.dart';
+import 'package:oste/services/consultation_history_service.dart';
 import 'package:oste/services/history_service.dart';
 
 // ---------------------------------------------------------------------------
-// Palet warna lokal (konsisten dengan DashboardPage)
+// Palet warna lokal (konsisten dengan DashboardPage & Figma)
 // ---------------------------------------------------------------------------
 class _HistoryPageColors {
-  static const Color textDark   = Color(0xFF1E293B);
-  static const Color textMuted  = Color(0xFF64748B);
-  static const Color textLight  = Color(0xFF94A3B8);
   static const Color border     = Color(0xFFEAEAEA);
+  static const Color textLight  = Color(0xFF94A3B8);
   static const Color orange     = Color(0xFFF59E0B);
 }
 
-/// Halaman Riwayat (Skrining Osteoporosis & Konsultasi Medis).
-///
-/// Menampilkan [HistoryHeader] di bagian atas, diikuti daftar riwayat
-/// jika ada, atau [EmptyHistoryWidget] jika belum ada riwayat.
-class HistoryPage extends StatelessWidget {
+/// Halaman Riwayat (Skrining Osteoporosis & Konsultasi Dokter) sesuai desain Figma.
+class HistoryPage extends StatefulWidget {
   const HistoryPage({super.key});
+
+  @override
+  State<HistoryPage> createState() => _HistoryPageState();
+}
+
+class _HistoryPageState extends State<HistoryPage> {
+  int _selectedTabIndex = 0; // 0 = Skrining, 1 = Konsultasi Dokter
+
+  static String _formatLongDate(DateTime dt) {
+    const months = [
+      'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+      'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+    ];
+    return '${dt.day} ${months[dt.month - 1]} ${dt.year}';
+  }
+
+  static String _formatShortDate(DateTime dt) {
+    const months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
+      'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'
+    ];
+    return '${dt.day} ${months[dt.month - 1]} ${dt.year}';
+  }
 
   @override
   Widget build(BuildContext context) {
     final historyService = HistoryService();
+    final consultationService = ConsultationHistoryService();
 
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // ── Header ──────────────────────────────────────────────
-            const HistoryHeader(),
+        child: AnimatedBuilder(
+          animation: Listenable.merge([historyService, consultationService]),
+          builder: (context, _) {
+            final screeningList = historyService.screeningHistories;
+            final consultationList = consultationService.allConsultations;
+            final latestScreening = historyService.latestScreening;
 
-            const SizedBox(height: 24),
+            // Perhitungan Ringkasan Riwayat
+            final totalScreenings = screeningList.length;
+            final latestResult = latestScreening != null
+                ? '${latestScreening.probabilitas}%'
+                : '-';
+            final latestDate = latestScreening != null
+                ? _formatShortDate(latestScreening.tanggal)
+                : '-';
 
-            // ── Konten utama ─────────────────────────────────────────
-            Expanded(
-              child: AnimatedBuilder(
-                animation: historyService,
-                builder: (context, _) {
-                  final entries = historyService.allHistories;
-                  if (entries.isEmpty) {
-                    return EmptyHistoryWidget(
-                      onStartScreening: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const ScreeningPage(),
-                          ),
-                        );
-                      },
-                    );
-                  }
-                  return _HistoryListSection(entries: entries);
-                },
+            return CustomScrollView(
+              physics: const AlwaysScrollableScrollPhysics(
+                parent: BouncingScrollPhysics(),
               ),
-            ),
-          ],
+              slivers: [
+                // ── Header Riwayat ──────────────────────────────────
+                const SliverToBoxAdapter(
+                  child: HistoryHeader(),
+                ),
+
+                const SliverToBoxAdapter(
+                  child: SizedBox(height: 20),
+                ),
+
+                // ── Card Ringkasan Riwayat ──────────────────────────
+                SliverToBoxAdapter(
+                  child: HistorySummaryCard(
+                    totalScreening: totalScreenings,
+                    latestResult: latestResult,
+                    latestDate: latestDate,
+                  ),
+                ),
+
+                const SliverToBoxAdapter(
+                  child: SizedBox(height: 22),
+                ),
+
+                // ── Tab Bar (Skrining & Konsultasi Dokter) ───────────
+                SliverToBoxAdapter(
+                  child: HistoryTabBar(
+                    selectedIndex: _selectedTabIndex,
+                    onTabSelected: (index) {
+                      setState(() {
+                        _selectedTabIndex = index;
+                      });
+                    },
+                  ),
+                ),
+
+                const SliverToBoxAdapter(
+                  child: SizedBox(height: 16),
+                ),
+
+                // ── Konten Tab Aktif ────────────────────────────────
+                if (_selectedTabIndex == 0)
+                  _buildScreeningTabContent(screeningList)
+                else
+                  _buildConsultationTabContent(consultationList),
+
+                const SliverToBoxAdapter(
+                  child: SizedBox(height: 24),
+                ),
+              ],
+            );
+          },
         ),
       ),
       bottomNavigationBar: _buildBottomNav(context),
+    );
+  }
+
+  /// Daftar riwayat skrining mandiri
+  Widget _buildScreeningTabContent(List<HistoryModel> screenings) {
+    if (screenings.isEmpty) {
+      return SliverToBoxAdapter(
+        child: Padding(
+          padding: const EdgeInsets.only(top: 20),
+          child: EmptyHistoryWidget(
+            title: 'Belum ada riwayat',
+            description:
+                'Hasil skrining Anda akan muncul di sini setelah melakukan skrining.',
+            buttonText: 'Mulai Skrining',
+            onStartScreening: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const ScreeningPage(),
+                ),
+              );
+            },
+          ),
+        ),
+      );
+    }
+
+    return SliverPadding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      sliver: SliverList(
+        delegate: SliverChildBuilderDelegate(
+          (context, index) {
+            final item = screenings[index];
+            return ScreeningHistoryCard(
+              tanggal: _formatLongDate(item.tanggal),
+              waktu: item.waktu,
+              probabilitas: item.probabilitas.toDouble(),
+              status: item.status,
+              isPositive: item.isPositive,
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => HasilScreeningPage(
+                      scorePercentage: item.probabilitas.toDouble(),
+                      riskTitle: item.riskCategory ??
+                          (item.isPositive ? 'risiko sedang' : 'risiko rendah'),
+                      riskDescription: item.summary ?? '',
+                      predictionData: item.predictionData,
+                      recommendations: item.recommendations,
+                      screeningId: item.id,
+                      autoSave: false,
+                    ),
+                  ),
+                );
+              },
+            );
+          },
+          childCount: screenings.length,
+        ),
+      ),
+    );
+  }
+
+  /// Daftar riwayat sesi konsultasi dokter
+  Widget _buildConsultationTabContent(List<dynamic> consultations) {
+    if (consultations.isEmpty) {
+      return const SliverToBoxAdapter(
+        child: Padding(
+          padding: EdgeInsets.only(top: 20),
+          child: EmptyHistoryWidget(
+            title: 'Belum ada riwayat konsultasi',
+            description:
+                'Konsultasi yang telah selesai akan tersimpan secara otomatis di sini.',
+          ),
+        ),
+      );
+    }
+
+    return SliverPadding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      sliver: SliverList(
+        delegate: SliverChildBuilderDelegate(
+          (context, index) {
+            final item = consultations[index];
+            return ConsultationHistoryCard(
+              consultation: item,
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => ConsultationSummaryPage(
+                      consultation: item,
+                    ),
+                  ),
+                );
+              },
+            );
+          },
+          childCount: consultations.length,
+        ),
+      ),
     );
   }
 
@@ -147,132 +311,6 @@ class HistoryPage extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Section daftar riwayat
-// ---------------------------------------------------------------------------
-class _HistoryListSection extends StatelessWidget {
-  final List<HistoryModel> entries;
-
-  const _HistoryListSection({required this.entries});
-
-  static String _formatDate(DateTime dt) {
-    const months = [
-      'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
-      'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
-    ];
-    return '${dt.day} ${months[dt.month - 1]} ${dt.year}';
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // ── Sub-header: judul + tombol urutkan ─────────────────────
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'Daftar Riwayat',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  color: _HistoryPageColors.textDark,
-                  letterSpacing: -0.2,
-                ),
-              ),
-              // Tombol Urutkan
-              Row(
-                children: [
-                  const Text(
-                    'Urutkan',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
-                      color: _HistoryPageColors.textMuted,
-                    ),
-                  ),
-                  const SizedBox(width: 4),
-                  const Icon(
-                    Icons.filter_list_rounded,
-                    size: 18,
-                    color: _HistoryPageColors.textMuted,
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-
-        const SizedBox(height: 14),
-
-        // ── ListView riwayat ────────────────────────────────────────
-        Expanded(
-          child: ListView.separated(
-            padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
-            itemCount: entries.length,
-            separatorBuilder: (_, index) {
-              // Berikan jarak pemisah yang proporsional
-              final current = entries[index];
-              if (current.type == HistoryType.consultation) {
-                return const SizedBox(height: 2);
-              }
-              return const SizedBox(height: 12);
-            },
-            itemBuilder: (context, index) {
-              final e = entries[index];
-
-              // Riwayat Konsultasi
-              if (e.type == HistoryType.consultation && e.consultation != null) {
-                return ConsultationHistoryCard(
-                  consultation: e.consultation!,
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => ConsultationSummaryPage(
-                          consultation: e.consultation!,
-                        ),
-                      ),
-                    );
-                  },
-                );
-              }
-
-              // Riwayat Skrining
-              return HistoryCard(
-                tanggal: _formatDate(e.tanggal),
-                waktu: e.waktu,
-                probabilitas: e.probabilitas.toDouble(),
-                status: e.status,
-                isPositive: e.isPositive,
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => HasilScreeningPage(
-                        scorePercentage: e.probabilitas.toDouble(),
-                        riskTitle: e.riskCategory ?? (e.isPositive ? 'risiko sedang' : 'risiko rendah'),
-                        riskDescription: e.summary ?? '',
-                        predictionData: e.predictionData,
-                        recommendations: e.recommendations,
-                        screeningId: e.id,
-                        autoSave: false,
-                      ),
-                    ),
-                  );
-                },
-              );
-            },
-          ),
-        ),
-      ],
     );
   }
 }

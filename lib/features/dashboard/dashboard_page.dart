@@ -956,16 +956,17 @@ class _MainMenuSection extends StatelessWidget {
           crossAxisCount: 2,
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          mainAxisSpacing: 14,
-          crossAxisSpacing: 14,
-          childAspectRatio: 0.98,
+          mainAxisSpacing: 12,
+          crossAxisSpacing: 12,
+          childAspectRatio: 1.14,
           children: [
             _MenuItemCard(
               title: 'Skrining',
               subtitle: 'Cek risiko osteoporosis sekarang',
               icon: Icons.assignment_outlined,
               iconColor: _DashboardColors.orange,
-              iconBgColor: _DashboardColors.lightOrange,
+              iconBgColor: const Color(0xFFFEF08A),
+              backgroundColor: const Color(0xFFFFF4D6),
               onTap: () {
                 Navigator.push(
                   context,
@@ -978,9 +979,10 @@ class _MainMenuSection extends StatelessWidget {
             _MenuItemCard(
               title: 'Konsultasi Dokter',
               subtitle: 'Tanya langsung dengan dokter ahli',
-              icon: Icons.person_pin_outlined,
-              iconColor: Color(0xFF3B82F6),
-              iconBgColor: Color(0xFFEFF6FF),
+              icon: Icons.person_outline_rounded,
+              iconColor: const Color(0xFF3B82F6),
+              iconBgColor: const Color(0xFFDBEAFE),
+              backgroundColor: const Color(0xFFEFF6FF),
               onTap: () {
                 Navigator.push(
                   context,
@@ -994,33 +996,34 @@ class _MainMenuSection extends StatelessWidget {
               title: 'Edukasi',
               subtitle: 'Pelajari lebih banyak tentang kesehatan tulang',
               icon: Icons.menu_book_rounded,
-              iconColor: Color(0xFFF43F5E),
+              iconColor: const Color(0xFFF43F5E),
               iconBgColor: _DashboardColors.pink,
+              backgroundColor: const Color(0xFFFFF0F3),
               onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const EducationPage(),
-                ),
-              );
-            },
-          ),
-
-           _MenuItemCard(
-            title: 'Riwayat',
-            subtitle: 'Lihat hasil skrining dan aktivitasmu',
-            icon: Icons.access_time_filled_rounded,
-            iconColor: Color(0xFF8B5CF6),
-            iconBgColor: Color(0xFFF3E8FF),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const HistoryPage(),
-                ),
-              );
-            },
-          ),
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const EducationPage(),
+                  ),
+                );
+              },
+            ),
+            _MenuItemCard(
+              title: 'Riwayat',
+              subtitle: 'Lihat hasil skrining dan aktivitasmu',
+              icon: Icons.access_time_filled_rounded,
+              iconColor: const Color(0xFF8B5CF6),
+              iconBgColor: const Color(0xFFE9D5FF),
+              backgroundColor: const Color(0xFFF3E8FF),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const HistoryPage(),
+                  ),
+                );
+              },
+            ),
           ],
         ),
       ],
@@ -1035,6 +1038,7 @@ class _MenuItemCard extends StatelessWidget {
   final IconData icon;
   final Color iconColor;
   final Color iconBgColor;
+  final Color backgroundColor;
   final VoidCallback? onTap;
 
   const _MenuItemCard({
@@ -1043,55 +1047,52 @@ class _MenuItemCard extends StatelessWidget {
     required this.icon,
     required this.iconColor,
     required this.iconBgColor,
-    this.onTap,     
+    this.backgroundColor = Colors.white,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: _DashboardColors.border,
-          width: 1.2,
-        ),
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(22),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.02),
-            blurRadius: 8,
+            blurRadius: 6,
             offset: const Offset(0, 2),
           ),
         ],
       ),
       child: Material(
         color: Colors.transparent,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(22),
         child: InkWell(
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(22),
           onTap: onTap,
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 // Wadah icon berlatar warna pastel
                 Container(
-                  width: 50,
-                  height: 50,
+                  width: 44,
+                  height: 44,
                   decoration: BoxDecoration(
                     color: iconBgColor,
-                    borderRadius: BorderRadius.circular(15),
+                    borderRadius: BorderRadius.circular(13),
                   ),
                   child: Center(
                     child: Icon(
                       icon,
-                      size: 26,
+                      size: 24,
                       color: iconColor,
                     ),
                   ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 8),
                 // Judul menu
                 Text(
                   title,
@@ -1099,13 +1100,13 @@ class _MenuItemCard extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                    fontSize: 14,
+                    fontSize: 13.5,
                     fontWeight: FontWeight.w700,
                     color: _DashboardColors.textDark,
                     letterSpacing: -0.2,
                   ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 3),
                 // Keterangan menu
                 Text(
                   subtitle,
@@ -1113,10 +1114,10 @@ class _MenuItemCard extends StatelessWidget {
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                    fontSize: 10.5,
+                    fontSize: 10.0,
                     fontWeight: FontWeight.w400,
                     color: _DashboardColors.textLight,
-                    height: 1.25,
+                    height: 1.2,
                   ),
                 ),
               ],
