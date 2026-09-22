@@ -6,15 +6,19 @@ import 'package:oste/features/profile/edit_page.dart';
 import 'package:oste/services/user_service.dart';
 
 // ---------------------------------------------------------------------------
-// Palet warna resmi Halaman Profil (konsisten dengan tema Oste)
+// Palet warna resmi Halaman Profil – tema Butter Yellow + Cream
 // ---------------------------------------------------------------------------
 class _ProfileColors {
-  static const Color textDark     = Color(0xFF1E293B);
-  static const Color textMuted    = Color(0xFF64748B);
-  static const Color textLight    = Color(0xFF94A3B8);
-  static const Color divider      = Color(0xFFF1F5F9);
-  static const Color border       = Color(0xFFEAEAEA);
-  static const Color orange       = Color(0xFFF59E0B);
+  static const Color background    = Color(0xFFFFF9EF);
+  static const Color cardWhite     = Color(0xFFFFFFFF);
+  static const Color textDark      = Color(0xFF1F2937);
+  static const Color textMuted     = Color(0xFF6B7280);
+  static const Color textLight     = Color(0xFF94A3B8);
+  static const Color divider       = Color(0xFFF1F5F9);
+  static const Color border        = Color(0xFFEAEAEA);
+  static const Color orange        = Color(0xFFE8A317);   // butter yellow icon/teks
+  static const Color avatarBg      = Color(0xFFF59E0B);   // avatar background
+  static const Color iconCircle    = Color(0xFFFFF4CC);   // lingkaran icon data
 }
 
 /// Halaman Profil Pengguna Oste.
@@ -24,9 +28,9 @@ class ProfilePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: _ProfileColors.background,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: _ProfileColors.background,
         elevation: 0,
         scrolledUnderElevation: 0,
         leading: IconButton(
@@ -60,14 +64,18 @@ class ProfilePage extends StatelessWidget {
       body: AnimatedBuilder(
         animation: UserService(),
         builder: (context, _) {
-          final user = UserService().currentUser;
-          final name = user?.name ?? '-';
-          final email = user?.email ?? '-';
-          final phone = user?.phone.isNotEmpty == true ? user!.phone : '-';
-          final gender = user?.gender.isNotEmpty == true ? user!.gender : '-';
+          final user      = UserService().currentUser;
+          final name      = user?.name ?? '-';
+          final email     = user?.email ?? '-';
+          final phone     = user?.phone.isNotEmpty == true ? user!.phone : '-';
+          final gender    = user?.gender.isNotEmpty == true ? user!.gender : '-';
           final birthDate = user?.birthDate.isNotEmpty == true ? user!.birthDate : '-';
           final weightStr = user?.weight != null ? '${user!.weight!.toStringAsFixed(0)} kg' : '-';
           final heightStr = user?.height != null ? '${user!.height!.toStringAsFixed(0)} cm' : '-';
+
+          // Ambil huruf pertama nama untuk avatar
+          final String avatarLetter =
+              (name.isNotEmpty && name != '-') ? name.trim()[0].toUpperCase() : '?';
 
           return SafeArea(
             child: SingleChildScrollView(
@@ -75,44 +83,168 @@ class ProfilePage extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 12),
 
-                  // ── Header Profil (Foto, Nama, Email, No. HP) ────────────
+                  // ── Card Header Profil (Avatar, Nama, Email, No. HP) ─────
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                    child: Row(
-                      children: [
-                        Stack(
-                          children: [
-                            Container(
-                              width: 74,
-                              height: 74,
-                              decoration: const BoxDecoration(
-                                shape: BoxShape.circle,
-                              ),
-                              child: ClipOval(
-                                child: Image.network(
-                                  'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=400&q=80',
-                                  width: 74,
-                                  height: 74,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (context, error, stackTrace) =>
-                                      Container(
-                                    color: const Color(0xFFE2E8F0),
-                                    child: const Icon(
-                                      Icons.person,
-                                      size: 40,
-                                      color: _ProfileColors.textLight,
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: _ProfileColors.cardWhite,
+                        borderRadius: BorderRadius.circular(22),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.06),
+                            blurRadius: 20,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 20, vertical: 20),
+                      child: Row(
+                        children: [
+                          // ── Avatar lingkaran dengan huruf pertama nama ──
+                          Stack(
+                            children: [
+                              Container(
+                                width: 74,
+                                height: 74,
+                                decoration: const BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: _ProfileColors.avatarBg,
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    avatarLetter,
+                                    style: const TextStyle(
+                                      fontSize: 30,
+                                      fontWeight: FontWeight.w700,
+                                      color: Colors.white,
+                                      letterSpacing: 0,
                                     ),
                                   ),
                                 ),
                               ),
+                              Positioned(
+                                bottom: 0,
+                                right: 0,
+                                child: GestureDetector(
+                                  onTap: () async {
+                                    final result = await Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => const EditPage(
+                                          prefillFromUser: true,
+                                        ),
+                                      ),
+                                    );
+
+                                    if (result == true) {
+                                      UserService().notifyListeners();
+                                    }
+                                  },
+                                  child: Container(
+                                    width: 24,
+                                    height: 24,
+                                    decoration: BoxDecoration(
+                                      color: _ProfileColors.orange,
+                                      shape: BoxShape.circle,
+                                      border: Border.all(
+                                        color: Colors.white,
+                                        width: 2,
+                                      ),
+                                    ),
+                                    child: const Center(
+                                      child: Icon(
+                                        Icons.edit,
+                                        size: 12,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  name,
+                                  style: const TextStyle(
+                                    fontSize: 17,
+                                    fontWeight: FontWeight.w700,
+                                    color: _ProfileColors.textDark,
+                                    letterSpacing: -0.2,
+                                  ),
+                                ),
+                                const SizedBox(height: 3),
+                                Text(
+                                  email,
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w400,
+                                    color: _ProfileColors.textMuted,
+                                  ),
+                                ),
+                                if (phone != '-') ...[
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    phone,
+                                    style: const TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w400,
+                                      color: _ProfileColors.textMuted,
+                                    ),
+                                  ),
+                                ],
+                              ],
                             ),
-                            Positioned(
-                              bottom: 0,
-                              right: 0,
-                              child: GestureDetector(
-                               onTap: () async {
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  // ── Card Data Pribadi ────────────────────────────────────
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: _ProfileColors.cardWhite,
+                        borderRadius: BorderRadius.circular(22),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.06),
+                            blurRadius: 20,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      padding: const EdgeInsets.fromLTRB(20, 18, 20, 24),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Header section: judul + tombol Ubah
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text(
+                                'Data Pribadi',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                  color: _ProfileColors.textDark,
+                                  letterSpacing: -0.2,
+                                ),
+                              ),
+                              InkWell(
+                                onTap: () async {
                                   final result = await Navigator.push(
                                     context,
                                     MaterialPageRoute(
@@ -126,163 +258,57 @@ class ProfilePage extends StatelessWidget {
                                     UserService().notifyListeners();
                                   }
                                 },
-                                child: Container(
-                                  width: 24,
-                                  height: 24,
-                                  decoration: BoxDecoration(
-                                    color: _ProfileColors.orange,
-                                    shape: BoxShape.circle,
-                                    border: Border.all(
-                                      color: Colors.white,
-                                      width: 2,
-                                    ),
+                                borderRadius: BorderRadius.circular(6),
+                                child: const Padding(
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: 4,
+                                    vertical: 2,
                                   ),
-                                  child: const Center(
-                                    child: Icon(
-                                      Icons.edit,
-                                      size: 12,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                name,
-                                style: const TextStyle(
-                                  fontSize: 17,
-                                  fontWeight: FontWeight.w700,
-                                  color: _ProfileColors.textDark,
-                                  letterSpacing: -0.2,
-                                ),
-                              ),
-                              const SizedBox(height: 3),
-                              Text(
-                                email,
-                                style: const TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w400,
-                                  color: _ProfileColors.textMuted,
-                                ),
-                              ),
-                              if (phone != '-') ...[
-                                const SizedBox(height: 2),
-                                Text(
-                                  phone,
-                                  style: const TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w400,
-                                    color: _ProfileColors.textMuted,
-                                  ),
-                                ),
-                              ],
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 8),
-
-                  // ── Garis Pemisah Penuh ──────────────────────────────────
-                  const Divider(
-                    height: 24,
-                    thickness: 1,
-                    color: _ProfileColors.divider,
-                  ),
-
-                  const SizedBox(height: 8),
-
-                  // ── Bagian Data Pribadi ───────────────────────────────────
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            const Text(
-                              'Data Pribadi',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w700,
-                                color: _ProfileColors.textDark,
-                                letterSpacing: -0.2,
-                              ),
-                            ),
-                            InkWell(
-                             onTap: () async {
-                              final result = await Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => const EditPage(
-                                    prefillFromUser: true,
-                                  ),
-                                ),
-                              );
-
-                              if (result == true) {
-                                UserService().notifyListeners();
-                              }
-                            },
-                              borderRadius: BorderRadius.circular(6),
-                              child: const Padding(
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: 4,
-                                  vertical: 2,
-                                ),
-                                child: Row(
-                                  children: [
-                                    Icon(
-                                      Icons.edit_outlined,
-                                      size: 15,
-                                      color: _ProfileColors.orange,
-                                    ),
-                                    SizedBox(width: 4),
-                                    Text(
-                                      'Ubah',
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w600,
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        Icons.edit_outlined,
+                                        size: 15,
                                         color: _ProfileColors.orange,
                                       ),
-                                    ),
-                                  ],
+                                      SizedBox(width: 4),
+                                      Text(
+                                        'Ubah',
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w600,
+                                          color: _ProfileColors.orange,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
-                            ),
-                          ],
-                        ),
+                            ],
+                          ),
 
-                        const SizedBox(height: 18),
+                          const SizedBox(height: 16),
 
-                        _buildDataRow('Nama Lengkap', name),
-                        _buildDivider(),
-                        _buildDataRow('Email', email),
-                        _buildDivider(),
-                        _buildDataRow('Nomor HP', phone),
-                        _buildDivider(),
-                        _buildDataRow('Jenis Kelamin', gender),
-                        _buildDivider(),
-                        _buildDataRow('Tanggal Lahir', birthDate),
-                        _buildDivider(),
-                        _buildDataRow('Berat Badan', weightStr),
-                        _buildDivider(),
-                        _buildDataRow('Tinggi Badan', heightStr),
-
-                        const SizedBox(height: 28),
-                      ],
+                          // Baris data pribadi dengan icon
+                          _buildDataRow(Icons.person_outline_rounded,    'Nama Lengkap', name),
+                          _buildDivider(),
+                          _buildDataRow(Icons.email_outlined,            'Email',        email),
+                          _buildDivider(),
+                          _buildDataRow(Icons.phone_outlined,            'Nomor HP',     phone),
+                          _buildDivider(),
+                          _buildDataRow(Icons.wc_outlined,               'Jenis Kelamin', gender),
+                          _buildDivider(),
+                          _buildDataRow(Icons.cake_outlined,             'Tanggal Lahir', birthDate),
+                          _buildDivider(),
+                          _buildDataRow(Icons.monitor_weight_outlined,   'Berat Badan',  weightStr),
+                          _buildDivider(),
+                          _buildDataRow(Icons.height_rounded,            'Tinggi Badan', heightStr),
+                        ],
+                      ),
                     ),
                   ),
+
+                  const SizedBox(height: 28),
                 ],
               ),
             ),
@@ -293,26 +319,44 @@ class ProfilePage extends StatelessWidget {
     );
   }
 
-  /// Baris data label & nilai
-  Widget _buildDataRow(String label, String value) {
+  /// Baris data dengan icon lingkaran butter yellow, label, dan nilai
+  Widget _buildDataRow(IconData icon, String label, String value) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            label,
-            style: const TextStyle(
-              fontSize: 13.5,
-              fontWeight: FontWeight.w400,
-              color: _ProfileColors.textLight,
+          // Icon di dalam lingkaran butter yellow muda
+          Container(
+            width: 36,
+            height: 36,
+            decoration: const BoxDecoration(
+              color: _ProfileColors.iconCircle,
+              shape: BoxShape.circle,
+            ),
+            child: Center(
+              child: Icon(
+                icon,
+                size: 18,
+                color: _ProfileColors.orange,
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              label,
+              style: const TextStyle(
+                fontSize: 13.5,
+                fontWeight: FontWeight.w400,
+                color: _ProfileColors.textMuted,
+              ),
             ),
           ),
           Text(
             value,
             style: const TextStyle(
               fontSize: 13.5,
-              fontWeight: FontWeight.w500,
+              fontWeight: FontWeight.w600,
               color: _ProfileColors.textDark,
             ),
           ),
@@ -324,7 +368,7 @@ class ProfilePage extends StatelessWidget {
   /// Divider tipis antar baris
   Widget _buildDivider() {
     return const Divider(
-      height: 22,
+      height: 16,
       thickness: 1,
       color: _ProfileColors.divider,
     );
