@@ -150,77 +150,34 @@ class EducationPage extends StatelessWidget {
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 24, 20, 16),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Expanded(child: SizedBox()),
-          Column(
-            children: [
-              Text(
-                'Edukasi',
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: const Color(0xFF1A1A1A),
-                    ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                'Pengetahuan hari ini, untuk tulang\nyang lebih kuat di masa depan',
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: const Color(0xFF757575),
-                      height: 1.5,
-                    ),
-              ),
-            ],
-          ),
-          Expanded(
-            child: Align(
-              alignment: Alignment.topRight,
-              child: _TaglineBadge(),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _TaglineBadge extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-      decoration: BoxDecoration(
-        border: Border.all(color: const Color(0xFFFFC107), width: 1.5),
-        borderRadius: BorderRadius.circular(8),
-      ),
+ Widget _buildHeader(BuildContext context) {
+  return Padding(
+    padding: const EdgeInsets.fromLTRB(20, 24, 20, 16),
+    child: Center(
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.menu_book_outlined,
-              size: 22, color: Color(0xFFFFC107)),
-          const SizedBox(height: 2),
           Text(
-            'Healthy Bones\nHappier You',
+            'Edukasi',
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: const Color(0xFF1A1A1A),
+                ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Pengetahuan hari ini, untuk tulang\nyang lebih kuat di masa depan',
             textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: const Color(0xFFFFC107),
-                  fontWeight: FontWeight.w600,
-                  fontSize: 9,
-                  height: 1.4,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: const Color(0xFF757575),
+                  height: 1.5,
                 ),
           ),
         ],
       ),
-    );
-  }
+    ),
+  );
 }
+} 
 
 class _EducationTopic {
   final String imagePath;

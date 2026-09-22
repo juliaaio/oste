@@ -35,8 +35,7 @@ class OsteoporosisPage extends StatelessWidget {
             ),
           ),
           bottom: const TabBar(
-            isScrollable: true,
-            tabAlignment: TabAlignment.start,
+            isScrollable: false,
             indicatorColor: Color(0xFFF7C948),
             indicatorWeight: 3,
             dividerColor: Color(0xFFF0F0F0),
