@@ -301,29 +301,29 @@ class _ScreeningPageState extends State<ScreeningPage> {
               QuestionCard(
                 title: '2.  Jenis kelamin',
                 subtitle: 'Apa jenis kelamin Anda?',
-                child: Row(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(
-                      child: CustomRadioButton<String>(
-                        value: 'Perempuan',
-                        groupValue: _selectedGender,
-                        label: 'Perempuan',
-                        onChanged: (val) => setState(() => _selectedGender = val),
-                      ),
+                    CustomRadioButton<String>(
+                      value: 'Perempuan',
+                      groupValue: _selectedGender,
+                      label: 'Perempuan',
+                      onChanged: (val) => setState(() => _selectedGender = val),
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: CustomRadioButton<String>(
-                        value: 'Laki-laki',
-                        groupValue: _selectedGender,
-                        label: 'Laki-laki',
-                        onChanged: (val) => setState(() => _selectedGender = val),
-                      ),
+
+                    const SizedBox(height: 12),
+
+                    CustomRadioButton<String>(
+                      value: 'Laki-laki',
+                      groupValue: _selectedGender,
+                      label: 'Laki-laki',
+                      onChanged: (val) => setState(() => _selectedGender = val),
                     ),
                   ],
                 ),
               ),
               const SizedBox(height: 14),
+              
 
               // -------------------------------------------------------------
               // 3. Tinggi badan
@@ -397,24 +397,21 @@ class _ScreeningPageState extends State<ScreeningPage> {
               QuestionCard(
                 title: '7.  Konsumsi alkohol',
                 subtitle: 'Apakah Anda mengonsumsi minuman beralkohol?',
-                child: Row(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(
-                      child: CustomRadioButton<String>(
-                        value: 'Ya',
-                        groupValue: _selectedAlcohol,
-                        label: 'Ya',
-                        onChanged: (val) => setState(() => _selectedAlcohol = val),
-                      ),
+                    CustomRadioButton<String>(
+                      value: 'Ya',
+                      groupValue: _selectedAlcohol,
+                      label: 'Ya',
+                      onChanged: (val) => setState(() => _selectedAlcohol = val),
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: CustomRadioButton<String>(
-                        value: 'Tidak',
-                        groupValue: _selectedAlcohol,
-                        label: 'Tidak',
-                        onChanged: (val) => setState(() => _selectedAlcohol = val),
-                      ),
+                    const SizedBox(height: 12),
+                    CustomRadioButton<String>(
+                      value: 'Tidak',
+                      groupValue: _selectedAlcohol,
+                      label: 'Tidak',
+                      onChanged: (val) => setState(() => _selectedAlcohol = val),
                     ),
                   ],
                 ),
