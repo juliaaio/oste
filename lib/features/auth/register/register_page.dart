@@ -1,20 +1,20 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:oste/core/utils/password_validator.dart';
+import 'package:oste/core/widgets/password_requirements_card.dart';
 import 'package:oste/features/auth/login/login_page.dart';
-import 'package:oste/features/auth/register_success/register_success_page.dart';
+import 'package:oste/features/dashboard/dashboard_page.dart';
 import 'package:oste/services/user_service.dart';
 
 /// Palet warna halaman Register
 class _RegisterColors {
   static const Color primaryButterYellow = Color(0xFFF7C948);
   static const Color badgeBg = Color(0xFFFFF5DD);
-  static const Color infoCardBg = Color(0xFFFFF9EE);
   static const Color textDark = Color(0xFF1E293B);
   static const Color textMuted = Color(0xFF64748B);
   static const Color textLight = Color(0xFF94A3B8);
   static const Color inputBorder = Color(0xFFE2E8F0);
   static const Color linkAmber = Color(0xFFE5A124);
-  static const Color infoHeaderAmber = Color(0xFFB45309);
 }
 
 /// Halaman Register Osteocare
@@ -35,13 +35,17 @@ class _RegisterPageState extends State<RegisterPage> {
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
   bool _agreedToTerms = false;
+  bool _isLoading = false;
 
-  bool get _hasMinLength => _passwordController.text.length >= 8;
-  bool get _hasUppercase => _passwordController.text.contains(RegExp(r'[A-Z]'));
-  bool get _hasLowercase => _passwordController.text.contains(RegExp(r'[a-z]'));
-  bool get _hasDigit => _passwordController.text.contains(RegExp(r'[0-9]'));
+  bool get _hasMinLength =>
+      PasswordValidator.hasMinLength(_passwordController.text);
+  bool get _hasUppercase =>
+      PasswordValidator.hasUppercase(_passwordController.text);
+  bool get _hasLowercase =>
+      PasswordValidator.hasLowercase(_passwordController.text);
+  bool get _hasDigit => PasswordValidator.hasDigit(_passwordController.text);
   bool get _hasSpecialChar =>
-      _passwordController.text.contains(RegExp(r'[^a-zA-Z0-9\s]'));
+      PasswordValidator.hasSpecialChar(_passwordController.text);
 
   /// Validasi format email menggunakan RegExp.
   /// Email tidak boleh kosong, tidak boleh mengandung spasi,
@@ -56,11 +60,7 @@ class _RegisterPageState extends State<RegisterPage> {
   }
 
   bool get _isPasswordValid =>
-      _hasMinLength &&
-      _hasUppercase &&
-      _hasLowercase &&
-      _hasDigit &&
-      _hasSpecialChar;
+      PasswordValidator.isValid(_passwordController.text);
 
   @override
   void dispose() {
@@ -72,7 +72,12 @@ class _RegisterPageState extends State<RegisterPage> {
     super.dispose();
   }
 
-  void _handleRegister() {
+  Future<void> _handleRegister() async {
+    if (_isLoading) return;
+
+    // Tutup keyboard terlebih dahulu agar layout stabil dan tidak menginterupsi klik
+    FocusManager.instance.primaryFocus?.unfocus();
+
     final name = _nameController.text.trim();
     final email = _emailController.text.trim();
     final phone = _phoneController.text.trim();
@@ -147,38 +152,36 @@ class _RegisterPageState extends State<RegisterPage> {
       return;
     }
 
-    // Simpan ke UserService
-    final success = UserService().register(
+    setState(() => _isLoading = true);
+
+    // Daftarkan ke Firebase Auth + buat dokumen Firestore + muat profil
+    final error = await UserService().register(
       name: name,
       email: email,
       phone: phone,
       password: password,
     );
 
-    if (!success) {
+    if (!mounted) return;
+
+    if (error != null) {
+      setState(() => _isLoading = false);
       messenger.hideCurrentSnackBar();
       messenger.showSnackBar(
-        const SnackBar(
-          content: Text('Email sudah digunakan. Gunakan email lain.'),
-          backgroundColor: Color(0xFFE11D48),
+        SnackBar(
+          content: Text(error),
+          backgroundColor: const Color(0xFFE11D48),
         ),
       );
       return;
     }
 
+    // Registrasi berhasil → navigasi langsung ke Dashboard
     messenger.hideCurrentSnackBar();
-    messenger.showSnackBar(
-      const SnackBar(
-        content: Text('Registrasi berhasil. Silakan login.'),
-        backgroundColor: Color(0xFF10B981),
-      ),
-    );
-
-    // Pindah ke RegisterSuccessPage menggunakan Navigator.pushReplacement
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
-        builder: (_) => const RegisterSuccessPage(),
+        builder: (_) => const DashboardPage(),
       ),
     );
   }
@@ -197,6 +200,7 @@ class _RegisterPageState extends State<RegisterPage> {
           // 2. Konten formulir yang scrollable dan responsive
           SafeArea(
             child: SingleChildScrollView(
+              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
               padding: const EdgeInsets.symmetric(horizontal: 28),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
@@ -533,79 +537,12 @@ class _RegisterPageState extends State<RegisterPage> {
 
   /// Card Informasi Persyaratan Password
   Widget _buildPasswordRequirementsCard() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: _RegisterColors.infoCardBg,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: const Color(0xFFFDE68A).withValues(alpha: 0.6),
-          width: 1,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Password harus mengandung:',
-            style: TextStyle(
-              fontSize: 12.5,
-              fontWeight: FontWeight.w700,
-              color: _RegisterColors.infoHeaderAmber,
-            ),
-          ),
-          const SizedBox(height: 8),
-          _buildRequirementItem('Minimal 8 karakter', _hasMinLength),
-          const SizedBox(height: 5),
-          _buildRequirementItem(
-            'Huruf besar dan huruf kecil',
-            _hasUppercase && _hasLowercase,
-          ),
-          const SizedBox(height: 5),
-          _buildRequirementItem('Angka', _hasDigit),
-          const SizedBox(height: 5),
-          _buildRequirementItem(
-            'Karakter khusus (contoh: !@#)',
-            _hasSpecialChar,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildRequirementItem(String text, bool isMet) {
-    return Row(
-      children: [
-        isMet
-            ? const Icon(
-                Icons.check_circle,
-                size: 13,
-                color: Color(0xFF10B981),
-              )
-            : Container(
-                width: 13,
-                height: 13,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: const Color(0xFFD4A359),
-                    width: 1.3,
-                  ),
-                ),
-              ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Text(
-            text,
-            style: TextStyle(
-              fontSize: 11.5,
-              fontWeight: FontWeight.w400,
-              color: isMet ? const Color(0xFF047857) : _RegisterColors.textMuted,
-            ),
-          ),
-        ),
-      ],
+    return PasswordRequirementsCard(
+      hasMinLength: _hasMinLength,
+      hasUppercase: _hasUppercase,
+      hasLowercase: _hasLowercase,
+      hasDigit: _hasDigit,
+      hasSpecialChar: _hasSpecialChar,
     );
   }
 
@@ -693,7 +630,7 @@ class _RegisterPageState extends State<RegisterPage> {
         ],
       ),
       child: ElevatedButton(
-        onPressed: _handleRegister,
+        onPressed: _isLoading ? null : _handleRegister,
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.transparent,
           foregroundColor: _RegisterColors.textDark,
@@ -703,25 +640,36 @@ class _RegisterPageState extends State<RegisterPage> {
             borderRadius: BorderRadius.circular(30),
           ),
         ),
-        child: const Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              'Daftar',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-                color: _RegisterColors.textDark,
+        child: _isLoading
+            ? const SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.5,
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    _RegisterColors.textDark,
+                  ),
+                ),
+              )
+            : const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    'Daftar',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: _RegisterColors.textDark,
+                    ),
+                  ),
+                  SizedBox(width: 8),
+                  Icon(
+                    Icons.arrow_forward_rounded,
+                    size: 20,
+                    color: _RegisterColors.textDark,
+                  ),
+                ],
               ),
-            ),
-            SizedBox(width: 8),
-            Icon(
-              Icons.arrow_forward_rounded,
-              size: 20,
-              color: _RegisterColors.textDark,
-            ),
-          ],
-        ),
       ),
     );
   }

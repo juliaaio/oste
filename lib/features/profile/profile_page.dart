@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:oste/features/auth/login/login_page.dart';
 import 'package:oste/features/dashboard/dashboard_page.dart';
 import 'package:oste/features/education/education_page.dart';
 import 'package:oste/features/history/history_page.dart';
+import 'package:oste/features/profile/change_password_page.dart';
 import 'package:oste/features/profile/edit_page.dart';
 import 'package:oste/services/user_service.dart';
 
@@ -94,7 +96,7 @@ class ProfilePage extends StatelessWidget {
                         borderRadius: BorderRadius.circular(22),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.06),
+                             color: Colors.black.withValues(alpha: 0.06),
                             blurRadius: 20,
                             offset: const Offset(0, 4),
                           ),
@@ -141,7 +143,8 @@ class ProfilePage extends StatelessWidget {
                                     );
 
                                     if (result == true) {
-                                      UserService().notifyListeners();
+                                      // updateProfile() já chama notifyListeners() internamente;
+                                      // o AnimatedBuilder rebuilda automaticamente.
                                     }
                                   },
                                   child: Container(
@@ -220,7 +223,7 @@ class ProfilePage extends StatelessWidget {
                         borderRadius: BorderRadius.circular(22),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.06),
+                            color: Colors.black.withValues(alpha: 0.06),
                             blurRadius: 20,
                             offset: const Offset(0, 4),
                           ),
@@ -255,7 +258,8 @@ class ProfilePage extends StatelessWidget {
                                   );
 
                                   if (result == true) {
-                                    UserService().notifyListeners();
+                                    // updateProfile() já chama notifyListeners() internamente;
+                                    // o AnimatedBuilder rebuilda automaticamente.
                                   }
                                 },
                                 borderRadius: BorderRadius.circular(6),
@@ -303,6 +307,77 @@ class ProfilePage extends StatelessWidget {
                           _buildDataRow(Icons.monitor_weight_outlined,   'Berat Badan',  weightStr),
                           _buildDivider(),
                           _buildDataRow(Icons.height_rounded,            'Tinggi Badan', heightStr),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  // ── Account Section ───────────────────────────────────
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: _ProfileColors.cardWhite,
+                        borderRadius: BorderRadius.circular(22),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.06),
+                            blurRadius: 20,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      padding: const EdgeInsets.fromLTRB(20, 18, 20, 8),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Account',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              color: _ProfileColors.textDark,
+                              letterSpacing: -0.2,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+
+                          // ── Change Password ──
+                          _buildAccountTile(
+                            context: context,
+                            icon: Icons.lock_outline,
+                            iconColor: _ProfileColors.orange,
+                            iconBgColor: _ProfileColors.iconCircle,
+                            title: 'Change Password',
+                            subtitle: 'Change your account password',
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const ChangePasswordPage(),
+                                ),
+                              );
+                            },
+                          ),
+
+                          const Divider(
+                            height: 1,
+                            thickness: 1,
+                            color: _ProfileColors.divider,
+                          ),
+
+                          // ── Logout ──
+                          _buildAccountTile(
+                            context: context,
+                            icon: Icons.logout,
+                            iconColor: const Color(0xFFEF4444),
+                            iconBgColor: const Color(0xFFFEE2E2),
+                            title: 'Logout',
+                            subtitle: 'Sign out from your account',
+                            onTap: () => _showLogoutDialog(context),
+                          ),
                         ],
                       ),
                     ),
@@ -371,6 +446,132 @@ class ProfilePage extends StatelessWidget {
       height: 16,
       thickness: 1,
       color: _ProfileColors.divider,
+    );
+  }
+
+  /// Tile untuk section Account (Change Password, Logout, dsb.)
+  Widget _buildAccountTile({
+    required BuildContext context,
+    required IconData icon,
+    required Color iconColor,
+    required Color iconBgColor,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        child: Row(
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: iconBgColor,
+                shape: BoxShape.circle,
+              ),
+              child: Center(
+                child: Icon(icon, size: 18, color: iconColor),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: _ProfileColors.textDark,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w400,
+                      color: _ProfileColors.textMuted,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(
+              Icons.chevron_right,
+              size: 20,
+              color: _ProfileColors.textLight,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Dialog konfirmasi Logout
+  void _showLogoutDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: _ProfileColors.cardWhite,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        title: const Text(
+          'Logout',
+          style: TextStyle(
+            fontSize: 17,
+            fontWeight: FontWeight.w700,
+            color: _ProfileColors.textDark,
+          ),
+        ),
+        content: const Text(
+          'Are you sure you want to sign out?',
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w400,
+            color: _ProfileColors.textMuted,
+          ),
+        ),
+        actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            style: TextButton.styleFrom(
+              foregroundColor: _ProfileColors.textMuted,
+            ),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(fontWeight: FontWeight.w600),
+            ),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(ctx); // tutup dialog
+              await UserService().logout();
+              if (context.mounted) {
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const LoginPage(),
+                  ),
+                  (route) => false,
+                );
+              }
+            },
+            style: TextButton.styleFrom(
+              foregroundColor: const Color(0xFFEF4444),
+            ),
+            child: const Text(
+              'Logout',
+              style: TextStyle(fontWeight: FontWeight.w600),
+            ),
+          ),
+        ],
+      ),
     );
   }
 

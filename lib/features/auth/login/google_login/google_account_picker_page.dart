@@ -112,10 +112,10 @@ class _PickerCard extends StatelessWidget {
             onTap: (context) {
               UserService().loginDirect(
                 const UserModel(
+                  uid: '',
                   name: 'Risma Putri',
                   email: 'risma@gmail.com',
                   phone: '0812-3456-7890',
-                  password: '',
                   gender: 'Perempuan',
                   birthDate: '15 Mei 1998',
                   weight: 52,
@@ -136,10 +136,10 @@ class _PickerCard extends StatelessWidget {
             onTap: (context) {
               UserService().loginDirect(
                 const UserModel(
+                  uid: '',
                   name: 'Risma',
                   email: 'risma@student.ac.id',
                   phone: '',
-                  password: '',
                 ),
               );
               Navigator.pushReplacement(
@@ -156,10 +156,10 @@ class _PickerCard extends StatelessWidget {
             onTap: (context) {
               UserService().loginDirect(
                 const UserModel(
+                  uid: '',
                   name: 'Andini',
                   email: 'andini@gmail.com',
                   phone: '',
-                  password: '',
                 ),
               );
               Navigator.pushReplacement(

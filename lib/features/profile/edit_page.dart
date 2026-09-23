@@ -114,7 +114,7 @@ class _EditPageState extends State<EditPage> {
     }
   }
 
-  void _saveProfile() {
+  Future<void> _saveProfile() async {
     if (!_formKey.currentState!.validate()) {
       return;
     }
@@ -122,15 +122,17 @@ class _EditPageState extends State<EditPage> {
     final weight = double.tryParse(_weightController.text.trim());
     final height = double.tryParse(_heightController.text.trim());
 
-    UserService().updateProfile(
-    name: _nameController.text.trim(),
-    email: _emailController.text.trim(),
-    phone: _phoneController.text.trim(),
-    gender: _selectedGender,
-    birthDate: _birthDateController.text.trim(),
-    weight: weight,
-    height: height,
+    await UserService().updateProfile(
+      name: _nameController.text.trim(),
+      email: _emailController.text.trim(),
+      phone: _phoneController.text.trim(),
+      gender: _selectedGender,
+      birthDate: _birthDateController.text.trim(),
+      weight: weight,
+      height: height,
     );
+
+    if (!mounted) return;
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
@@ -142,8 +144,8 @@ class _EditPageState extends State<EditPage> {
     );
 
     if (Navigator.canPop(context)) {
-  Navigator.pop(context, true);
-}
+      Navigator.pop(context, true);
+    }
   }
   InputDecoration _inputDecoration({
     required Widget prefixIcon,

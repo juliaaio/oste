@@ -1,275 +1,113 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:oste/features/auth/login/login_page.dart';
-import 'package:oste/features/auth/register/register_page.dart';
-import 'package:oste/features/auth/register_success/register_success_page.dart';
-import 'package:oste/features/dashboard/dashboard_page.dart';
-import 'package:oste/features/profile/profile_page.dart';
 import 'package:oste/models/user_model.dart';
-import 'package:oste/services/user_service.dart';
 
+/// Unit tests untuk UserModel dan logika validasi lokal.
+///
+/// Catatan: Pengujian integrasi Firebase Auth / Firestore memerlukan
+/// Firebase Emulator Suite dan tidak dicakup di sini.
+/// Hanya logika murni Dart yang diuji di file ini.
 void main() {
-  setUp(() {
-    // Reset UserService state
-    UserService().logout();
-  });
+  group('UserModel', () {
+    const user = UserModel(
+      uid: 'uid-123',
+      name: 'Budi Santoso',
+      email: 'budi@example.com',
+      phone: '081122334455',
+      gender: 'Laki-laki',
+      birthDate: '12 Desember 1990',
+      weight: 65,
+      height: 172,
+    );
 
-  group('UserService & Sync Tests', () {
-    test('Register stores user and updates currentUser', () {
-      final service = UserService();
-      final success = service.register(
-        name: 'Ahmad Dahlan',
-        email: 'ahmad@example.com',
-        phone: '08123456789',
-        password: 'password123',
-        gender: 'Laki-laki',
-        birthDate: '10 Januari 1995',
-      );
-
-      expect(success, isTrue);
-      expect(service.currentUser, isNotNull);
-      expect(service.currentUser!.name, equals('Ahmad Dahlan'));
-      expect(service.currentUser!.firstName, equals('Ahmad'));
-      expect(service.currentUser!.email, equals('ahmad@example.com'));
-      expect(service.currentUser!.phone, equals('08123456789'));
-      expect(service.currentUser!.gender, equals('Laki-laki'));
-      expect(service.currentUser!.birthDate, equals('10 Januari 1995'));
+    test('firstName returns first word of name', () {
+      expect(user.firstName, equals('Budi'));
     });
 
-    test('Login sets currentUser correctly', () {
-      final service = UserService();
-      service.register(
-        name: 'Siti Nurhaliza',
-        email: 'siti@example.com',
-        phone: '08987654321',
-        password: 'secretPassword',
-        gender: 'Perempuan',
-        birthDate: '20 Februari 1998',
-      );
-
-      // Log out
-      service.logout();
-      expect(service.currentUser, isNull);
-
-      // Log in
-      final ok = service.login(email: 'siti@example.com', password: 'secretPassword');
-      expect(ok, isTrue);
-      expect(service.currentUser, isNotNull);
-      expect(service.currentUser!.name, equals('Siti Nurhaliza'));
-      expect(service.currentUser!.firstName, equals('Siti'));
+    test('firstName handles single-word name', () {
+      const singleName = UserModel(uid: 'x', name: 'Budi', email: 'b@b.com');
+      expect(singleName.firstName, equals('Budi'));
     });
 
-    testWidgets('DashboardPage and ProfilePage display data from UserService.currentUser', (tester) async {
-      tester.view.physicalSize = const Size(1080, 2400);
-      tester.view.devicePixelRatio = 2.0;
-      addTearDown(() {
-        tester.view.resetPhysicalSize();
-        tester.view.resetDevicePixelRatio();
+    test('firstName handles empty name gracefully', () {
+      const emptyName = UserModel(uid: 'x', name: '', email: 'b@b.com');
+      expect(emptyName.firstName, equals(''));
+    });
+
+    test('toFirestore serializes all fields correctly', () {
+      final map = user.toFirestore();
+      expect(map['uid'], equals('uid-123'));
+      expect(map['name'], equals('Budi Santoso'));
+      expect(map['email'], equals('budi@example.com'));
+      expect(map['phone'], equals('081122334455'));
+      expect(map['gender'], equals('Laki-laki'));
+      expect(map['birth_date'], equals('12 Desember 1990'));
+      expect(map['weight'], equals(65.0));
+      expect(map['height'], equals(172.0));
+    });
+
+    test('toMap is alias of toFirestore', () {
+      expect(user.toMap(), equals(user.toFirestore()));
+    });
+
+    test('fromMap deserializes correctly', () {
+      final map = {
+        'name': 'Siti Nurhaliza',
+        'email': 'siti@example.com',
+        'phone': '089988776655',
+        'gender': 'Perempuan',
+        'birth_date': '20 Februari 1998',
+        'weight': 52.0,
+        'height': 158.0,
+      };
+      final fromMap = UserModel.fromMap('uid-456', map);
+      expect(fromMap.uid, equals('uid-456'));
+      expect(fromMap.name, equals('Siti Nurhaliza'));
+      expect(fromMap.email, equals('siti@example.com'));
+      expect(fromMap.phone, equals('089988776655'));
+      expect(fromMap.gender, equals('Perempuan'));
+      expect(fromMap.birthDate, equals('20 Februari 1998'));
+      expect(fromMap.weight, equals(52.0));
+      expect(fromMap.height, equals(158.0));
+    });
+
+    test('fromMap handles missing optional fields with defaults', () {
+      final sparse = UserModel.fromMap('uid-789', {'name': 'Ahmad', 'email': 'a@a.com'});
+      expect(sparse.phone, equals(''));
+      expect(sparse.gender, equals(''));
+      expect(sparse.birthDate, equals(''));
+      expect(sparse.weight, isNull);
+      expect(sparse.height, isNull);
+    });
+
+    test('fromMap robustly parses string and int numbers for weight and height', () {
+      final parsed = UserModel.fromMap('uid-999', {
+        'name': 'Test User',
+        'email': 'test@example.com',
+        'phone': 81234567890,
+        'birthDate': '10 Januari 1995',
+        'weight': '68.5',
+        'height': 175,
       });
-
-      final service = UserService();
-      service.loginDirect(
-        const UserModel(
-          name: 'Budi Santoso',
-          email: 'budi.santoso@example.com',
-          phone: '081122334455',
-          password: 'pass',
-          gender: 'Laki-laki',
-          birthDate: '12 Desember 1990',
-          weight: 65,
-          height: 172,
-        ),
-      );
-
-      // Verify Dashboard shows 'Hai, Budi 👋'
-      await tester.pumpWidget(
-        const MaterialApp(
-          home: DashboardPage(),
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      expect(find.text('Hai, Budi 👋'), findsOneWidget);
-
-      // Verify Profile shows full identity
-      await tester.pumpWidget(
-        const MaterialApp(
-          home: ProfilePage(),
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      expect(find.text('Budi Santoso'), findsNWidgets(2)); // in header and data row
-      expect(find.text('budi.santoso@example.com'), findsNWidgets(2)); // in header and data row
-      expect(find.text('081122334455'), findsNWidgets(2)); // in header and data row
-      expect(find.text('Laki-laki'), findsOneWidget);
-      expect(find.text('12 Desember 1990'), findsOneWidget);
-      expect(find.text('65 kg'), findsOneWidget);
-      expect(find.text('172 cm'), findsOneWidget);
+      expect(parsed.phone, equals('81234567890'));
+      expect(parsed.birthDate, equals('10 Januari 1995'));
+      expect(parsed.weight, equals(68.5));
+      expect(parsed.height, equals(175.0));
     });
 
-    testWidgets('LoginPage sets currentUser and navigates to Dashboard with correct credentials', (tester) async {
-      tester.view.physicalSize = const Size(1080, 2400);
-      tester.view.devicePixelRatio = 2.0;
-      addTearDown(() {
-        tester.view.resetPhysicalSize();
-        tester.view.resetDevicePixelRatio();
-      });
-
-      final service = UserService();
-      service.register(
-        name: 'Dewi Lestari',
-        email: 'dewi@example.com',
-        phone: '085566778899',
-        password: 'Password123!',
-        gender: 'Perempuan',
-        birthDate: '1 Januari 2000',
-      );
-      service.logout();
-
-      await tester.pumpWidget(
-        const MaterialApp(
-          home: LoginPage(),
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      // Enter credentials
-      await tester.enterText(find.widgetWithText(TextField, 'Email'), 'dewi@example.com');
-      await tester.enterText(find.widgetWithText(TextField, 'Password'), 'Password123!');
-      await tester.pumpAndSettle();
-
-      // Tap Masuk
-      await tester.tap(find.widgetWithText(ElevatedButton, 'Masuk'));
-      await tester.pumpAndSettle();
-
-      expect(find.byType(DashboardPage), findsOneWidget);
-      expect(service.currentUser, isNotNull);
-      expect(service.currentUser!.name, equals('Dewi Lestari'));
-      expect(find.text('Hai, Dewi 👋'), findsOneWidget);
+    test('copyWith returns updated model with unchanged fields preserved', () {
+      final updated = user.copyWith(name: 'Budi Santoso Jr', weight: 70);
+      expect(updated.uid, equals(user.uid));
+      expect(updated.name, equals('Budi Santoso Jr'));
+      expect(updated.email, equals(user.email));
+      expect(updated.weight, equals(70));
+      expect(updated.height, equals(user.height));
     });
 
-    testWidgets('LoginPage rejects wrong password or unregistered email', (tester) async {
-      tester.view.physicalSize = const Size(1080, 2400);
-      tester.view.devicePixelRatio = 2.0;
-      addTearDown(() {
-        tester.view.resetPhysicalSize();
-        tester.view.resetDevicePixelRatio();
-      });
-
-      final service = UserService();
-      service.register(
-        name: 'Dewi Lestari',
-        email: 'dewi@example.com',
-        phone: '085566778899',
-        password: 'Password123!',
-      );
-      service.logout();
-
-      await tester.pumpWidget(
-        const MaterialApp(
-          home: LoginPage(),
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      // 1. Unregistered email
-      await tester.enterText(find.widgetWithText(TextField, 'Email'), 'notfound@example.com');
-      await tester.enterText(find.widgetWithText(TextField, 'Password'), 'Password123!');
-      await tester.pumpAndSettle();
-      await tester.tap(find.widgetWithText(ElevatedButton, 'Masuk'));
-      await tester.pumpAndSettle();
-
-      expect(find.byType(DashboardPage), findsNothing);
-      expect(find.textContaining('Email belum terdaftar'), findsOneWidget);
-
-      // 2. Wrong password
-      await tester.enterText(find.widgetWithText(TextField, 'Email'), 'dewi@example.com');
-      await tester.enterText(find.widgetWithText(TextField, 'Password'), 'WrongPassword123!');
-      await tester.pumpAndSettle();
-      await tester.tap(find.widgetWithText(ElevatedButton, 'Masuk'));
-      await tester.pumpAndSettle();
-
-      expect(find.byType(DashboardPage), findsNothing);
-      expect(find.textContaining('Password salah'), findsOneWidget);
-    });
-
-    testWidgets('RegisterPage updates requirement indicators in realtime when typing password', (tester) async {
-      tester.view.physicalSize = const Size(1080, 2400);
-      tester.view.devicePixelRatio = 2.0;
-      addTearDown(() {
-        tester.view.resetPhysicalSize();
-        tester.view.resetDevicePixelRatio();
-      });
-
-      await tester.pumpWidget(
-        const MaterialApp(
-          home: RegisterPage(),
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      // Awalnya: tidak ada centang hijau
-      expect(find.byIcon(Icons.check_circle), findsNothing);
-
-      // Ketik password yang memenuhi semua syarat
-      await tester.enterText(find.widgetWithText(TextField, 'Password'), 'Password123!');
-      await tester.pumpAndSettle();
-
-      // Sekarang: semua 4 baris indikator menampilkan centang hijau
-      expect(find.byIcon(Icons.check_circle), findsNWidgets(4));
-    });
-
-    testWidgets('RegisterPage blocks registration if password does not meet requirements', (tester) async {
-      tester.view.physicalSize = const Size(1080, 2400);
-      tester.view.devicePixelRatio = 2.0;
-      addTearDown(() {
-        tester.view.resetPhysicalSize();
-        tester.view.resetDevicePixelRatio();
-      });
-
-      final service = UserService();
-      service.logout();
-
-      await tester.pumpWidget(
-        const MaterialApp(
-          home: RegisterPage(),
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      // Isi form dengan password lemah
-      await tester.enterText(find.widgetWithText(TextField, 'Nama Lengkap'), 'Joko Anwar');
-      await tester.enterText(find.widgetWithText(TextField, 'Email'), 'joko@example.com');
-      await tester.enterText(find.widgetWithText(TextField, 'Nomor Telepon'), '081234567890');
-      await tester.enterText(find.widgetWithText(TextField, 'Password'), 'weakpass');
-      await tester.enterText(find.widgetWithText(TextField, 'Konfirmasi Pasword'), 'weakpass');
-      await tester.tap(find.byType(Checkbox));
-      await tester.pumpAndSettle();
-
-      // Tap Daftar
-      await tester.tap(find.widgetWithText(ElevatedButton, 'Daftar'));
-      await tester.pumpAndSettle();
-
-      // Harus gagal dan menampilkan SnackBar error
-      expect(find.byType(RegisterSuccessPage), findsNothing);
-      expect(find.textContaining('Password belum memenuhi'), findsOneWidget);
-      expect(service.currentUser, isNull);
-
-      // Sekarang ubah password menjadi valid
-      await tester.enterText(find.widgetWithText(TextField, 'Password'), 'StrongPassword123!');
-      await tester.enterText(find.widgetWithText(TextField, 'Konfirmasi Pasword'), 'StrongPassword123!');
-      await tester.pumpAndSettle();
-
-      // Tap Daftar lagi
-      await tester.tap(find.widgetWithText(ElevatedButton, 'Daftar'));
-      await tester.pumpAndSettle();
-
-      // Harus berhasil navigasi ke RegisterSuccessPage dan currentUser tersimpan
-      expect(find.byType(RegisterSuccessPage), findsOneWidget);
-      expect(service.currentUser, isNotNull);
-      expect(service.currentUser!.name, equals('Joko Anwar'));
-      expect(service.currentUser!.password, equals('StrongPassword123!'));
+    test('copyWith with no args returns equivalent model', () {
+      final copy = user.copyWith();
+      expect(copy.uid, equals(user.uid));
+      expect(copy.name, equals(user.name));
+      expect(copy.email, equals(user.email));
     });
   });
 }

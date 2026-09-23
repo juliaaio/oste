@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oste/features/profile/edit_page.dart';
+import 'package:oste/models/user_model.dart';
 import 'package:oste/services/user_service.dart';
 
 void main() {
@@ -98,11 +99,13 @@ void main() {
     WidgetTester tester,
   ) async {
     // Initial user
-    UserService().register(
-      name: 'Initial User',
-      email: 'initial@email.com',
-      phone: '081234567890',
-      password: 'pass',
+    UserService().setCurrentUserForTesting(
+      const UserModel(
+        uid: 'test-user-id',
+        name: 'Initial User',
+        email: 'initial@email.com',
+        phone: '081234567890',
+      ),
     );
 
     await tester.pumpWidget(

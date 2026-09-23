@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "288922097803",
+    "project_id": "oste-e532d",
+    "storage_bucket": "oste-e532d.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:288922097803:android:e1fb328ad9d39b67065c8e",
+        "android_client_info": {
+          "package_name": "com.oste.oste"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "288922097803-7fcan3cr31ho9v730tgerm8kvi7ei34d.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.oste.oste",
+            "certificate_hash": "4b052d8b5bdc55f6ee25dba579a1fcb34329e672"
+          }
+        },
+        {
+          "client_id": "288922097803-g5opofbhf70jvarb7b5ovo36m2jcsgf6.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBnobXz3-yEm81trILKdBeqaEH6cGVx_Uo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "288922097803-g5opofbhf70jvarb7b5ovo36m2jcsgf6.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

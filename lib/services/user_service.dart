@@ -1,50 +1,148 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:oste/models/user_model.dart';
 
-enum LoginResult {
-  success,
-  emailNotFound,
-  wrongPassword,
+// ---------------------------------------------------------------------------
+// Konstanta nama koleksi Firestore
+// ---------------------------------------------------------------------------
+const _kUsersCollection = 'users';
+
+// ---------------------------------------------------------------------------
+// Helper: terjemahkan Firebase error code ke pesan ramah pengguna
+// ---------------------------------------------------------------------------
+String _friendlyAuthError(FirebaseAuthException e) {
+  switch (e.code) {
+    case 'email-already-in-use':
+      return 'Email sudah digunakan. Gunakan email lain atau masuk ke akun Anda.';
+    case 'invalid-email':
+      return 'Format email tidak valid. Contoh: user@gmail.com';
+    case 'weak-password':
+      return 'Password terlalu lemah. Gunakan minimal 6 karakter.';
+    case 'user-not-found':
+      return 'Email belum terdaftar. Silakan daftar terlebih dahulu.';
+    case 'wrong-password':
+    case 'invalid-credential':
+      return 'Email atau password salah. Silakan periksa kembali.';
+    case 'user-disabled':
+      return 'Akun Anda telah dinonaktifkan. Hubungi dukungan.';
+    case 'too-many-requests':
+      return 'Terlalu banyak percobaan. Silakan coba beberapa saat lagi.';
+    case 'network-request-failed':
+      return 'Koneksi jaringan gagal. Periksa koneksi internet Anda.';
+    case 'operation-not-allowed':
+      return 'Metode login ini tidak diizinkan. Hubungi dukungan.';
+    case 'requires-recent-login':
+      return 'Sesi telah kedaluwarsa. Silakan login kembali.';
+    case 'account-exists-with-different-credential':
+      return 'Akun dengan email ini sudah ada dengan metode login berbeda.';
+    default:
+      return e.message ?? 'Terjadi kesalahan. Silakan coba lagi.';
+  }
 }
 
-/// Layanan singleton untuk menyimpan dan mengelola data pengguna yang sedang login.
+/// Layanan singleton untuk otentikasi dan manajemen profil pengguna.
 ///
-/// Mendukung register, login (verifikasi email + password), dan akses profil.
+/// Secara internal menggunakan Firebase Authentication dan Cloud Firestore.
+/// API publik dipertahankan agar tidak ada perubahan pada page-page yang menggunakannya.
 class UserService extends ChangeNotifier {
   static final UserService _instance = UserService._internal();
 
   factory UserService() => _instance;
 
   UserService._internal() {
-    const defaultUser = UserModel(
-      name: 'Risma Putri',
-      email: 'risma.putri@email.com',
-      phone: '0812-3456-7890',
-      password: 'Password123!',
-      gender: 'Perempuan',
-      birthDate: '15 Mei 1998',
-      weight: 52,
-      height: 160,
-    );
-    _registeredUsers.add(defaultUser);
-    _currentUser = defaultUser;
+    // Pantau perubahan sesi Firebase secara real-time (abaikan jika belum diinisialisasi seperti saat testing)
+    try {
+      FirebaseAuth.instance.authStateChanges().listen(_onAuthStateChanged);
+    } catch (_) {}
   }
 
-  // Daftar akun yang sudah terdaftar (simulasi in-memory database)
-  final List<UserModel> _registeredUsers = [];
+  // ── State ─────────────────────────────────────────────────────────────────
 
-  // User yang sedang aktif / login
   UserModel? _currentUser;
+  bool _isRegistering = false;
 
   /// User yang sedang login. Null jika belum login.
   UserModel? get currentUser => _currentUser;
 
-  /// Apakah ada user yang sedang login
+  /// Apakah ada user yang sedang login.
   bool get isLoggedIn => _currentUser != null;
 
-  /// Mendaftarkan user baru. Mengembalikan [true] jika berhasil.
-  /// Mengembalikan [false] jika email sudah digunakan.
-  bool register({
+  /// Menyetel _currentUser untuk keperluan testing tanpa jaringan/Firebase.
+  @visibleForTesting
+  void setCurrentUserForTesting(UserModel? user) {
+    _currentUser = user;
+    notifyListeners();
+  }
+
+  // ── Auth State Listener ───────────────────────────────────────────────────
+
+  Future<void> _onAuthStateChanged(User? firebaseUser) async {
+    if (_isRegistering) return;
+    if (firebaseUser == null) {
+      _currentUser = null;
+      notifyListeners();
+    } else {
+      // Selalu muat profil dari Firestore berdasarkan UID
+      await _loadUserFromFirestore(firebaseUser.uid);
+    }
+  }
+
+  /// Muat dokumen Firestore berdasarkan UID dan simpan ke _currentUser.
+  Future<UserModel?> _loadUserFromFirestore(String uid) async {
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection(_kUsersCollection)
+          .doc(uid)
+          .get();
+
+      if (doc.exists && doc.data() != null) {
+        _currentUser = UserModel.fromFirestore(doc);
+        notifyListeners();
+        return _currentUser;
+      } else {
+        // Dokumen belum ada di Firestore — inisialisasi dokumen baru di Firestore
+        final fbUser = FirebaseAuth.instance.currentUser;
+        final initialUser = UserModel(
+          uid: uid,
+          name: fbUser?.displayName ?? '',
+          email: fbUser?.email ?? '',
+        );
+        await FirebaseFirestore.instance
+            .collection(_kUsersCollection)
+            .doc(uid)
+            .set({
+          ...initialUser.toFirestore(),
+          'created_at': FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true));
+
+        _currentUser = initialUser;
+        notifyListeners();
+        return _currentUser;
+      }
+    } catch (e) {
+      // Jika Firestore gagal (misal koneksi/test), jangan timpa _currentUser jika sudah terisi
+      if (_currentUser == null) {
+        final fbUser = FirebaseAuth.instance.currentUser;
+        if (fbUser != null && fbUser.uid == uid) {
+          _currentUser = UserModel(
+            uid: fbUser.uid,
+            name: fbUser.displayName ?? '',
+            email: fbUser.email ?? '',
+          );
+          notifyListeners();
+        }
+      }
+      return _currentUser;
+    }
+  }
+
+  // ── Register ──────────────────────────────────────────────────────────────
+
+  /// Mendaftarkan pengguna baru ke Firebase Auth dan membuat dokumen Firestore.
+  ///
+  /// Mengembalikan `null` jika berhasil, atau pesan error jika gagal.
+  Future<String?> register({
     required String name,
     required String email,
     required String phone,
@@ -53,68 +151,135 @@ class UserService extends ChangeNotifier {
     String birthDate = '',
     double? weight,
     double? height,
-  }) {
-    final newUser = UserModel(
-      name: name,
-      email: email,
-      phone: phone,
-      password: password,
-      gender: gender,
-      birthDate: birthDate,
-      weight: weight,
-      height: height,
-    );
+  }) async {
+    _isRegistering = true;
+    try {
+      // 1. Buat akun Firebase Auth
+      final credential =
+          await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        email: email.trim(),
+        password: password,
+      );
 
-    final existingIndex = _registeredUsers.indexWhere(
-      (u) => u.email.toLowerCase() == email.toLowerCase(),
-    );
-    if (existingIndex >= 0) {
-      _registeredUsers[existingIndex] = newUser;
-    } else {
-      _registeredUsers.add(newUser);
+      final uid = credential.user!.uid;
+
+      // 2. Perbarui displayName di Firebase Auth
+      try {
+        await credential.user!.updateDisplayName(name.trim());
+      } catch (_) {}
+
+      // 3. Buat dokumen Firestore di koleksi 'users'
+      final newUser = UserModel(
+        uid: uid,
+        name: name.trim(),
+        email: email.trim(),
+        phone: phone.trim(),
+        gender: gender,
+        birthDate: birthDate,
+        weight: weight,
+        height: height,
+      );
+
+      await FirebaseFirestore.instance
+          .collection(_kUsersCollection)
+          .doc(uid)
+          .set({
+        ...newUser.toFirestore(),
+        'created_at': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+
+      // 4. Muat profil dari Firestore untuk sinkronisasi UserModel
+      await _loadUserFromFirestore(uid);
+
+      if (_currentUser == null) {
+        _currentUser = newUser;
+        notifyListeners();
+      }
+
+      return null; // sukses
+    } on FirebaseAuthException catch (e) {
+      return _friendlyAuthError(e);
+    } catch (e) {
+      return 'Terjadi kesalahan tidak terduga. Silakan coba lagi.';
+    } finally {
+      _isRegistering = false;
     }
-
-    _currentUser = newUser;
-    notifyListeners();
-    return true;
   }
 
-  /// Autentikasi kredensial login pengguna.
-  /// Mengembalikan [LoginResult.success], [LoginResult.emailNotFound], atau [LoginResult.wrongPassword].
-  LoginResult authenticate({required String email, required String password}) {
-    final cleanEmail = email.trim().toLowerCase();
-    final userIdx = _registeredUsers.indexWhere(
-      (u) => u.email.trim().toLowerCase() == cleanEmail,
-    );
+  // ── Login ─────────────────────────────────────────────────────────────────
 
-    if (userIdx < 0) {
-      return LoginResult.emailNotFound;
+  /// Login dengan email dan password menggunakan Firebase Auth.
+  ///
+  /// Mengembalikan `null` jika berhasil, atau pesan error jika gagal.
+  Future<String?> login({
+    required String email,
+    required String password,
+  }) async {
+    try {
+      final credential =
+          await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: email.trim(),
+        password: password,
+      );
+
+      // Muat profil dari Firestore
+      await _loadUserFromFirestore(credential.user!.uid);
+      return null; // sukses
+    } on FirebaseAuthException catch (e) {
+      return _friendlyAuthError(e);
+    } catch (e) {
+      return 'Terjadi kesalahan tidak terduga. Silakan coba lagi.';
     }
+  }
 
-    final user = _registeredUsers[userIdx];
-    if (user.password != password) {
-      return LoginResult.wrongPassword;
+  // ── Login Direct (Google Sign-In / SSO) ───────────────────────────────────
+
+  /// Login langsung dengan UserModel yang sudah terautentikasi (Google Sign-In).
+  Future<void> loginDirect(UserModel user) async {
+    final uid = user.uid.isNotEmpty
+        ? user.uid
+        : 'google_${user.email.replaceAll('@', '_').replaceAll('.', '_')}';
+    final effectiveUser = user.uid.isEmpty ? user.copyWith(uid: uid) : user;
+
+    try {
+      final docRef = FirebaseFirestore.instance
+          .collection(_kUsersCollection)
+          .doc(effectiveUser.uid);
+
+      final doc = await docRef.get();
+      if (!doc.exists) {
+        await docRef.set({
+          ...effectiveUser.toFirestore(),
+          'created_at': FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true));
+      } else {
+        await docRef.set({
+          'name': effectiveUser.name,
+          'email': effectiveUser.email,
+        }, SetOptions(merge: true));
+      }
+      await _loadUserFromFirestore(effectiveUser.uid);
+    } catch (_) {
+      _currentUser = effectiveUser;
+      notifyListeners();
     }
-
-    _currentUser = user;
-    notifyListeners();
-    return LoginResult.success;
   }
 
-  /// Login dengan email dan password.
-  /// Mengembalikan [true] jika berhasil, [false] jika kredensial salah atau tidak terdaftar.
-  bool login({required String email, required String password}) {
-    return authenticate(email: email, password: password) == LoginResult.success;
-  }
+  // ── Logout ────────────────────────────────────────────────────────────────
 
-  /// Login langsung tanpa verifikasi (untuk Google Sign-In / demo flow).
-  void loginDirect(UserModel user) {
-    _currentUser = user;
+  /// Keluar dari sesi Firebase dan bersihkan data lokal.
+  Future<void> logout() async {
+    try {
+      await FirebaseAuth.instance.signOut();
+    } catch (_) {}
+    _currentUser = null;
     notifyListeners();
   }
 
-  /// Memperbarui data profil user yang sedang login.
-  void updateProfile({
+  // ── Update Profile ────────────────────────────────────────────────────────
+
+  /// Memperbarui profil pengguna di Firestore dan sinkronisasi _currentUser.
+  Future<void> updateProfile({
     String? name,
     String? email,
     String? phone,
@@ -122,50 +287,47 @@ class UserService extends ChangeNotifier {
     String? birthDate,
     double? weight,
     double? height,
-  }) {
-    if (_currentUser == null) return;
-    _currentUser = _currentUser!.copyWith(
-      name: name,
-      email: email,
-      phone: phone,
-      gender: gender,
-      birthDate: birthDate,
-      weight: weight,
-      height: height,
-    );
+  }) async {
+    final uid = _currentUser?.uid ?? FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
 
-    // Perbarui juga di list registrasi
-        final oldEmail = _currentUser!.email;
+    final data = <String, dynamic>{};
+    if (name != null) data['name'] = name.trim();
+    if (email != null) data['email'] = email.trim();
+    if (phone != null) data['phone'] = phone.trim();
+    if (gender != null) data['gender'] = gender.trim();
+    if (birthDate != null) data['birth_date'] = birthDate.trim();
+    if (weight != null) data['weight'] = weight;
+    if (height != null) data['height'] = height;
 
-    _currentUser = _currentUser!.copyWith(
-      name: name,
-      email: email,
-      phone: phone,
-      gender: gender,
-      birthDate: birthDate,
-      weight: weight,
-      height: height,
-    );
+    if (data.isNotEmpty) {
+      try {
+        await FirebaseFirestore.instance
+            .collection(_kUsersCollection)
+            .doc(uid)
+            .set(data, SetOptions(merge: true));
 
-    final idx = _registeredUsers.indexWhere(
-      (u) => u.email == oldEmail,
-    );
+        if (name != null && name.trim().isNotEmpty) {
+          try {
+            await FirebaseAuth.instance.currentUser?.updateDisplayName(name.trim());
+          } catch (_) {}
+        }
 
-if (idx != -1) {
-  _registeredUsers[idx] = _currentUser!;
-}
-
-notifyListeners();
-    if (idx >= 0) {
-      _registeredUsers[idx] = _currentUser!;
+        // Refresh UserModel langsung dari Firestore
+        await _loadUserFromFirestore(uid);
+      } catch (_) {
+        // Fallback update memori jika Firestore offline
+        _currentUser = _currentUser?.copyWith(
+          name: name,
+          email: email,
+          phone: phone,
+          gender: gender,
+          birthDate: birthDate,
+          weight: weight,
+          height: height,
+        );
+        notifyListeners();
+      }
     }
-
-    notifyListeners();
-  }
-
-  /// Logout — hapus sesi aktif.
-  void logout() {
-    _currentUser = null;
-    notifyListeners();
   }
 }

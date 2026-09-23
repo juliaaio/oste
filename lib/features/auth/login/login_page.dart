@@ -29,6 +29,7 @@ class _LoginPageState extends State<LoginPage> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   bool _obscurePassword = true;
+  bool _isLoading = false;
 
   /// Validasi format email menggunakan RegExp.
   /// Email tidak boleh kosong, tidak boleh mengandung spasi,
@@ -371,71 +372,72 @@ class _LoginPageState extends State<LoginPage> {
         ],
       ),
       child: ElevatedButton(
-        onPressed: () {
-          final email = _emailController.text.trim();
-          final password = _passwordController.text;
+        onPressed: _isLoading
+            ? null
+            : () async {
+                final email = _emailController.text.trim();
+                final password = _passwordController.text;
 
-          final messenger = ScaffoldMessenger.of(context);
+                final messenger = ScaffoldMessenger.of(context);
 
-          if (email.isEmpty || password.isEmpty) {
-            messenger.hideCurrentSnackBar();
-            messenger.showSnackBar(
-              const SnackBar(
-                content: Text('Mohon masukkan email dan password.'),
-                backgroundColor: Color(0xFFE11D48),
-              ),
-            );
-            return;
-          }
+                // Validasi field kosong
+                if (email.isEmpty || password.isEmpty) {
+                  messenger.hideCurrentSnackBar();
+                  messenger.showSnackBar(
+                    const SnackBar(
+                      content: Text('Mohon masukkan email dan password.'),
+                      backgroundColor: Color(0xFFE11D48),
+                    ),
+                  );
+                  return;
+                }
 
-          if (!_isValidEmail(email)) {
-            messenger.hideCurrentSnackBar();
-            messenger.showSnackBar(
-              const SnackBar(
-                content: Text(
-                  'Format email tidak valid. Contoh: user@gmail.com',
-                ),
-                backgroundColor: Color(0xFFE11D48),
-              ),
-            );
-            return;
-          }
+                // Validasi format email
+                if (!_isValidEmail(email)) {
+                  messenger.hideCurrentSnackBar();
+                  messenger.showSnackBar(
+                    const SnackBar(
+                      content: Text(
+                        'Format email tidak valid. Contoh: user@gmail.com',
+                      ),
+                      backgroundColor: Color(0xFFE11D48),
+                    ),
+                  );
+                  return;
+                }
 
-          final userService = UserService();
-          final result = userService.authenticate(email: email, password: password);
+                setState(() => _isLoading = true);
 
-          switch (result) {
-            case LoginResult.emailNotFound:
-              messenger.hideCurrentSnackBar();
-              messenger.showSnackBar(
-                const SnackBar(
-                  content: Text('Email belum terdaftar. Silakan daftar terlebih dahulu.'),
-                  backgroundColor: Color(0xFFE11D48),
-                ),
-              );
-              return;
+                // Login via Firebase Auth (UserService)
+                final error = await UserService().login(
+                  email: email,
+                  password: password,
+                );
 
-            case LoginResult.wrongPassword:
-              messenger.hideCurrentSnackBar();
-              messenger.showSnackBar(
-                const SnackBar(
-                  content: Text('Password salah. Silakan periksa kembali password Anda.'),
-                  backgroundColor: Color(0xFFE11D48),
-                ),
-              );
-              return;
+                if (!mounted) return;
+                setState(() => _isLoading = false);
 
-            case LoginResult.success:
-              messenger.hideCurrentSnackBar();
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const DashboardPage(),
-                ),
-              );
-              break;
-          }
-        },
+                if (error != null) {
+                  // Tampilkan pesan error ramah pengguna dari Firebase
+                  messenger.hideCurrentSnackBar();
+                  messenger.showSnackBar(
+                    SnackBar(
+                      content: Text(error),
+                      backgroundColor: const Color(0xFFE11D48),
+                    ),
+                  );
+                  return;
+                }
+
+                // Login berhasil → navigasi ke Dashboard
+                messenger.hideCurrentSnackBar();
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const DashboardPage(),
+                  ),
+                );
+              },
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.transparent,
           foregroundColor: _LoginColors.textDark,
@@ -445,25 +447,34 @@ class _LoginPageState extends State<LoginPage> {
             borderRadius: BorderRadius.circular(28),
           ),
         ),
-        child: const Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              'Masuk',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-                color: _LoginColors.textDark,
+        child: _isLoading
+            ? const SizedBox(
+                width: 22,
+                height: 22,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.5,
+                  color: _LoginColors.textDark,
+                ),
+              )
+            : const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    'Masuk',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: _LoginColors.textDark,
+                    ),
+                  ),
+                  SizedBox(width: 8),
+                  Icon(
+                    Icons.arrow_forward_rounded,
+                    size: 20,
+                    color: _LoginColors.textDark,
+                  ),
+                ],
               ),
-            ),
-            SizedBox(width: 8),
-            Icon(
-              Icons.arrow_forward_rounded,
-              size: 20,
-              color: _LoginColors.textDark,
-            ),
-          ],
-        ),
       ),
     );
   }
