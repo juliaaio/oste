@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class OlahragaPage extends StatelessWidget {
   const OlahragaPage({super.key});
@@ -117,7 +118,11 @@ class OlahragaPage extends StatelessWidget {
               ),
               const SizedBox(height: 22),
 
-              // 6. Tips Olahraga Aman ("Ingat!")
+              // 6. Rekomendasi Video Olahraga
+              const _VideoRekomendasi(),
+              const SizedBox(height: 22),
+
+              // 7. Tips Olahraga Aman ("Ingat!")
               const _TipsCard(),
               const SizedBox(height: 16),
 
@@ -162,6 +167,245 @@ class OlahragaPage extends StatelessWidget {
             fontWeight: FontWeight.bold,
             color: Color(0xFF1E293B),
             letterSpacing: -0.2,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// =============================================================================
+// SECTION REKOMENDASI VIDEO OLAHRAGA
+// =============================================================================
+
+/// Section card video YouTube rekomendasi olahraga untuk tulang
+class _VideoRekomendasi extends StatelessWidget {
+  const _VideoRekomendasi();
+
+  static const String _videoUrl =
+      'https://youtu.be/YiA_n0q18LA?si=pM-L8GgM2hOOL4xw';
+  static const String _thumbnailUrl =
+      'https://img.youtube.com/vi/YiA_n0q18LA/hqdefault.jpg';
+
+  Future<void> _openYoutube() async {
+    final uri = Uri.parse(_videoUrl);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // --- Judul Section ---
+        Row(
+          children: [
+            Container(
+              width: 4,
+              height: 18,
+              decoration: BoxDecoration(
+                color: const Color(0xFFF7C948),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(width: 8),
+            const Text(
+              'Rekomendasi Video Olahraga',
+              style: TextStyle(
+                fontSize: 17.5,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF1E293B),
+                letterSpacing: -0.2,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 4),
+        const Padding(
+          padding: EdgeInsets.only(left: 12),
+          child: Text(
+            'Pencegahan Osteoporosis yang Bisa Anda Coba',
+            style: TextStyle(
+              fontSize: 12,
+              color: Color(0xFF64748B),
+              height: 1.4,
+            ),
+          ),
+        ),
+        const SizedBox(height: 14),
+
+        // --- Card Video ---
+        Container(
+          decoration: BoxDecoration(
+            color: const Color(0xFFFFFBEB),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: const Color(0xFFFDE68A).withValues(alpha: 0.9),
+              width: 1.2,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFFE5A124).withValues(alpha: 0.10),
+                blurRadius: 16,
+                offset: const Offset(0, 5),
+              ),
+            ],
+          ),
+          child: InkWell(
+            onTap: _openYoutube,
+            borderRadius: BorderRadius.circular(20),
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // --- Thumbnail (65%) ---
+                  Expanded(
+                    flex: 65,
+                    child: AspectRatio(
+                      aspectRatio: 16 / 9,
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          // Thumbnail image
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(14),
+                            child: Image.network(
+                              _thumbnailUrl,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => Container(
+                                color: const Color(0xFFFEF3C7),
+                                child: const Icon(
+                                  Icons.play_circle_fill_rounded,
+                                  size: 36,
+                                  color: Color(0xFFF7C948),
+                                ),
+                              ),
+                            ),
+                          ),
+                          // Overlay gelap halus
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(14),
+                            child: Container(
+                              color: Colors.black.withValues(alpha: 0.18),
+                            ),
+                          ),
+                          // Tombol Play YouTube di tengah
+                          Center(
+                            child: Container(
+                              width: 44,
+                              height: 44,
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.92),
+                                shape: BoxShape.circle,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.18),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: const Icon(
+                                Icons.play_arrow_rounded,
+                                size: 28,
+                                color: Color(0xFFFF0000),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+
+                  // --- Info Video (35%) ---
+                  Expanded(
+                    flex: 35,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Olahraga Mudah untuk Tulang Lebih Kuat',
+                          maxLines: 3,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF1E293B),
+                            height: 1.35,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        const Text(
+                          'Panduan latihan sederhana yang dapat dilakukan di rumah untuk membantu menjaga kesehatan tulang dan mencegah osteoporosis.',
+                          maxLines: 5,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 10.5,
+                            color: Color(0xFF64748B),
+                            height: 1.4,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        // Tombol Tonton di YouTube
+                        GestureDetector(
+                          onTap: _openYoutube,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF7C948),
+                              borderRadius: BorderRadius.circular(20),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: const Color(0xFFF7C948)
+                                      .withValues(alpha: 0.35),
+                                  blurRadius: 6,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.smart_display_rounded,
+                                  size: 13,
+                                  color: Color(0xFF1E293B),
+                                ),
+                                SizedBox(width: 4),
+                                Flexible(
+                                  child: Text(
+                                    'Tonton di YouTube',
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w700,
+                                      color: Color(0xFF1E293B),
+                                    ),
+                                  ),
+                                ),
+                                SizedBox(width: 3),
+                                Icon(
+                                  Icons.arrow_forward_rounded,
+                                  size: 11,
+                                  color: Color(0xFF1E293B),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
         ),
       ],
