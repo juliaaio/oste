@@ -119,12 +119,13 @@ class WelcomePage extends StatelessWidget {
                           Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              // Medallion Logo Tulang & Daun Emas
+                              // Logo Tulang & Daun Emas
                               SizedBox(
                                 width: math.min(size.width * 0.58, 220),
                                 height: math.min(size.width * 0.58, 220),
-                                child: const CustomPaint(
-                                  painter: _OsteocareLogoPainter(),
+                                child: Image.asset(
+                                  'assets/images/logo_bone.png',
+                                  fit: BoxFit.contain,
                                 ),
                               ),
                               const SizedBox(height: 28),

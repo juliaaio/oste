@@ -71,11 +71,12 @@ class _LoginPageState extends State<LoginPage> {
                   const SizedBox(height: 28),
 
                   // Logo Medallion Osteocare di bagian atas
-                  const SizedBox(
+                  SizedBox(
                     width: 155,
                     height: 155,
-                    child: CustomPaint(
-                      painter: _OsteocareLogoPainter(),
+                    child: Image.asset(
+                      'assets/images/logo_bone.png',
+                      fit: BoxFit.contain,
                     ),
                   ),
                   const SizedBox(height: 18),
