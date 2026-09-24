@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:oste/features/consultation/consultation_page.dart';
 import 'package:oste/features/education/education_page.dart';
 import 'package:oste/features/education/tahukah_anda/tahukah_anda_page.dart';
@@ -127,6 +128,8 @@ class _DashboardPageState extends State<DashboardPage> {
                     _LatestScreeningSection(),
                     SizedBox(height: 22),
                     _MainMenuSection(),
+                    SizedBox(height: 18),
+                    _ArticleCarouselSection(),
                     SizedBox(height: 18),
                     _EducationBannerSection(),
                     SizedBox(height: 24),
@@ -1130,7 +1133,362 @@ class _MenuItemCard extends StatelessWidget {
 }
 
 // =============================================================================
-// SECTION 5: BANNER EDUKASI (TAHUKAH ANDA)
+// SECTION 5: ARTIKEL CAROUSEL (HORIZONTAL LANDSCAPE)
+// =============================================================================
+class _ArticleCarouselSection extends StatefulWidget {
+  const _ArticleCarouselSection();
+
+  @override
+  State<_ArticleCarouselSection> createState() =>
+      _ArticleCarouselSectionState();
+}
+
+class _ArticleCarouselSectionState extends State<_ArticleCarouselSection> {
+  final PageController _pageController = PageController(viewportFraction: 0.88);
+  int _currentPage = 0;
+
+  static const List<_ArticleData> _articles = [
+    _ArticleData(
+      source: 'Alodokter',
+      sourceColor: Color(0xFF0A7AFF),
+      sourceInitial: 'A',
+      title: 'Mengenal Osteoporosis',
+      description:
+          'Kenali penyebab, gejala, faktor risiko, dan cara mencegah osteoporosis.',
+      url: 'https://www.alodokter.com/osteoporosis',
+      thumbnailUrl:
+          'https://images.unsplash.com/photo-1530026186672-2cd00ffc50fe?auto=format&fit=crop&w=400&q=80',
+    ),
+    _ArticleData(
+      source: 'Alodokter',
+      sourceColor: Color(0xFF0A7AFF),
+      sourceInitial: 'A',
+      title: 'Pengobatan Osteoporosis',
+      description:
+          'Pilihan terapi, obat, vitamin, serta perubahan gaya hidup untuk kesehatan tulang.',
+      url:
+          'https://www.alodokter.com/osteoporosis/pengobatan',
+      thumbnailUrl:
+          'https://images.unsplash.com/photo-1576091160550-2173dba999ef?auto=format&fit=crop&w=400&q=80',
+    ),
+    _ArticleData(
+      source: 'Halodoc',
+      sourceColor: Color(0xFF1DC36E),
+      sourceInitial: 'H',
+      title: 'Gejala dan Cara Mencegah',
+      description:
+          'Informasi lengkap mengenai gejala awal dan cara mencegah osteoporosis.',
+      url:
+          'https://www.halodoc.com/artikel/kenali-arti-osteoporosis-gejala-dan-cara-mencegahnya',
+      thumbnailUrl:
+          'https://images.unsplash.com/photo-1559757175-5700dde675bc?auto=format&fit=crop&w=400&q=80',
+    ),
+    _ArticleData(
+      source: 'HelloSehat',
+      sourceColor: Color(0xFF6C63FF),
+      sourceInitial: 'H',
+      title: 'Pengertian Osteoporosis',
+      description:
+          'Pelajari apa itu osteoporosis, gejala-gejalanya, serta cara pencegahannya.',
+      url:
+          'https://hellosehat.com/muskuloskeletal/osteoporosis/pengertian-osteoporosis/',
+      thumbnailUrl:
+          'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?auto=format&fit=crop&w=400&q=80',
+    ),
+    _ArticleData(
+      source: 'Siloam',
+      sourceColor: Color(0xFF00AEEF),
+      sourceInitial: 'S',
+      title: 'Apa Itu Osteoporosis?',
+      description:
+          'Penjelasan lengkap tentang osteoporosis, penyebab, gejala, serta langkah pencegahannya.',
+      url:
+          'https://www.siloamhospitals.com/informasi-siloam/artikel/apa-itu-osteoporosis',
+      thumbnailUrl:
+          'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?auto=format&fit=crop&w=400&q=80',
+    ),
+  ];
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _openArticle(String url) async {
+    final uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Header
+        const Text(
+          'Artikel Terkait Osteoporosis',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+            color: _DashboardColors.textDark,
+            letterSpacing: -0.2,
+          ),
+        ),
+        const SizedBox(height: 3),
+        const Text(
+          'Baca artikel dari sumber terpercaya untuk menambah wawasanmu.',
+          style: TextStyle(
+            fontSize: 11.5,
+            fontWeight: FontWeight.w400,
+            color: _DashboardColors.textMuted,
+            height: 1.3,
+          ),
+        ),
+        const SizedBox(height: 14),
+
+        // Carousel horizontal
+        SizedBox(
+          height: 145,
+          child: PageView.builder(
+            controller: _pageController,
+            itemCount: _articles.length,
+            onPageChanged: (i) => setState(() => _currentPage = i),
+            itemBuilder: (context, index) {
+              final a = _articles[index];
+              return Padding(
+                padding: const EdgeInsets.only(right: 12),
+                child: _ArticleCard(
+                  data: a,
+                  onTap: () => _openArticle(a.url),
+                ),
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: 10),
+
+        // Dot indicator
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: List.generate(_articles.length, (i) {
+            final isActive = i == _currentPage;
+            return AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              margin: const EdgeInsets.symmetric(horizontal: 3),
+              width: isActive ? 18 : 6,
+              height: 6,
+              decoration: BoxDecoration(
+                color: isActive
+                    ? _DashboardColors.orange
+                    : const Color(0xFFFDE68A),
+                borderRadius: BorderRadius.circular(3),
+              ),
+            );
+          }),
+        ),
+      ],
+    );
+  }
+}
+
+/// Data model artikel
+class _ArticleData {
+  final String source;
+  final Color sourceColor;
+  final String sourceInitial;
+  final String title;
+  final String description;
+  final String url;
+  final String thumbnailUrl;
+
+  const _ArticleData({
+    required this.source,
+    required this.sourceColor,
+    required this.sourceInitial,
+    required this.title,
+    required this.description,
+    required this.url,
+    required this.thumbnailUrl,
+  });
+}
+
+/// Card artikel horizontal landscape
+class _ArticleCard extends StatelessWidget {
+  final _ArticleData data;
+  final VoidCallback onTap;
+
+  const _ArticleCard({required this.data, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: const Color(0xFFF0F0F0),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(18),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(18),
+          child: Row(
+            children: [
+              // Thumbnail kiri (38%)
+              ClipRRect(
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(18),
+                  bottomLeft: Radius.circular(18),
+                ),
+                child: SizedBox(
+                  width: 115,
+                  height: double.infinity,
+                  child: Image.network(
+                    data.thumbnailUrl,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => Container(
+                      color: const Color(0xFFFFF7E8),
+                      child: const Center(
+                        child: Icon(
+                          Icons.article_outlined,
+                          size: 32,
+                          color: _DashboardColors.orange,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+
+              // Info artikel kanan (62%)
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 12, 12, 10),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Logo sumber
+                      Row(
+                        children: [
+                          Container(
+                            width: 20,
+                            height: 20,
+                            decoration: BoxDecoration(
+                              color: data.sourceColor,
+                              borderRadius: BorderRadius.circular(5),
+                            ),
+                            child: Center(
+                              child: Text(
+                                data.sourceInitial,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            data.source,
+                            style: TextStyle(
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.w600,
+                              color: data.sourceColor,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+
+                      // Judul artikel
+                      Text(
+                        data.title,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w700,
+                          color: _DashboardColors.textDark,
+                          height: 1.3,
+                          letterSpacing: -0.2,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+
+                      // Deskripsi singkat
+                      Expanded(
+                        child: Text(
+                          data.description,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 10,
+                            color: _DashboardColors.textMuted,
+                            height: 1.35,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+
+                      // Tombol Baca Artikel
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 5,
+                        ),
+                        decoration: BoxDecoration(
+                          color: _DashboardColors.primaryButterYellow,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              'Baca Artikel',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                                color: _DashboardColors.textDark,
+                              ),
+                            ),
+                            SizedBox(width: 3),
+                            Icon(
+                              Icons.arrow_forward_rounded,
+                              size: 11,
+                              color: _DashboardColors.textDark,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// =============================================================================
+// SECTION 6: BANNER EDUKASI (TAHUKAH ANDA)
 // =============================================================================
 class _EducationBannerSection extends StatelessWidget {
   const _EducationBannerSection();
