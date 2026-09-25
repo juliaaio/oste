@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class VitaminPage extends StatelessWidget {
   const VitaminPage({super.key});
@@ -21,7 +22,7 @@ class VitaminPage extends StatelessWidget {
           onPressed: () => Navigator.of(context).maybePop(),
         ),
         title: const Text(
-          'Artikel Pengobatan',
+          'Vitamin',
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
@@ -197,76 +198,150 @@ class VitaminPage extends StatelessWidget {
   }
 }
 
-/// Hero section di bagian atas dengan banner cream lembut dan ilustrasi vitamin
+/// Hero section di bagian atas dengan thumbnail video YouTube dan tombol play di tengah
 class _HeroSection extends StatelessWidget {
   const _HeroSection();
+
+  static const String _youtubeUrl =
+      'https://youtu.be/4SC08njbEhY?si=BiWHycyUoLqr4BT4';
+  static const String _thumbnailUrl =
+      'https://img.youtube.com/vi/4SC08njbEhY/hqdefault.jpg';
+
+  Future<void> _openYoutube() async {
+    final uri = Uri.parse(_youtubeUrl);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } else {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: const Color(0xFFFFFBEB),
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: const Color(0xFFFDE68A).withValues(alpha: 0.8),
+          color: const Color(0xFFFDE68A).withValues(alpha: 0.9),
           width: 1.2,
         ),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFFE5A124).withValues(alpha: 0.08),
-            blurRadius: 14,
-            offset: const Offset(0, 4),
+            color: const Color(0xFFE5A124).withValues(alpha: 0.12),
+            blurRadius: 16,
+            offset: const Offset(0, 5),
           ),
         ],
       ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          // Teks Hero
-          Expanded(
-            flex: 12,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
-                Text(
-                  'Vitamin untuk\nTulang dan Sendi\nyang Lebih Sehat',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF1E293B),
-                    height: 1.25,
-                    letterSpacing: -0.3,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(20),
+          onTap: _openYoutube,
+          child: AspectRatio(
+            aspectRatio: 16 / 9,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                // Thumbnail Image dari YouTube
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(19),
+                  child: Image.network(
+                    _thumbnailUrl,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) => Container(
+                      color: const Color(0xFFFEF3C7),
+                      child: const _VitaminHeroIllustration(),
+                    ),
                   ),
                 ),
-                SizedBox(height: 10),
-                Text(
-                  'Tulang dan sendi yang kuat dimulai dari asupan vitamin yang cukup setiap hari.',
-                  style: TextStyle(
-                    fontSize: 12.5,
-                    height: 1.45,
-                    color: Color(0xFF64748B),
+
+                // Lapisan redup lembut agar tombol play kontras dan nyaman dilihat
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(19),
+                  child: Container(
+                    color: Colors.black.withValues(alpha: 0.22),
+                  ),
+                ),
+
+                // Tombol Play Segitiga di Tengah
+                Center(
+                  child: Container(
+                    width: 58,
+                    height: 58,
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.50),
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.85),
+                        width: 2.2,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.35),
+                          blurRadius: 14,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: const Center(
+                      child: Padding(
+                        padding: EdgeInsets.only(left: 3.5),
+                        child: Icon(
+                          Icons.play_arrow_rounded,
+                          size: 34,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+
+                // Badge Indikator "Tonton Video" di Sudut Kanan Bawah
+                Positioned(
+                  bottom: 12,
+                  right: 12,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 9,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.65),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.2),
+                        width: 0.8,
+                      ),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.smart_display_rounded,
+                          size: 13,
+                          color: Color(0xFFFF0000),
+                        ),
+                        SizedBox(width: 4.5),
+                        Text(
+                          'Tonton Video',
+                          style: TextStyle(
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                            letterSpacing: 0.1,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(width: 8),
-
-          // Ilustrasi Hero Vitamin
-          Expanded(
-            flex: 10,
-            child: Image.asset(
-              'assets/images/education/vitamin_hero.png',
-              height: 145,
-              fit: BoxFit.contain,
-              errorBuilder: (context, error, stackTrace) {
-                return const _VitaminHeroIllustration();
-              },
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
