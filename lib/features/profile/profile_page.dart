@@ -35,24 +35,8 @@ class ProfilePage extends StatelessWidget {
         backgroundColor: _ProfileColors.background,
         elevation: 0,
         scrolledUnderElevation: 0,
-        leading: IconButton(
-          icon: const Icon(
-            Icons.chevron_left_rounded,
-            size: 28,
-            color: _ProfileColors.textDark,
-          ),
-          onPressed: () {
-            if (Navigator.canPop(context)) {
-              Navigator.pop(context);
-            } else {
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (_) => const DashboardPage()),
-              );
-            }
-          },
-        ),
-        titleSpacing: 0,
+        automaticallyImplyLeading: false,
+        centerTitle: true,
         title: const Text(
           'Profil',
           style: TextStyle(
@@ -107,68 +91,24 @@ class ProfilePage extends StatelessWidget {
                       child: Row(
                         children: [
                           // ── Avatar lingkaran dengan huruf pertama nama ──
-                          Stack(
-                            children: [
-                              Container(
-                                width: 74,
-                                height: 74,
-                                decoration: const BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: _ProfileColors.avatarBg,
-                                ),
-                                child: Center(
-                                  child: Text(
-                                    avatarLetter,
-                                    style: const TextStyle(
-                                      fontSize: 30,
-                                      fontWeight: FontWeight.w700,
-                                      color: Colors.white,
-                                      letterSpacing: 0,
-                                    ),
-                                  ),
+                          Container(
+                            width: 74,
+                            height: 74,
+                            decoration: const BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: _ProfileColors.avatarBg,
+                            ),
+                            child: Center(
+                              child: Text(
+                                avatarLetter,
+                                style: const TextStyle(
+                                  fontSize: 30,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.white,
+                                  letterSpacing: 0,
                                 ),
                               ),
-                              Positioned(
-                                bottom: 0,
-                                right: 0,
-                                child: GestureDetector(
-                                  onTap: () async {
-                                    final result = await Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (_) => const EditPage(
-                                          prefillFromUser: true,
-                                        ),
-                                      ),
-                                    );
-
-                                    if (result == true) {
-                                      // updateProfile() já chama notifyListeners() internamente;
-                                      // o AnimatedBuilder rebuilda automaticamente.
-                                    }
-                                  },
-                                  child: Container(
-                                    width: 24,
-                                    height: 24,
-                                    decoration: BoxDecoration(
-                                      color: _ProfileColors.orange,
-                                      shape: BoxShape.circle,
-                                      border: Border.all(
-                                        color: Colors.white,
-                                        width: 2,
-                                      ),
-                                    ),
-                                    child: const Center(
-                                      child: Icon(
-                                        Icons.edit,
-                                        size: 12,
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
+                            ),
                           ),
                           const SizedBox(width: 16),
                           Expanded(

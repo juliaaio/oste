@@ -113,26 +113,32 @@ class _DashboardPageState extends State<DashboardPage> {
             ),
           ),
 
-          const SafeArea(
+          SafeArea(
             child: SingleChildScrollView(
               child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: 20),
+                padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    SizedBox(height: 16),
-                    _HeaderSection(),
-                    SizedBox(height: 18),
-                    _BannerSection(),
-                    SizedBox(height: 22),
-                    _LatestScreeningSection(),
-                    SizedBox(height: 22),
-                    _MainMenuSection(),
-                    SizedBox(height: 18),
-                    _ArticleCarouselSection(),
-                    SizedBox(height: 18),
-                    _EducationBannerSection(),
-                    SizedBox(height: 24),
+                    const SizedBox(height: 16),
+                    const _HeaderSection(),
+                    const SizedBox(height: 14),
+                    const Divider(
+                      height: 1,
+                      thickness: 1,
+                      color: Color(0xFFECECEC),
+                    ),
+                    const SizedBox(height: 18),
+                    const _BannerSection(),
+                    const SizedBox(height: 22),
+                    const _LatestScreeningSection(),
+                    const SizedBox(height: 22),
+                    const _MainMenuSection(),
+                    const SizedBox(height: 18),
+                    const _ArticleCarouselSection(),
+                    const SizedBox(height: 18),
+                    const _EducationBannerSection(),
+                    const SizedBox(height: 24),
                   ],
                 ),
               ),
@@ -260,46 +266,30 @@ class _HeaderSection extends StatelessWidget {
         final user = UserService().currentUser;
         final displayName = user != null ? user.firstName : 'Pengguna';
 
+        // Ambil huruf pertama nama untuk avatar (identik dengan ProfilePage)
+        final String avatarLetter = (displayName.isNotEmpty)
+            ? displayName.trim()[0].toUpperCase()
+            : '?';
+
         return Row(
           children: [
-            // Avatar foto profil
+            // Avatar lingkaran dengan huruf pertama nama (sinkron dengan Profile)
             Container(
               width: 52,
               height: 52,
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                 shape: BoxShape.circle,
-                color: _DashboardColors.abuMuda,
-                border: Border.all(
-                  color: _DashboardColors.border,
-                  width: 1.5,
-                ),
+                color: Color(0xFFF59E0B), // avatarBg butter yellow
               ),
-              child: ClipOval(
-                child: Image.network(
-                  'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=200&q=80',
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                    return const Center(
-                      child: Icon(
-                        Icons.person_rounded,
-                        size: 30,
-                        color: _DashboardColors.textMuted,
-                      ),
-                    );
-                  },
-                  loadingBuilder: (context, child, loadingProgress) {
-                    if (loadingProgress == null) return child;
-                    return const Center(
-                      child: SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: _DashboardColors.primaryButterYellow,
-                        ),
-                      ),
-                    );
-                  },
+              child: Center(
+                child: Text(
+                  avatarLetter,
+                  style: const TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                    letterSpacing: 0,
+                  ),
                 ),
               ),
             ),
@@ -356,9 +346,9 @@ class _BannerSection extends StatelessWidget {
           width: 1,
         ),
       ),
-      child: const Row(
+      child: Row(
         children: [
-          Expanded(
+          const Expanded(
             child: Text(
               'Tulang yang sehat,\nmasa depan yang lebih\nkuat 💛',
               style: TextStyle(
@@ -370,143 +360,19 @@ class _BannerSection extends StatelessWidget {
               ),
             ),
           ),
-          SizedBox(width: 12),
+          const SizedBox(width: 12),
           SizedBox(
-            width: 86,
-            height: 90,
-            child: CustomPaint(
-              painter: _CuteBoneMascotPainter(),
+            width: 80,
+            height: 80,
+            child: Image.asset(
+              'assets/images/logo_bone.png',
+              fit: BoxFit.contain,
             ),
           ),
         ],
       ),
     );
   }
-}
-
-/// Custom painter untuk menggambar maskot tulang tersenyum dengan kilau bintang
-class _CuteBoneMascotPainter extends CustomPainter {
-  const _CuteBoneMascotPainter();
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    // Kilau bintang kuning di sekitar tulang
-    final sparklePaint = Paint()
-      ..color = _DashboardColors.primaryButterYellow
-      ..style = PaintingStyle.fill;
-
-    _drawSparkle(canvas, Offset(size.width * 0.15, size.height * 0.28), 7, sparklePaint);
-    _drawSparkle(canvas, Offset(size.width * 0.88, size.height * 0.22), 9, sparklePaint);
-    _drawSparkle(canvas, Offset(size.width * 0.86, size.height * 0.62), 6, sparklePaint);
-
-    // Garis lengkung kuning di samping tulang
-    final arcPaint = Paint()
-      ..color = _DashboardColors.orange
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.5
-      ..strokeCap = StrokeCap.round;
-
-    final arcPath = Path();
-    arcPath.moveTo(size.width * 0.32, size.height * 0.82);
-    arcPath.quadraticBezierTo(
-      size.width * 0.22,
-      size.height * 0.88,
-      size.width * 0.28,
-      size.height * 0.95,
-    );
-    canvas.drawPath(arcPath, arcPaint);
-
-    final smallArcPath = Path();
-    smallArcPath.moveTo(size.width * 0.70, size.height * 0.90);
-    smallArcPath.quadraticBezierTo(
-      size.width * 0.78,
-      size.height * 0.92,
-      size.width * 0.82,
-      size.height * 0.86,
-    );
-    canvas.drawPath(smallArcPath, arcPaint);
-
-    // Posisi tulang di tengah dengan rotasi miring natural
-    canvas.save();
-    canvas.translate(size.width * 0.58, size.height * 0.50);
-    canvas.rotate(0.12);
-
-    // Bentuk tulang
-    final boneFillPaint = Paint()
-      ..color = Colors.white
-      ..style = PaintingStyle.fill;
-
-    final boneStrokePaint = Paint()
-      ..color = _DashboardColors.primaryButterYellow
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.8
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round;
-
-    final bonePath = Path();
-    // Kepala atas tulang
-    bonePath.moveTo(-10, -28);
-    bonePath.cubicTo(-18, -36, -3, -40, 0, -32);
-    bonePath.cubicTo(3, -40, 18, -36, 10, -28);
-    // Batang kanan
-    bonePath.cubicTo(8, -14, 8, 14, 10, 28);
-    // Kepala bawah tulang
-    bonePath.cubicTo(18, 36, 3, 40, 0, 32);
-    bonePath.cubicTo(-3, 40, -18, 36, -10, 28);
-    // Batang kiri
-    bonePath.cubicTo(-8, 14, -8, -14, -10, -28);
-    bonePath.close();
-
-    canvas.drawPath(bonePath, boneFillPaint);
-    canvas.drawPath(bonePath, boneStrokePaint);
-
-    // Wajah lucu (mata, pipi merona, senyuman)
-    final eyePaint = Paint()
-      ..color = const Color(0xFF1E293B)
-      ..style = PaintingStyle.fill;
-
-    canvas.drawCircle(const Offset(-4.5, -4), 1.8, eyePaint);
-    canvas.drawCircle(const Offset(4.5, -4), 1.8, eyePaint);
-
-    final eyeShinePaint = Paint()
-      ..color = Colors.white
-      ..style = PaintingStyle.fill;
-    canvas.drawCircle(const Offset(-4.0, -4.5), 0.6, eyeShinePaint);
-    canvas.drawCircle(const Offset(5.0, -4.5), 0.6, eyeShinePaint);
-
-    final blushPaint = Paint()
-      ..color = const Color(0xFFFFB4C0).withValues(alpha: 0.85)
-      ..style = PaintingStyle.fill;
-    canvas.drawCircle(const Offset(-7.5, -1.5), 2.2, blushPaint);
-    canvas.drawCircle(const Offset(7.5, -1.5), 2.2, blushPaint);
-
-    final smilePaint = Paint()
-      ..color = const Color(0xFF1E293B)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.2
-      ..strokeCap = StrokeCap.round;
-
-    final smilePath = Path();
-    smilePath.moveTo(-2.5, -0.5);
-    smilePath.quadraticBezierTo(0, 1.8, 2.5, -0.5);
-    canvas.drawPath(smilePath, smilePaint);
-
-    canvas.restore();
-  }
-
-  void _drawSparkle(Canvas canvas, Offset center, double size, Paint paint) {
-    final path = Path();
-    path.moveTo(center.dx, center.dy - size);
-    path.quadraticBezierTo(center.dx, center.dy, center.dx + size, center.dy);
-    path.quadraticBezierTo(center.dx, center.dy, center.dx, center.dy + size);
-    path.quadraticBezierTo(center.dx, center.dy, center.dx - size, center.dy);
-    path.quadraticBezierTo(center.dx, center.dy, center.dx, center.dy - size);
-    path.close();
-    canvas.drawPath(path, paint);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 // =============================================================================
