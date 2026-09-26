@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:oste/features/consultation/chat_page.dart';
 import 'package:oste/features/consultation/consultation_history_page.dart';
+import 'package:oste/features/consultation/doctor_review_page.dart';
 import 'package:oste/models/doctor_model.dart';
+import 'package:oste/services/doctor_review_service.dart';
 
 /// Halaman Profil Dokter Osteo Reusable
 class DoctorProfilePage extends StatelessWidget {
@@ -184,11 +186,21 @@ class DoctorProfilePage extends StatelessWidget {
                             label: 'Pasien',
                           ),
                           _buildDivider(),
-                          _buildStatItem(
-                            icon: Icons.star_rounded,
-                            iconColor: const Color(0xFFF59E0B),
-                            value: doctor.rating.toString(),
-                            label: 'Rating',
+                          ListenableBuilder(
+                            listenable: DoctorReviewService(),
+                            builder: (context, _) {
+                              final reviewService = DoctorReviewService();
+                              final avg =
+                                  reviewService.getAverageRating(doctor.id);
+                              final ratingText =
+                                  avg == 0.0 ? '0.0' : avg.toStringAsFixed(1);
+                              return _buildStatItem(
+                                icon: Icons.star_rounded,
+                                iconColor: const Color(0xFFF59E0B),
+                                value: ratingText,
+                                label: 'Rating',
+                              );
+                            },
                           ),
                         ],
                       ),
@@ -305,7 +317,81 @@ class DoctorProfilePage extends StatelessWidget {
                         ],
                       ),
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 14),
+
+                    // Card Lihat Ulasan Pasien
+                    Container(
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: const Color(0xFFFDE68A),
+                          width: 1.2,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFFF7C948).withValues(alpha: 0.10),
+                            blurRadius: 10,
+                            offset: const Offset(0, 3),
+                          ),
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.02),
+                            blurRadius: 6,
+                            offset: const Offset(0, 1),
+                          ),
+                        ],
+                      ),
+                      child: Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(14),
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => DoctorReviewPage(
+                                  doctor: doctor,
+                                ),
+                              ),
+                            );
+                          },
+                          child: const Padding(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 14,
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.chat_bubble_outline_rounded,
+                                  size: 20,
+                                  color: Color(0xFFE8A317),
+                                ),
+                                SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    'Lihat Ulasan Pasien',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w700,
+                                      color: Color(0xFF1E293B),
+                                      letterSpacing: -0.2,
+                                    ),
+                                  ),
+                                ),
+                                Icon(
+                                  Icons.chevron_right_rounded,
+                                  size: 22,
+                                  color: Color(0xFFE8A317),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
                   ],
                 ),
               ),

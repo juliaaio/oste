@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:oste/models/doctor_model.dart';
+import 'package:oste/services/doctor_review_service.dart';
 
 /// Reusable card component for displaying doctor information in a list
 class DoctorCard extends StatelessWidget {
@@ -127,13 +128,22 @@ class DoctorCard extends StatelessWidget {
                             color: Color(0xFFF59E0B),
                           ),
                           const SizedBox(width: 3),
-                          Text(
-                            doctor.rating.toString(),
-                            style: const TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                              color: Color(0xFFF59E0B),
-                            ),
+                          ListenableBuilder(
+                            listenable: DoctorReviewService(),
+                            builder: (context, _) {
+                              final avg = DoctorReviewService()
+                                  .getAverageRating(doctor.id);
+                              final ratingText =
+                                  avg == 0.0 ? '0.0' : avg.toStringAsFixed(1);
+                              return Text(
+                                ratingText,
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xFFF59E0B),
+                                ),
+                              );
+                            },
                           ),
                           const SizedBox(width: 8),
                           const Text(
