@@ -185,6 +185,7 @@ class _HistoryPageState extends State<HistoryPage> {
                       recommendations: item.recommendations,
                       screeningId: item.id,
                       autoSave: false,
+                      source: 'history',
                     ),
                   ),
                 );

@@ -446,21 +446,12 @@ class _LatestScreeningSection extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: const Color(0xFFFFFBEB),
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: const Color(0xFFFDE68A),
-                width: 1.5,
-              ),
-            ),
-            child: const Icon(
-              Icons.assignment_outlined,
-              size: 24,
-              color: _DashboardColors.orange,
+          SizedBox(
+            width: 64,
+            height: 64,
+            child: Image.asset(
+              'assets/images/bone_screening.png',
+              fit: BoxFit.contain,
             ),
           ),
           const SizedBox(width: 14),
@@ -545,6 +536,7 @@ class _LatestScreeningSection extends StatelessWidget {
               recommendations: latest.recommendations,
               screeningId: latest.id,
               autoSave: false,
+              source: 'history',
             ),
           ),
         );

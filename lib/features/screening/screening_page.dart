@@ -186,6 +186,7 @@ class _ScreeningPageState extends State<ScreeningPage> {
           riskDescription: result.riskDescription,
           predictionData: result.predictionData,
           recommendations: result.recommendations,
+          source: 'screening',
         ),
       ),
     );
@@ -241,12 +242,13 @@ class _ScreeningPageState extends State<ScreeningPage> {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    // Karakter maskot tulang & bintang kilau
-                    const SizedBox(
+                    // Karakter maskot tulang
+                    SizedBox(
                       width: 90,
                       height: 90,
-                      child: CustomPaint(
-                        painter: _BannerMascotPainter(),
+                      child: Image.asset(
+                        'assets/images/bone_character.png',
+                        fit: BoxFit.contain,
                       ),
                     ),
                     const SizedBox(width: 14),
@@ -986,157 +988,3 @@ class _BmiScaleIconPainter extends CustomPainter {
 // =============================================================================
 // CUSTOM PAINTER: Karakter Maskot Tulang Banner & Bintang Kilau
 // =============================================================================
-class _BannerMascotPainter extends CustomPainter {
-  const _BannerMascotPainter();
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final w = size.width;
-    final h = size.height;
-
-    // 1. Gambar kilau bintang emas (Sparkles) di sekitar maskot
-    final sparklePaint = Paint()
-      ..color = _ScreeningColors.primaryYellow
-      ..style = PaintingStyle.fill;
-
-    _drawSparkle(canvas, Offset(w * 0.22, h * 0.22), 9.0, sparklePaint);
-    _drawSparkle(canvas, Offset(w * 0.16, h * 0.68), 7.0, sparklePaint);
-    _drawSparkle(canvas, Offset(w * 0.88, h * 0.72), 7.5, sparklePaint);
-    _drawSparkle(canvas, Offset(w * 0.76, h * 0.25), 4.5, sparklePaint);
-
-    // 2. Kaki maskot
-    final limbPaint = Paint()
-      ..color = const Color(0xFFF59E0B)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 3.0
-      ..strokeCap = StrokeCap.round;
-
-    // Kaki kiri
-    canvas.drawLine(Offset(w * 0.44, h * 0.78), Offset(w * 0.40, h * 0.90), limbPaint);
-    // Kaki kanan
-    canvas.drawLine(Offset(w * 0.60, h * 0.78), Offset(w * 0.64, h * 0.90), limbPaint);
-
-    // 3. Badan tulang vertikal
-    final boneFill = Paint()
-      ..color = Colors.white
-      ..style = PaintingStyle.fill;
-
-    final boneStroke = Paint()
-      ..color = const Color(0xFFF59E0B)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.4
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round;
-
-    final bonePath = Path();
-    final cx = w * 0.52;
-    final cy = h * 0.52;
-
-    // Kepala atas tulang
-    bonePath.moveTo(cx - 7, cy - 26);
-    bonePath.cubicTo(cx - 16, cy - 35, cx - 2, cy - 39, cx, cy - 30);
-    bonePath.cubicTo(cx + 2, cy - 39, cx + 16, cy - 35, cx + 7, cy - 26);
-    // Batang kanan
-    bonePath.cubicTo(cx + 6, cy - 10, cx + 6, cy + 10, cx + 7, cy + 26);
-    // Kepala bawah tulang
-    bonePath.cubicTo(cx + 16, cy + 35, cx + 2, cy + 39, cx, cy + 30);
-    bonePath.cubicTo(cx - 2, cy + 39, cx - 16, cy + 35, cx - 7, cy + 26);
-    // Batang kiri
-    bonePath.cubicTo(cx - 6, cy + 10, cx - 6, cy - 10, cx - 7, cy - 26);
-    bonePath.close();
-
-    // Bayangan lembut
-    canvas.drawPath(
-      bonePath,
-      Paint()
-        ..color = const Color(0x14F59E0B)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2),
-    );
-
-    canvas.drawPath(bonePath, boneFill);
-    canvas.drawPath(bonePath, boneStroke);
-
-    // 4. Lengan maskot
-    // Lengan kiri
-    canvas.drawLine(Offset(cx - 6, cy - 2), Offset(cx - 16, cy - 10), limbPaint);
-    // Lengan kanan memegang kaca pembesar
-    canvas.drawLine(Offset(cx + 6, cy - 2), Offset(cx + 16, cy + 4), limbPaint);
-
-    // 5. Kaca pembesar di tangan kanan
-    final glassPaint = Paint()
-      ..color = const Color(0xFFFEF3C7)
-      ..style = PaintingStyle.fill;
-    final glassStroke = Paint()
-      ..color = const Color(0xFFD97706)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.0;
-
-    final glassCenter = Offset(cx + 18, cy + 8);
-    canvas.drawCircle(glassCenter, 10, glassPaint);
-    canvas.drawCircle(glassCenter, 10, glassStroke);
-
-    // Pola berpori tulang di dalam kaca pembesar
-    final porePaint = Paint()
-      ..color = const Color(0xFFD97706).withValues(alpha: 0.5)
-      ..style = PaintingStyle.fill;
-    canvas.drawCircle(Offset(glassCenter.dx - 4, glassCenter.dy - 3), 1.8, porePaint);
-    canvas.drawCircle(Offset(glassCenter.dx + 3, glassCenter.dy - 2), 2.2, porePaint);
-    canvas.drawCircle(Offset(glassCenter.dx - 1, glassCenter.dy + 4), 2.0, porePaint);
-    canvas.drawCircle(Offset(glassCenter.dx + 4, glassCenter.dy + 3), 1.5, porePaint);
-
-    // 6. Wajah maskot yang lucu (mata berkedip + senyum)
-    final eyePaint = Paint()
-      ..color = _ScreeningColors.textDark
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.8
-      ..strokeCap = StrokeCap.round;
-
-    // Mata kiri melengkung kedip ^
-    final leftEye = Path();
-    leftEye.moveTo(cx - 4.5, cy - 8);
-    leftEye.quadraticBezierTo(cx - 2.5, cy - 11, cx - 0.5, cy - 8);
-    canvas.drawPath(leftEye, eyePaint);
-
-    // Mata kanan bulat imut
-    canvas.drawCircle(
-      Offset(cx + 4.5, cy - 9),
-      1.6,
-      Paint()
-        ..color = _ScreeningColors.textDark
-        ..style = PaintingStyle.fill,
-    );
-
-    // Senyum imut
-    final smilePath = Path();
-    smilePath.moveTo(cx - 2.0, cy - 3.5);
-    smilePath.quadraticBezierTo(cx + 1.0, cy - 1.0, cx + 4.0, cy - 3.5);
-    canvas.drawPath(smilePath, eyePaint);
-
-    // Pipi merona (blush)
-    final blushPaint = Paint()
-      ..color = const Color(0xFFFCA5A5).withValues(alpha: 0.6)
-      ..style = PaintingStyle.fill;
-    canvas.drawOval(
-      Rect.fromCenter(center: Offset(cx - 4, cy - 4), width: 3.5, height: 2),
-      blushPaint,
-    );
-    canvas.drawOval(
-      Rect.fromCenter(center: Offset(cx + 6, cy - 4), width: 3.5, height: 2),
-      blushPaint,
-    );
-  }
-
-  void _drawSparkle(Canvas canvas, Offset center, double size, Paint paint) {
-    final path = Path();
-    path.moveTo(center.dx, center.dy - size);
-    path.quadraticBezierTo(center.dx, center.dy, center.dx + size, center.dy);
-    path.quadraticBezierTo(center.dx, center.dy, center.dx, center.dy + size);
-    path.quadraticBezierTo(center.dx, center.dy, center.dx - size, center.dy);
-    path.quadraticBezierTo(center.dx, center.dy, center.dx, center.dy - size);
-    path.close();
-    canvas.drawPath(path, paint);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}

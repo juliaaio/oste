@@ -5,7 +5,6 @@ import 'package:oste/features/history/models/history_model.dart';
 import 'package:oste/services/history_service.dart';
 import 'package:oste/features/dashboard/dashboard_page.dart';
 
-
 /// Palet warna resmi halaman Hasil Skrining Osteoporosis
 class _HasilColors {
   static const Color primaryButterYellow = Color(0xFFF7C948);
@@ -49,6 +48,11 @@ class HasilScreeningPage extends StatefulWidget {
   final String? screeningId;
   final bool autoSave;
 
+  /// Asal halaman:
+  /// - 'screening' → kembali ke Beranda (Dashboard)
+  /// - 'history'   → kembali ke halaman Riwayat
+  final String source;
+
   const HasilScreeningPage({
     super.key,
     this.scorePercentage = 58,
@@ -59,6 +63,7 @@ class HasilScreeningPage extends StatefulWidget {
     this.recommendations,
     this.screeningId,
     this.autoSave = true,
+    this.source = 'screening',
   });
 
   // Data default 14 input pengguna sesuai screenshot referensi
@@ -207,12 +212,16 @@ class _HasilScreeningPageState extends State<HasilScreeningPage> {
           color: _HasilColors.textDark,
         ),
         onPressed: () {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const DashboardPage(),
-            ),
-          );
+          if (widget.source == 'history') {
+            Navigator.pop(context);
+          } else {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const DashboardPage(),
+              ),
+            );
+          }
         },
       ),
         title: const Text(
@@ -246,12 +255,13 @@ class _HasilScreeningPageState extends State<HasilScreeningPage> {
                       color: _HasilColors.medallionBg,
                       shape: BoxShape.circle,
                     ),
-                    child: const Center(
+                    child: Center(
                       child: SizedBox(
                         width: 46,
                         height: 46,
-                        child: CustomPaint(
-                          painter: _HorizontalBonePainter(),
+                        child: Image.asset(
+                          'assets/images/bone_character.png',
+                          fit: BoxFit.contain,
                         ),
                       ),
                     ),
@@ -703,77 +713,3 @@ class _CircularGaugePainter extends CustomPainter {
   }
 }
 
-// =============================================================================
-// CUSTOM PAINTER: _HorizontalBonePainter (Ilustrasi Tulang & Bintang Kilau)
-// =============================================================================
-class _HorizontalBonePainter extends CustomPainter {
-  const _HorizontalBonePainter();
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final w = size.width;
-    final h = size.height;
-
-    // 1. Kilau bintang emas (Sparkles)
-    final sparklePaint = Paint()
-      ..color = _HasilColors.primaryButterYellow
-      ..style = PaintingStyle.fill;
-
-    _drawSparkle(canvas, Offset(w * 0.78, h * 0.20), 5.5, sparklePaint);
-    _drawSparkle(canvas, Offset(w * 0.20, h * 0.80), 4.5, sparklePaint);
-
-    // 2. Tulang horizontal
-    final boneFill = Paint()
-      ..color = Colors.white
-      ..style = PaintingStyle.fill;
-
-    final boneStroke = Paint()
-      ..color = const Color(0xFFC6923C)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.0
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round;
-
-    final cx = w * 0.50;
-    final cy = h * 0.50;
-
-    final path = Path();
-    // Ujung kiri tulang
-    path.moveTo(cx - 14, cy - 3.5);
-    path.cubicTo(cx - 20, cy - 8, cx - 22, cy - 1, cx - 18, cy);
-    path.cubicTo(cx - 22, cy + 1, cx - 20, cy + 8, cx - 14, cy + 3.5);
-    // Batang bawah
-    path.cubicTo(cx - 6, cy + 3.0, cx + 6, cy + 3.0, cx + 14, cy + 3.5);
-    // Ujung kanan tulang
-    path.cubicTo(cx + 20, cy + 8, cx + 22, cy + 1, cx + 18, cy);
-    path.cubicTo(cx + 22, cy - 1, cx + 20, cy - 8, cx + 14, cy - 3.5);
-    // Batang atas
-    path.cubicTo(cx + 6, cy - 3.0, cx - 6, cy - 3.0, cx - 14, cy - 3.5);
-    path.close();
-
-    // Bayangan lembut
-    canvas.drawPath(
-      path,
-      Paint()
-        ..color = const Color(0x14000000)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 1.5),
-    );
-
-    canvas.drawPath(path, boneFill);
-    canvas.drawPath(path, boneStroke);
-  }
-
-  void _drawSparkle(Canvas canvas, Offset center, double size, Paint paint) {
-    final path = Path();
-    path.moveTo(center.dx, center.dy - size);
-    path.quadraticBezierTo(center.dx, center.dy, center.dx + size, center.dy);
-    path.quadraticBezierTo(center.dx, center.dy, center.dx, center.dy + size);
-    path.quadraticBezierTo(center.dx, center.dy, center.dx - size, center.dy);
-    path.quadraticBezierTo(center.dx, center.dy, center.dx, center.dy - size);
-    path.close();
-    canvas.drawPath(path, paint);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
