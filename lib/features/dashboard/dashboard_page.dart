@@ -18,12 +18,12 @@ class _DashboardColors {
   static const Color lightOrange = Color(0xFFFFF7E8);
   static const Color pink = Color(0xFFFFE8EC);
   static const Color abuMuda = Color(0xFFF5F5F5);
-  static const Color border = Color(0xFFEAEAEA);
+  static const Color border = Color(0xFFECECEC);
 
   // Warna pendukung untuk hierarki visual & tipografi
-  static const Color textDark = Color(0xFF1E293B);
-  static const Color textMuted = Color(0xFF64748B);
-  static const Color textLight = Color(0xFF94A3B8);
+  static const Color textDark = Color(0xFF1F2937);
+  static const Color textMuted = Color(0xFF6B7280);
+  static const Color textLight = Color(0xFF9CA3AF);
   static const Color redAlert = Color(0xFFE11D48);
 }
 
@@ -41,73 +41,44 @@ class _DashboardPageState extends State<DashboardPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFFFCF5),
+      backgroundColor: Colors.white,
       body: Stack(
         children: [
-
-          // Background atas
+          // Background soft cream gradient di bagian atas untuk area header
           Positioned(
-            top: -120,
-            left: -60,
-            child: Opacity(
-              opacity: 0.08,
-              child: Container(
-                width: 260,
-                height: 260,
-                decoration: const BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Color(0xFFF7C948),
+            top: 0,
+            left: 0,
+            right: 0,
+            height: 240,
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    const Color(0xFFFFF7DB).withValues(alpha: 0.65),
+                    const Color(0xFFFFFDF5),
+                    Colors.white,
+                  ],
                 ),
               ),
             ),
           ),
 
-          // Background kanan bawah
+          // Aksen butter yellow halus di sudut kiri atas
           Positioned(
-            bottom: -150,
-            right: -90,
-            child: Opacity(
-              opacity: 0.06,
-              child: Container(
-                width: 320,
-                height: 320,
-                decoration: const BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Color(0xFFF7C948),
-                ),
-              ),
-            ),
-          ),
-
-          // Icon tulang transparan
-          Positioned(
-            top: 90,
-            right: 30,
-            child: Opacity(
-              opacity: 0.03,
-              child: Transform.rotate(
-                angle: -0.4,
-                child: const Icon(
-                  Icons.accessibility_new_rounded,
-                  size: 140,
-                  color: Color(0xFFF7C948),
-                ),
-              ),
-            ),
-          ),
-
-          // Icon kedua
-          Positioned(
-            bottom: 200,
-            left: 10,
-            child: Opacity(
-              opacity: 0.025,
-              child: Transform.rotate(
-                angle: 0.3,
-                child: const Icon(
-                  Icons.accessibility_new_rounded,
-                  size: 110,
-                  color: Color(0xFFF7C948),
+            top: -40,
+            left: -40,
+            child: Container(
+              width: 220,
+              height: 220,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    const Color(0xFFF7C948).withValues(alpha: 0.08),
+                    const Color(0xFFF7C948).withValues(alpha: 0.0),
+                  ],
                 ),
               ),
             ),
@@ -120,25 +91,17 @@ class _DashboardPageState extends State<DashboardPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 8),
                     const _HeaderSection(),
                     const SizedBox(height: 14),
-                    const Divider(
-                      height: 1,
-                      thickness: 1,
-                      color: Color(0xFFECECEC),
-                    ),
-                    const SizedBox(height: 18),
-                    const _BannerSection(),
-                    const SizedBox(height: 22),
                     const _LatestScreeningSection(),
-                    const SizedBox(height: 22),
+                    const SizedBox(height: 16),
                     const _MainMenuSection(),
-                    const SizedBox(height: 18),
+                    const SizedBox(height: 16),
                     const _ArticleCarouselSection(),
-                    const SizedBox(height: 18),
+                    const SizedBox(height: 16),
                     const _EducationBannerSection(),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 20),
                   ],
                 ),
               ),
@@ -271,106 +234,127 @@ class _HeaderSection extends StatelessWidget {
             ? displayName.trim()[0].toUpperCase()
             : '?';
 
-        return Row(
+        return Stack(
+          clipBehavior: Clip.none,
           children: [
-            // Avatar lingkaran dengan huruf pertama nama (sinkron dengan Profile)
-            Container(
-              width: 52,
-              height: 52,
-              decoration: const BoxDecoration(
-                shape: BoxShape.circle,
-                color: Color(0xFFF59E0B), // avatarBg butter yellow
+            // Background gradient
+            Positioned.fill(
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      const Color(0xFFFFF9E6).withValues(alpha: 0.6),
+                      const Color(0xFFFFF3CC).withValues(alpha: 0.3),
+                      Colors.transparent,
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(20),
+                ),
               ),
-              child: Center(
-                child: Text(
-                  avatarLetter,
-                  style: const TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white,
-                    letterSpacing: 0,
+            ),
+
+            // Greeting text (Align.centerLeft)
+            Align(
+              alignment: Alignment.centerLeft,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(minHeight: 140),
+                child: Padding(
+                  padding: const EdgeInsets.only(right: 140, top: 4, bottom: 8),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      // Top Bar: Avatar & Logo OsteoCare
+                      Row(
+                        children: [
+                          Container(
+                            width: 38,
+                            height: 38,
+                            decoration: const BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Color(0xFFF59E0B),
+                            ),
+                            child: Center(
+                              child: Text(
+                                avatarLetter,
+                                style: const TextStyle(
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          const Text.rich(
+                            TextSpan(
+                              children: [
+                                TextSpan(
+                                  text: 'Osteo',
+                                  style: TextStyle(
+                                    fontSize: 19,
+                                    fontWeight: FontWeight.w800,
+                                    color: Color(0xFF1E293B),
+                                    letterSpacing: -0.5,
+                                  ),
+                                ),
+                                TextSpan(
+                                  text: 'Care',
+                                  style: TextStyle(
+                                    fontSize: 19,
+                                    fontWeight: FontWeight.w800,
+                                    color: Color(0xFFF59E0B),
+                                    letterSpacing: -0.5,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+
+                      // Greeting text
+                      Text(
+                        'Hallo, $displayName! 👋',
+                        style: const TextStyle(
+                          fontSize: 19,
+                          fontWeight: FontWeight.w800,
+                          color: _DashboardColors.textDark,
+                          letterSpacing: -0.4,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      const Text(
+                        'Yuk jaga kesehatan tulangmu\nmulai hari ini!',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w400,
+                          color: _DashboardColors.textMuted,
+                          height: 1.3,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
             ),
-            const SizedBox(width: 14),
-            // Nama pengguna & teks penyemangat
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Hai, $displayName 👋',
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                      color: _DashboardColors.textDark,
-                      letterSpacing: -0.3,
-                    ),
-                  ),
-                  const SizedBox(height: 3),
-                  const Text(
-                    'Semangat jaga kesehatan tulangmu!',
-                    style: TextStyle(
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.w400,
-                      color: _DashboardColors.textMuted,
-                    ),
-                  ),
-                ],
+
+            // Positioned bone_character.png di pojok kanan atas
+            Positioned(
+              right: 0,
+              top: 0,
+              child: Image.asset(
+                'assets/images/bone_character.png',
+                height: 140,
+                fit: BoxFit.contain,
               ),
             ),
           ],
         );
       },
-    );
-  }
-}
-
-// =============================================================================
-// SECTION 2: BANNER KESEHATAN
-// =============================================================================
-class _BannerSection extends StatelessWidget {
-  const _BannerSection();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-      decoration: BoxDecoration(
-        color: _DashboardColors.lightOrange,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: const Color(0xFFFFE082),
-          width: 1,
-        ),
-      ),
-      child: Row(
-        children: [
-          const Expanded(
-            child: Text(
-              'Tulang yang sehat,\nmasa depan yang lebih\nkuat 💛',
-              style: TextStyle(
-                fontSize: 15.5,
-                fontWeight: FontWeight.w700,
-                color: _DashboardColors.textDark,
-                height: 1.35,
-                letterSpacing: -0.2,
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          SizedBox(
-            width: 80,
-            height: 80,
-            child: Image.asset(
-              'assets/images/logo_bone.png',
-              fit: BoxFit.contain,
-            ),
-          ),
-        ],
-      ),
     );
   }
 }
@@ -411,15 +395,17 @@ class _LatestScreeningSection extends StatelessWidget {
                 letterSpacing: -0.2,
               ),
             ),
-            const SizedBox(height: 2),
-            Text(
-              latest != null ? _formatDate(latest.tanggal) : 'Belum ada riwayat',
-              style: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w400,
-                color: _DashboardColors.textLight,
+            if (latest != null) ...[
+              const SizedBox(height: 2),
+              Text(
+                _formatDate(latest.tanggal),
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w400,
+                  color: _DashboardColors.textMuted,
+                ),
               ),
-            ),
+            ],
             const SizedBox(height: 12),
             if (latest == null)
               _buildPlaceholder(context)
@@ -434,81 +420,114 @@ class _LatestScreeningSection extends StatelessWidget {
   Widget _buildPlaceholder(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFF9F0),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: const Color(0xFFFDE68A).withValues(alpha: 0.8),
-          width: 1.2,
-        ),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF1F2937).withValues(alpha: 0.05),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
+        ],
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           SizedBox(
-            width: 64,
-            height: 64,
+            width: 58,
+            height: 58,
             child: Image.asset(
               'assets/images/bone_screening.png',
               fit: BoxFit.contain,
             ),
           ),
-          const SizedBox(width: 14),
-          const Expanded(
+          const SizedBox(width: 12),
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
+                const Text(
                   'Belum Ada Hasil Skrining',
                   style: TextStyle(
-                    fontSize: 13.5,
+                    fontSize: 13,
                     fontWeight: FontWeight.w700,
                     color: _DashboardColors.textDark,
                     letterSpacing: -0.2,
                   ),
                 ),
-                SizedBox(height: 3),
-                Text(
+                const SizedBox(height: 2),
+                const Text(
                   'Lakukan skrining untuk mengetahui tingkat risiko osteoporosis Anda.',
                   style: TextStyle(
-                    fontSize: 10.5,
+                    fontSize: 10,
                     fontWeight: FontWeight.w400,
                     color: _DashboardColors.textMuted,
-                    height: 1.35,
+                    height: 1.3,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: InkWell(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const ScreeningPage(),
+                        ),
+                      );
+                    },
+                    borderRadius: BorderRadius.circular(999),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: _DashboardColors.primaryButterYellow,
+                        borderRadius: BorderRadius.circular(999),
+                        boxShadow: [
+                          BoxShadow(
+                            color: _DashboardColors.primaryButterYellow
+                                .withValues(alpha: 0.35),
+                            blurRadius: 6,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'Mulai',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: _DashboardColors.textDark,
+                            ),
+                          ),
+                          Text(
+                            ' Skrining',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: _DashboardColors.textDark,
+                            ),
+                          ),
+                          SizedBox(width: 3),
+                          Icon(
+                            Icons.arrow_forward_rounded,
+                            size: 12,
+                            color: _DashboardColors.textDark,
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
               ],
-            ),
-          ),
-          const SizedBox(width: 10),
-          InkWell(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const ScreeningPage(),
-                ),
-              );
-            },
-            borderRadius: BorderRadius.circular(20),
-            child: Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 14,
-                vertical: 8,
-              ),
-              decoration: BoxDecoration(
-                color: _DashboardColors.primaryButterYellow,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: const Text(
-                'Mulai',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  color: _DashboardColors.textDark,
-                ),
-              ),
             ),
           ),
         ],
@@ -518,8 +537,7 @@ class _LatestScreeningSection extends StatelessWidget {
 
   Widget _buildResultCard(BuildContext context, dynamic latest) {
     final bool isPos = latest.isPositive;
-    final Color bgColor = isPos ? const Color(0xFFFFF5F6) : const Color(0xFFF0FDF4);
-    final Color borderColor = isPos ? const Color(0xFFFFDDE3) : const Color(0xFFBBF7D0);
+    final Color borderColor = isPos ? const Color(0xFFFFE4E6) : const Color(0xFFDCFCE7);
     final Color statusColor = isPos ? _DashboardColors.redAlert : const Color(0xFF16A34A);
     final String statusText = isPos ? 'Terindikasi\nOsteoporosis' : 'Tidak Terindikasi\nOsteoporosis';
 
@@ -544,22 +562,29 @@ class _LatestScreeningSection extends StatelessWidget {
       borderRadius: BorderRadius.circular(20),
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
-          color: bgColor,
+          color: Colors.white,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: borderColor,
             width: 1,
           ),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF1F2937).withValues(alpha: 0.05),
+              blurRadius: 16,
+              offset: const Offset(0, 6),
+            ),
+          ],
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            // Gauge lingkaran persentase
+            // Gauge lingkaran persentase (lebih kecil)
             SizedBox(
-              width: 104,
-              height: 104,
+              width: 88,
+              height: 88,
               child: CustomPaint(
                 painter: _ScreeningGaugePainter(
                   percentage: (latest.probabilitas / 100.0).clamp(0.0, 1.0),
@@ -571,7 +596,7 @@ class _LatestScreeningSection extends StatelessWidget {
                       Text(
                         '${latest.probabilitas}%',
                         style: const TextStyle(
-                          fontSize: 22,
+                          fontSize: 19,
                           fontWeight: FontWeight.w800,
                           color: _DashboardColors.orange,
                           letterSpacing: -0.5,
@@ -581,24 +606,18 @@ class _LatestScreeningSection extends StatelessWidget {
                         'Probabilitas\nOsteoporosis',
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          fontSize: 8.5,
+                          fontSize: 7.5,
                           fontWeight: FontWeight.w500,
                           color: _DashboardColors.textMuted,
                           height: 1.15,
                         ),
-                      ),
-                      const SizedBox(height: 4),
-                      const Icon(
-                        Icons.info_outline_rounded,
-                        size: 11,
-                        color: _DashboardColors.textLight,
                       ),
                     ],
                   ),
                 ),
               ),
             ),
-            const SizedBox(width: 14),
+            const SizedBox(width: 12),
             // Deskripsi diagnosis
             Expanded(
               child: Column(
@@ -608,13 +627,13 @@ class _LatestScreeningSection extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       SizedBox(
-                        width: 28,
-                        height: 34,
+                        width: 24,
+                        height: 30,
                         child: CustomPaint(
                           painter: _RedScreeningMascotPainter(isPositive: isPos),
                         ),
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: 6),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -622,7 +641,7 @@ class _LatestScreeningSection extends StatelessWidget {
                             Text(
                               'HASIL SKRINING',
                               style: TextStyle(
-                                fontSize: 10,
+                                fontSize: 9.5,
                                 fontWeight: FontWeight.w700,
                                 color: _DashboardColors.textMuted.withValues(alpha: 0.9),
                                 letterSpacing: 0.5,
@@ -632,7 +651,7 @@ class _LatestScreeningSection extends StatelessWidget {
                             Text(
                               statusText,
                               style: TextStyle(
-                                fontSize: 14,
+                                fontSize: 13,
                                 fontWeight: FontWeight.w800,
                                 color: statusColor,
                                 height: 1.2,
@@ -643,15 +662,17 @@ class _LatestScreeningSection extends StatelessWidget {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 6),
                   Text(
                     latest.summary ??
                         'Berdasarkan data yang Anda masukkan, model memprediksi kemungkinan Anda mengalami osteoporosis sebesar ${latest.probabilitas}%.',
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
-                      fontSize: 10.5,
+                      fontSize: 10,
                       fontWeight: FontWeight.w400,
                       color: _DashboardColors.textMuted,
-                      height: 1.35,
+                      height: 1.3,
                     ),
                   ),
                 ],
@@ -812,22 +833,24 @@ class _MainMenuSection extends StatelessWidget {
             letterSpacing: -0.2,
           ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 10),
         GridView.count(
           crossAxisCount: 2,
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          mainAxisSpacing: 12,
-          crossAxisSpacing: 12,
-          childAspectRatio: 1.14,
+          mainAxisSpacing: 10,
+          crossAxisSpacing: 10,
+          childAspectRatio: 1.20,
           children: [
             _MenuItemCard(
               title: 'Skrining',
-              subtitle: 'Cek risiko osteoporosis sekarang',
+              subtitle: 'Cek risiko osteoporosis',
               icon: Icons.assignment_outlined,
-              iconColor: _DashboardColors.orange,
-              iconBgColor: const Color(0xFFFEF08A),
-              backgroundColor: const Color(0xFFFFF4D6),
+              iconColor: const Color(0xFFD97706),
+              iconBgColor: const Color(0xFFFEF3C7),
+              arrowColor: const Color(0xFFD97706),
+              arrowBgColor: const Color(0xFFFEF08A),
+              backgroundColor: const Color(0xFFFFFDF5),
               onTap: () {
                 Navigator.push(
                   context,
@@ -841,9 +864,11 @@ class _MainMenuSection extends StatelessWidget {
               title: 'Konsultasi Dokter',
               subtitle: 'Tanya langsung dengan dokter ahli',
               icon: Icons.person_outline_rounded,
-              iconColor: const Color(0xFF3B82F6),
+              iconColor: const Color(0xFF2563EB),
               iconBgColor: const Color(0xFFDBEAFE),
-              backgroundColor: const Color(0xFFEFF6FF),
+              arrowColor: const Color(0xFF2563EB),
+              arrowBgColor: const Color(0xFFBFDBFE),
+              backgroundColor: const Color(0xFFF0F7FF),
               onTap: () {
                 Navigator.push(
                   context,
@@ -859,7 +884,9 @@ class _MainMenuSection extends StatelessWidget {
               icon: Icons.menu_book_rounded,
               iconColor: const Color(0xFFF43F5E),
               iconBgColor: _DashboardColors.pink,
-              backgroundColor: const Color(0xFFFFF0F3),
+              arrowColor: const Color(0xFFE11D48),
+              arrowBgColor: const Color(0xFFFECDD3),
+              backgroundColor: const Color(0xFFFFF9FA),
               onTap: () {
                 Navigator.push(
                   context,
@@ -874,8 +901,10 @@ class _MainMenuSection extends StatelessWidget {
               subtitle: 'Lihat hasil skrining dan aktivitasmu',
               icon: Icons.access_time_filled_rounded,
               iconColor: const Color(0xFF8B5CF6),
-              iconBgColor: const Color(0xFFE9D5FF),
-              backgroundColor: const Color(0xFFF3E8FF),
+              iconBgColor: const Color(0xFFEDE9FE),
+              arrowColor: const Color(0xFF7C3AED),
+              arrowBgColor: const Color(0xFFDDD6FE),
+              backgroundColor: const Color(0xFFFAF8FF),
               onTap: () {
                 Navigator.push(
                   context,
@@ -899,6 +928,8 @@ class _MenuItemCard extends StatelessWidget {
   final IconData icon;
   final Color iconColor;
   final Color iconBgColor;
+  final Color arrowColor;
+  final Color arrowBgColor;
   final Color backgroundColor;
   final VoidCallback? onTap;
 
@@ -908,7 +939,9 @@ class _MenuItemCard extends StatelessWidget {
     required this.icon,
     required this.iconColor,
     required this.iconBgColor,
-    this.backgroundColor = Colors.white,
+    required this.arrowColor,
+    required this.arrowBgColor,
+    required this.backgroundColor,
     this.onTap,
   });
 
@@ -916,73 +949,136 @@ class _MenuItemCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: backgroundColor,
-        borderRadius: BorderRadius.circular(22),
+        // Card selalu putih bersih; warna pastel hanya pada kotak icon
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: const Color(0xFFF2F2F2),
+          width: 1,
+        ),
         boxShadow: [
+          // Ambient shadow – lembut menyebar
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.02),
+            color: const Color(0xFF000000).withValues(alpha: 0.05),
+            blurRadius: 24,
+            spreadRadius: 0,
+            offset: const Offset(0, 8),
+          ),
+          // Key shadow – terarah tipis
+          BoxShadow(
+            color: const Color(0xFF000000).withValues(alpha: 0.03),
             blurRadius: 6,
+            spreadRadius: 0,
             offset: const Offset(0, 2),
           ),
         ],
       ),
       child: Material(
         color: Colors.transparent,
-        borderRadius: BorderRadius.circular(22),
+        borderRadius: BorderRadius.circular(24),
         child: InkWell(
-          borderRadius: BorderRadius.circular(22),
+          borderRadius: BorderRadius.circular(24),
           onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                // Wadah icon berlatar warna pastel
-                Container(
-                  width: 44,
-                  height: 44,
+          child: Stack(
+            children: [
+              // Highlight putih lembut di tepi atas card (inner top glow)
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                child: Container(
+                  height: 36,
                   decoration: BoxDecoration(
-                    color: iconBgColor,
-                    borderRadius: BorderRadius.circular(13),
-                  ),
-                  child: Center(
-                    child: Icon(
-                      icon,
-                      size: 24,
-                      color: iconColor,
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(24),
+                    ),
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.white.withValues(alpha: 0.85),
+                        Colors.white.withValues(alpha: 0.0),
+                      ],
                     ),
                   ),
                 ),
-                const SizedBox(height: 8),
-                // Judul menu
-                Text(
-                  title,
-                  textAlign: TextAlign.center,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 13.5,
-                    fontWeight: FontWeight.w700,
-                    color: _DashboardColors.textDark,
-                    letterSpacing: -0.2,
-                  ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  children: [
+                    // Baris atas: Icon & tombol panah
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: iconBgColor,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Center(
+                            child: Icon(
+                              icon,
+                              size: 22,
+                              color: iconColor,
+                            ),
+                          ),
+                        ),
+                        Container(
+                          width: 22,
+                          height: 22,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: arrowBgColor,
+                          ),
+                          child: Center(
+                            child: Icon(
+                              Icons.chevron_right_rounded,
+                              size: 14,
+                              color: arrowColor,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 13.5,
+                            fontWeight: FontWeight.w700,
+                            color: _DashboardColors.textDark,
+                            letterSpacing: -0.2,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          subtitle,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.w400,
+                            color: _DashboardColors.textMuted,
+                            height: 1.25,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 3),
-                // Keterangan menu
-                Text(
-                  subtitle,
-                  textAlign: TextAlign.center,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 10.0,
-                    fontWeight: FontWeight.w400,
-                    color: _DashboardColors.textLight,
-                    height: 1.2,
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
@@ -1095,21 +1191,11 @@ class _ArticleCarouselSectionState extends State<_ArticleCarouselSection> {
             letterSpacing: -0.2,
           ),
         ),
-        const SizedBox(height: 3),
-        const Text(
-          'Baca artikel dari sumber terpercaya untuk menambah wawasanmu.',
-          style: TextStyle(
-            fontSize: 11.5,
-            fontWeight: FontWeight.w400,
-            color: _DashboardColors.textMuted,
-            height: 1.3,
-          ),
-        ),
-        const SizedBox(height: 14),
+        const SizedBox(height: 12),
 
         // Carousel horizontal
         SizedBox(
-          height: 145,
+          height: 132,
           child: PageView.builder(
             controller: _pageController,
             itemCount: _articles.length,
@@ -1126,7 +1212,7 @@ class _ArticleCarouselSectionState extends State<_ArticleCarouselSection> {
             },
           ),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 12),
 
         // Dot indicator
         Row(
@@ -1141,7 +1227,7 @@ class _ArticleCarouselSectionState extends State<_ArticleCarouselSection> {
               decoration: BoxDecoration(
                 color: isActive
                     ? _DashboardColors.orange
-                    : const Color(0xFFFDE68A),
+                    : _DashboardColors.abuMuda,
                 borderRadius: BorderRadius.circular(3),
               ),
             );
@@ -1185,41 +1271,48 @@ class _ArticleCard extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: const Color(0xFFF0F0F0),
+          color: const Color(0xFFF2F2F2),
           width: 1,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 3),
+            color: const Color(0xFF000000).withValues(alpha: 0.06),
+            blurRadius: 24,
+            spreadRadius: 0,
+            offset: const Offset(0, 8),
+          ),
+          BoxShadow(
+            color: const Color(0xFF000000).withValues(alpha: 0.03),
+            blurRadius: 6,
+            spreadRadius: 0,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
       child: Material(
         color: Colors.transparent,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(24),
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(24),
           child: Row(
             children: [
-              // Thumbnail kiri (38%)
+              // Thumbnail kiri
               ClipRRect(
                 borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(18),
-                  bottomLeft: Radius.circular(18),
+                  topLeft: Radius.circular(24),
+                  bottomLeft: Radius.circular(24),
                 ),
                 child: SizedBox(
-                  width: 115,
+                  width: 118,
                   height: double.infinity,
                   child: Image.network(
                     data.thumbnailUrl,
                     fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => Container(
-                      color: const Color(0xFFFFF7E8),
+                    errorBuilder: (_, _, _) => Container(
+                      color: _DashboardColors.lightOrange,
                       child: const Center(
                         child: Icon(
                           Icons.article_outlined,
@@ -1232,86 +1325,98 @@ class _ArticleCard extends StatelessWidget {
                 ),
               ),
 
-              // Info artikel kanan (62%)
+              // Info artikel kanan
               Expanded(
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(12, 12, 12, 10),
+                  padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      // Logo sumber
-                      Row(
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Container(
-                            width: 20,
-                            height: 20,
-                            decoration: BoxDecoration(
-                              color: data.sourceColor,
-                              borderRadius: BorderRadius.circular(5),
-                            ),
-                            child: Center(
-                              child: Text(
-                                data.sourceInitial,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w800,
+                          // Logo sumber
+                          Row(
+                            children: [
+                              Container(
+                                width: 18,
+                                height: 18,
+                                decoration: BoxDecoration(
+                                  color: data.sourceColor,
+                                  borderRadius: BorderRadius.circular(5),
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    data.sourceInitial,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 10.5,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
                                 ),
                               ),
+                              const SizedBox(width: 6),
+                              Text(
+                                data.source,
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: data.sourceColor,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+
+                          // Judul artikel
+                          Text(
+                            data.title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              color: _DashboardColors.textDark,
+                              height: 1.25,
+                              letterSpacing: -0.2,
                             ),
                           ),
-                          const SizedBox(width: 6),
+                          const SizedBox(height: 3),
+
+                          // Deskripsi singkat
                           Text(
-                            data.source,
-                            style: TextStyle(
-                              fontSize: 10.5,
-                              fontWeight: FontWeight.w600,
-                              color: data.sourceColor,
+                            data.description,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w400,
+                              color: _DashboardColors.textMuted,
+                              height: 1.35,
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 6),
-
-                      // Judul artikel
-                      Text(
-                        data.title,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 12.5,
-                          fontWeight: FontWeight.w700,
-                          color: _DashboardColors.textDark,
-                          height: 1.3,
-                          letterSpacing: -0.2,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-
-                      // Deskripsi singkat
-                      Expanded(
-                        child: Text(
-                          data.description,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontSize: 10,
-                            color: _DashboardColors.textMuted,
-                            height: 1.35,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 6),
 
                       // Tombol Baca Artikel
                       Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 5,
+                          horizontal: 14,
+                          vertical: 6,
                         ),
                         decoration: BoxDecoration(
                           color: _DashboardColors.primaryButterYellow,
-                          borderRadius: BorderRadius.circular(20),
+                          borderRadius: BorderRadius.circular(999),
+                          boxShadow: [
+                            BoxShadow(
+                              color: _DashboardColors.primaryButterYellow
+                                  .withValues(alpha: 0.35),
+                              blurRadius: 6,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
                         ),
                         child: const Row(
                           mainAxisSize: MainAxisSize.min,
@@ -1319,12 +1424,12 @@ class _ArticleCard extends StatelessWidget {
                             Text(
                               'Baca Artikel',
                               style: TextStyle(
-                                fontSize: 10,
+                                fontSize: 10.5,
                                 fontWeight: FontWeight.w700,
                                 color: _DashboardColors.textDark,
                               ),
                             ),
-                            SizedBox(width: 3),
+                            SizedBox(width: 4),
                             Icon(
                               Icons.arrow_forward_rounded,
                               size: 11,
@@ -1356,104 +1461,240 @@ class _EducationBannerSection extends StatelessWidget {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        color: _DashboardColors.lightOrange,
-        borderRadius: BorderRadius.circular(20),
+        // Background butter yellow lembut menyeluruh dengan gradient halus
+        gradient: const LinearGradient(
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+          colors: [
+            Color(0xFFFFFDF6),
+            Color(0xFFFFF7D6),
+            Color(0xFFFFF3BF),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: const Color(0xFFFDE68A).withValues(alpha: 0.6),
+          color: const Color(0xFFF5E6B8),
           width: 1,
         ),
+        boxShadow: [
+          // Ambient shadow lembut
+          BoxShadow(
+            color: const Color(0xFF000000).withValues(alpha: 0.05),
+            blurRadius: 20,
+            spreadRadius: 0,
+            offset: const Offset(0, 6),
+          ),
+          // Key shadow hangat
+          BoxShadow(
+            color: const Color(0xFFF59E0B).withValues(alpha: 0.08),
+            blurRadius: 8,
+            spreadRadius: 0,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(20),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
+        borderRadius: BorderRadius.circular(24),
+        child: Stack(
           children: [
-            // Sisi kiri: teks edukasi & tombol aksi
-            Expanded(
-              flex: 11,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(18, 16, 8, 16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Tahukah anda?',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        color: _DashboardColors.textDark,
-                        letterSpacing: -0.2,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    const Text(
-                      'Setelah usia 50 tahun, kepadatan tulang mulai berkurang secara alami.',
-                      style: TextStyle(
-                        fontSize: 10.5,
-                        fontWeight: FontWeight.w400,
-                        color: _DashboardColors.textMuted,
-                        height: 1.35,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    // Tombol 'Baca selengkapnya >'
-                    InkWell(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const TahukahAndaPage(),
-                          ),
-                        );
-                      },
-                      borderRadius: BorderRadius.circular(20),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 7,
-                        ),
-                        decoration: BoxDecoration(
-                          color: _DashboardColors.orange,
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: const Row(
-                          mainAxisSize: MainAxisSize.min,
+            // Ornamen sparkle
+            Positioned(
+              top: 14,
+              right: 110,
+              child: Icon(
+                Icons.auto_awesome,
+                size: 12,
+                color: const Color(0xFFF59E0B).withValues(alpha: 0.7),
+              ),
+            ),
+            Positioned(
+              bottom: 18,
+              right: 100,
+              child: Icon(
+                Icons.auto_awesome,
+                size: 10,
+                color: const Color(0xFFF59E0B).withValues(alpha: 0.5),
+              ),
+            ),
+
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                // Sisi kiri: lampu, teks edukasi & tombol aksi
+                Expanded(
+                  flex: 12,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 12, 6, 12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
                           children: [
-                            Text(
-                              'Baca selengkapnya',
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700,
-                                color: _DashboardColors.textDark,
+                            Container(
+                              width: 24,
+                              height: 24,
+                              decoration: const BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: Color(0xFFFEF08A),
+                              ),
+                              child: const Center(
+                                child: Icon(
+                                  Icons.lightbulb_rounded,
+                                  size: 15,
+                                  color: Color(0xFFD97706),
+                                ),
                               ),
                             ),
-                            SizedBox(width: 4),
-                            Icon(
-                              Icons.chevron_right_rounded,
-                              size: 15,
-                              color: _DashboardColors.textDark,
+                            const SizedBox(width: 6),
+                            const Text(
+                              'Tahukah Anda?',
+                              style: TextStyle(
+                                fontSize: 13.5,
+                                fontWeight: FontWeight.w700,
+                                color: _DashboardColors.textDark,
+                                letterSpacing: -0.2,
+                              ),
                             ),
                           ],
                         ),
-                      ),
+                        const SizedBox(height: 6),
+                        const Text(
+                          'Kalsium dan vitamin D berperan penting dalam menjaga kepadatan tulang sepanjang hidup.',
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w400,
+                            color: _DashboardColors.textMuted,
+                            height: 1.3,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        // Tombol 'Baca Selengkapnya ➔'
+                        InkWell(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const TahukahAndaPage(),
+                              ),
+                            );
+                          },
+                          borderRadius: BorderRadius.circular(999),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color: _DashboardColors.primaryButterYellow,
+                              borderRadius: BorderRadius.circular(999),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: _DashboardColors.primaryButterYellow
+                                      .withValues(alpha: 0.35),
+                                  blurRadius: 6,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  'Baca Selengkapnya',
+                                  style: TextStyle(
+                                    fontSize: 10.5,
+                                    fontWeight: FontWeight.w700,
+                                    color: _DashboardColors.textDark,
+                                  ),
+                                ),
+                                SizedBox(width: 3),
+                                Icon(
+                                  Icons.arrow_forward_rounded,
+                                  size: 12,
+                                  color: _DashboardColors.textDark,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
-              ),
-            ),
-            // Sisi kanan: ilustrasi wanita berolahraga dumbbell
-            Expanded(
-              flex: 9,
-              child: SizedBox(
-                height: 130,
-                child: Image.asset(
-                  'assets/images/exercise_woman_dumbbell.png',
-                  fit: BoxFit.contain,
-                  filterQuality: FilterQuality.high,
-                  width: 80,
-                  height: 80,
+                // Sisi kanan: ilustrasi karakter tulang dengan balon tanya
+                Expanded(
+                  flex: 8,
+                  child: SizedBox(
+                    height: 100,
+                    child: Stack(
+                      alignment: Alignment.center,
+                      clipBehavior: Clip.none,
+                      children: [
+                        // Glow kuning lembut di belakang karakter tulang
+                        Positioned(
+                          bottom: 4,
+                          right: 0,
+                          child: Container(
+                            width: 80,
+                            height: 80,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              gradient: RadialGradient(
+                                colors: [
+                                  const Color(0xFFFDE68A).withValues(alpha: 0.55),
+                                  const Color(0xFFFDE68A).withValues(alpha: 0.0),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                        // Ilustrasi wanita berolahraga dumbbell
+                        Positioned(
+                          bottom: 0,
+                          right: 6,
+                          child: Image.asset(
+                            'assets/images/exercise_woman_dumbbell.png',
+                            height: 88,
+                            fit: BoxFit.contain,
+                          ),
+                        ),
+                        // Balon tanda tanya di atas kepala karakter
+                        Positioned(
+                          top: 8,
+                          right: 10,
+                          child: Container(
+                            width: 22,
+                            height: 22,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: const Color(0xFFF59E0B),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: const Color(0xFFF59E0B).withValues(alpha: 0.3),
+                                  blurRadius: 4,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: const Center(
+                              child: Text(
+                                '?',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
-              ),
+              ],
             ),
           ],
         ),
