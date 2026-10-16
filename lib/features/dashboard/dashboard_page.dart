@@ -1,7 +1,9 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:oste/features/consultation/consultation_page.dart';
+import 'package:oste/features/education/articles/article_data.dart';
+import 'package:oste/features/education/articles/article_detail_page.dart';
+import 'package:oste/features/education/articles/article_model.dart';
 import 'package:oste/features/education/education_page.dart';
 import 'package:oste/features/education/tahukah_anda/tahukah_anda_page.dart';
 import 'package:oste/features/history/history_page.dart';
@@ -1101,83 +1103,25 @@ class _ArticleCarouselSectionState extends State<_ArticleCarouselSection> {
   final PageController _pageController = PageController(viewportFraction: 0.88);
   int _currentPage = 0;
 
-  static const List<_ArticleData> _articles = [
-    _ArticleData(
-      source: 'Alodokter',
-      sourceColor: Color(0xFF0A7AFF),
-      sourceInitial: 'A',
-      title: 'Mengenal Osteoporosis',
-      description:
-          'Kenali penyebab, gejala, faktor risiko, dan cara mencegah osteoporosis.',
-      url: 'https://www.alodokter.com/osteoporosis',
-      thumbnailUrl:
-          'https://images.unsplash.com/photo-1530026186672-2cd00ffc50fe?auto=format&fit=crop&w=400&q=80',
-    ),
-    _ArticleData(
-      source: 'Alodokter',
-      sourceColor: Color(0xFF0A7AFF),
-      sourceInitial: 'A',
-      title: 'Pengobatan Osteoporosis',
-      description:
-          'Pilihan terapi, obat, vitamin, serta perubahan gaya hidup untuk kesehatan tulang.',
-      url:
-          'https://www.alodokter.com/osteoporosis/pengobatan',
-      thumbnailUrl:
-          'https://images.unsplash.com/photo-1576091160550-2173dba999ef?auto=format&fit=crop&w=400&q=80',
-    ),
-    _ArticleData(
-      source: 'Halodoc',
-      sourceColor: Color(0xFF1DC36E),
-      sourceInitial: 'H',
-      title: 'Gejala dan Cara Mencegah',
-      description:
-          'Informasi lengkap mengenai gejala awal dan cara mencegah osteoporosis.',
-      url:
-          'https://www.halodoc.com/artikel/kenali-arti-osteoporosis-gejala-dan-cara-mencegahnya',
-      thumbnailUrl:
-          'https://images.unsplash.com/photo-1559757175-5700dde675bc?auto=format&fit=crop&w=400&q=80',
-    ),
-    _ArticleData(
-      source: 'HelloSehat',
-      sourceColor: Color(0xFF6C63FF),
-      sourceInitial: 'H',
-      title: 'Pengertian Osteoporosis',
-      description:
-          'Pelajari apa itu osteoporosis, gejala-gejalanya, serta cara pencegahannya.',
-      url:
-          'https://hellosehat.com/muskuloskeletal/osteoporosis/pengertian-osteoporosis/',
-      thumbnailUrl:
-          'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?auto=format&fit=crop&w=400&q=80',
-    ),
-    _ArticleData(
-      source: 'Siloam',
-      sourceColor: Color(0xFF00AEEF),
-      sourceInitial: 'S',
-      title: 'Apa Itu Osteoporosis?',
-      description:
-          'Penjelasan lengkap tentang osteoporosis, penyebab, gejala, serta langkah pencegahannya.',
-      url:
-          'https://www.siloamhospitals.com/informasi-siloam/artikel/apa-itu-osteoporosis',
-      thumbnailUrl:
-          'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?auto=format&fit=crop&w=400&q=80',
-    ),
-  ];
-
   @override
   void dispose() {
     _pageController.dispose();
     super.dispose();
   }
 
-  Future<void> _openArticle(String url) async {
-    final uri = Uri.parse(url);
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    }
+  void _openArticleDetail(ArticleModel article) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ArticleDetailPage(article: article),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    final articles = ArticleData.articles;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1198,15 +1142,15 @@ class _ArticleCarouselSectionState extends State<_ArticleCarouselSection> {
           height: 132,
           child: PageView.builder(
             controller: _pageController,
-            itemCount: _articles.length,
+            itemCount: articles.length,
             onPageChanged: (i) => setState(() => _currentPage = i),
             itemBuilder: (context, index) {
-              final a = _articles[index];
+              final a = articles[index];
               return Padding(
                 padding: const EdgeInsets.only(right: 12),
                 child: _ArticleCard(
                   data: a,
-                  onTap: () => _openArticle(a.url),
+                  onTap: () => _openArticleDetail(a),
                 ),
               );
             },
@@ -1217,7 +1161,7 @@ class _ArticleCarouselSectionState extends State<_ArticleCarouselSection> {
         // Dot indicator
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
-          children: List.generate(_articles.length, (i) {
+          children: List.generate(articles.length, (i) {
             final isActive = i == _currentPage;
             return AnimatedContainer(
               duration: const Duration(milliseconds: 200),
@@ -1238,30 +1182,9 @@ class _ArticleCarouselSectionState extends State<_ArticleCarouselSection> {
   }
 }
 
-/// Data model artikel
-class _ArticleData {
-  final String source;
-  final Color sourceColor;
-  final String sourceInitial;
-  final String title;
-  final String description;
-  final String url;
-  final String thumbnailUrl;
-
-  const _ArticleData({
-    required this.source,
-    required this.sourceColor,
-    required this.sourceInitial,
-    required this.title,
-    required this.description,
-    required this.url,
-    required this.thumbnailUrl,
-  });
-}
-
 /// Card artikel horizontal landscape
 class _ArticleCard extends StatelessWidget {
-  final _ArticleData data;
+  final ArticleModel data;
   final VoidCallback onTap;
 
   const _ArticleCard({required this.data, required this.onTap});
@@ -1270,30 +1193,27 @@ class _ArticleCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: const Color(0xFFFFF9E8),
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(
-          color: const Color(0xFFF2F2F2),
-          width: 1,
-        ),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF000000).withValues(alpha: 0.06),
-            blurRadius: 24,
+            color: const Color(0xFF000000).withValues(alpha: 0.05),
+            blurRadius: 12,
             spreadRadius: 0,
-            offset: const Offset(0, 8),
+            offset: const Offset(0, 4),
           ),
           BoxShadow(
-            color: const Color(0xFF000000).withValues(alpha: 0.03),
-            blurRadius: 6,
+            color: const Color(0xFF000000).withValues(alpha: 0.02),
+            blurRadius: 4,
             spreadRadius: 0,
-            offset: const Offset(0, 2),
+            offset: const Offset(0, 1),
           ),
         ],
       ),
       child: Material(
         color: Colors.transparent,
         borderRadius: BorderRadius.circular(24),
+        clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: onTap,
           borderRadius: BorderRadius.circular(24),
@@ -1308,16 +1228,20 @@ class _ArticleCard extends StatelessWidget {
                 child: SizedBox(
                   width: 118,
                   height: double.infinity,
-                  child: Image.network(
-                    data.thumbnailUrl,
+                  child: Image.asset(
+                    data.heroAssetPath,
                     fit: BoxFit.cover,
-                    errorBuilder: (_, _, _) => Container(
-                      color: _DashboardColors.lightOrange,
-                      child: const Center(
-                        child: Icon(
-                          Icons.article_outlined,
-                          size: 32,
-                          color: _DashboardColors.orange,
+                    errorBuilder: (_, _, _) => Image.network(
+                      data.thumbnailUrl,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, _, _) => Container(
+                        color: _DashboardColors.lightOrange,
+                        child: const Center(
+                          child: Icon(
+                            Icons.article_outlined,
+                            size: 32,
+                            color: _DashboardColors.orange,
+                          ),
                         ),
                       ),
                     ),
@@ -1336,7 +1260,7 @@ class _ArticleCard extends StatelessWidget {
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // Logo sumber
+                          // Logo & teks sumber artikel
                           Row(
                             children: [
                               Container(
@@ -1358,19 +1282,23 @@ class _ArticleCard extends StatelessWidget {
                                 ),
                               ),
                               const SizedBox(width: 6),
-                              Text(
-                                data.source,
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w600,
-                                  color: data.sourceColor,
+                              Expanded(
+                                child: Text(
+                                  data.source,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                    color: Color(0xFFC89324), // Kuning keemasan muda yang lembut
+                                  ),
                                 ),
                               ),
                             ],
                           ),
                           const SizedBox(height: 6),
 
-                          // Judul artikel
+                          // Judul artikel (hitam / hitam gelap)
                           Text(
                             data.title,
                             maxLines: 1,
@@ -1378,7 +1306,7 @@ class _ArticleCard extends StatelessWidget {
                             style: const TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w700,
-                              color: _DashboardColors.textDark,
+                              color: Color(0xFF111827), // Hitam gelap
                               height: 1.25,
                               letterSpacing: -0.2,
                             ),
