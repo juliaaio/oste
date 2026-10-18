@@ -16,9 +16,26 @@ class _DashboardColors {
   static const Color primaryButterYellow = Color(0xFFF7C948);
   static const Color orange = Color(0xFFF59E0B);
   static const Color lightOrange = Color(0xFFFFF7E8);
-  static const Color pink = Color(0xFFFFE8EC);
+  static const Color pastelButterYellow = Color(0xFFFFF9E5);
+  static const Color softButterYellow = Color(0xFFFFF2B5);
   static const Color abuMuda = Color(0xFFF5F5F5);
   static const Color border = Color(0xFFECECEC);
+
+  // Gradient Soft Butter Yellow lembut & hangat identik untuk Hero Card & Card Tahukah Anda
+  static const LinearGradient softButterYellowCardGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [
+      Color(0xFFFFF6C8), // Variasi tone lembut creamy +5%
+      softButterYellow, // Warna dasar Soft Butter Yellow (#FFF2B5)
+      Color(0xFFFEED9F), // Variasi tone lembut golden -6%
+    ],
+    stops: [0.0, 0.5, 1.0],
+  );
+
+  // Warna background referensi
+  static const Color bgCreamYellow = Color(0xFFFFF9EA);
+  static const Color bgDecorLavender = Color(0xFFEDEBF7);
 
   // Warna pendukung untuk hierarki visual & tipografi
   static const Color textDark = Color(0xFF1F2937);
@@ -40,46 +57,194 @@ class _DashboardPageState extends State<DashboardPage> {
 
   @override
   Widget build(BuildContext context) {
+    const creamColor = _DashboardColors.bgCreamYellow;
+    const decorColor = _DashboardColors.bgDecorLavender;
+
     return Scaffold(
       backgroundColor: Colors.white,
       body: Stack(
         children: [
-          // Background soft cream gradient di bagian atas untuk area header
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            height: 240,
+          // 1. Base gradient #FFF9EA dan putih menyebar seperti di gambar referensi
+          Positioned.fill(
             child: Container(
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                 gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
                   colors: [
-                    const Color(0xFFFFF7DB).withValues(alpha: 0.65),
-                    const Color(0xFFFFFDF5),
-                    Colors.white,
+                    creamColor,        // Warna #FFF9EA di sudut atas-kiri
+                    Color(0xFFFFFDF8), // Transisi lembut
+                    Colors.white,      // Putih murni di bagian tengah & bawah
+                  ],
+                  stops: [0.0, 0.45, 1.0],
+                ),
+              ),
+            ),
+          ),
+
+          // 2. Bentuk sebaran gradasi organik lembut #FFF9EA di area atas
+          Positioned(
+            top: -70,
+            left: -50,
+            child: Container(
+              width: 360,
+              height: 360,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    creamColor,
+                    creamColor.withValues(alpha: 0.0),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            top: 220,
+            right: -60,
+            child: Container(
+              width: 320,
+              height: 320,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    creamColor.withValues(alpha: 0.70),
+                    creamColor.withValues(alpha: 0.0),
                   ],
                 ),
               ),
             ),
           ),
 
-          // Aksen butter yellow halus di sudut kiri atas
+          // 3. Elemen dekorasi background sesuai referensi (Warna #EDEBF7, tanpa icon love)
+          // Sparkle 4-point star di kanan atas (seperti samping logo ZenZ)
           Positioned(
-            top: -40,
-            left: -40,
+            top: 85,
+            right: 30,
+            child: SizedBox(
+              width: 26,
+              height: 26,
+              child: CustomPaint(
+                painter: _FourPointStarPainter(color: decorColor),
+              ),
+            ),
+          ),
+
+          // Sparkle 4-point star kecil di kiri atas
+          Positioned(
+            top: 135,
+            left: 36,
+            child: SizedBox(
+              width: 16,
+              height: 16,
+              child: CustomPaint(
+                painter: _FourPointStarPainter(color: decorColor),
+              ),
+            ),
+          ),
+
+          // Sparkle 4-point star di tengah-kanan
+          Positioned(
+            top: 430,
+            right: 24,
+            child: SizedBox(
+              width: 22,
+              height: 22,
+              child: CustomPaint(
+                painter: _FourPointStarPainter(color: decorColor),
+              ),
+            ),
+          ),
+
+          // Sparkle 4-point star di bawah-kiri
+          Positioned(
+            bottom: 160,
+            left: 20,
+            child: SizedBox(
+              width: 18,
+              height: 18,
+              child: CustomPaint(
+                painter: _FourPointStarPainter(color: decorColor),
+              ),
+            ),
+          ),
+
+          // Bola/sphere dekoratif di kanan atas (seperti di referensi)
+          Positioned(
+            top: 50,
+            right: 68,
             child: Container(
-              width: 220,
-              height: 220,
+              width: 20,
+              height: 20,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                gradient: RadialGradient(
-                  colors: [
-                    const Color(0xFFF7C948).withValues(alpha: 0.08),
-                    const Color(0xFFF7C948).withValues(alpha: 0.0),
-                  ],
+                color: decorColor,
+                boxShadow: [
+                  BoxShadow(
+                    color: decorColor.withValues(alpha: 0.5),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // Aksen balon oval halus di sudut kiri atas
+          Positioned(
+            top: 30,
+            left: -15,
+            child: Transform.rotate(
+              angle: -0.28,
+              child: Container(
+                width: 48,
+                height: 72,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(24),
+                  color: decorColor.withValues(alpha: 0.60),
                 ),
+              ),
+            ),
+          ),
+
+          // Dot bulat kecil di tengah-kanan
+          Positioned(
+            top: 350,
+            right: 48,
+            child: Container(
+              width: 10,
+              height: 10,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: decorColor,
+              ),
+            ),
+          ),
+
+          // Garis lengkung bergelombang di kanan-bawah (seperti di referensi)
+          Positioned(
+            bottom: 100,
+            right: 8,
+            child: SizedBox(
+              width: 90,
+              height: 80,
+              child: CustomPaint(
+                painter: _BackgroundWaveArcPainter(color: decorColor),
+              ),
+            ),
+          ),
+
+          // Garis lengkung bergelombang halus di kiri-tengah
+          Positioned(
+            top: 470,
+            left: 8,
+            child: SizedBox(
+              width: 65,
+              height: 65,
+              child: CustomPaint(
+                painter: _BackgroundWaveArcLeftPainter(color: decorColor),
               ),
             ),
           ),
@@ -215,6 +380,99 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 }
 
+/// Painter bintang 4 sudut persis seperti di referensi gambar
+class _FourPointStarPainter extends CustomPainter {
+  final Color color;
+
+  const _FourPointStarPainter({required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.fill;
+
+    final path = Path();
+    final w = size.width;
+    final h = size.height;
+    final cx = w / 2;
+    final cy = h / 2;
+
+    path.moveTo(cx, 0);
+    path.quadraticBezierTo(cx, cy, w, cy);
+    path.quadraticBezierTo(cx, cy, cx, h);
+    path.quadraticBezierTo(cx, cy, 0, cy);
+    path.quadraticBezierTo(cx, cy, cx, 0);
+    path.close();
+
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _FourPointStarPainter oldDelegate) =>
+      oldDelegate.color != color;
+}
+
+/// Painter garis lengkung dekoratif di kanan bawah seperti di referensi
+class _BackgroundWaveArcPainter extends CustomPainter {
+  final Color color;
+
+  const _BackgroundWaveArcPainter({required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color.withValues(alpha: 0.85)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.2
+      ..strokeCap = StrokeCap.round;
+
+    final path = Path();
+    path.moveTo(size.width, size.height * 0.1);
+    path.quadraticBezierTo(
+      size.width * 0.05,
+      size.height * 0.45,
+      size.width * 0.65,
+      size.height,
+    );
+
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _BackgroundWaveArcPainter oldDelegate) => false;
+}
+
+/// Painter garis lengkung dekoratif di kiri tengah
+class _BackgroundWaveArcLeftPainter extends CustomPainter {
+  final Color color;
+
+  const _BackgroundWaveArcLeftPainter({required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color.withValues(alpha: 0.70)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.8
+      ..strokeCap = StrokeCap.round;
+
+    final path = Path();
+    path.moveTo(0, size.height * 0.15);
+    path.quadraticBezierTo(
+      size.width * 0.85,
+      size.height * 0.5,
+      0,
+      size.height * 0.85,
+    );
+
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _BackgroundWaveArcLeftPainter oldDelegate) => false;
+}
+
 // =============================================================================
 // SECTION 1: HEADER
 // =============================================================================
@@ -237,41 +495,54 @@ class _HeaderSection extends StatelessWidget {
         return Stack(
           clipBehavior: Clip.none,
           children: [
-            // Background gradient
+            // Background Soft Butter Yellow identik dengan Card Tahukah Anda
             Positioned.fill(
               child: Container(
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      const Color(0xFFFFF9E6).withValues(alpha: 0.6),
-                      const Color(0xFFFFF3CC).withValues(alpha: 0.3),
-                      Colors.transparent,
-                    ],
+                  gradient: _DashboardColors.softButterYellowCardGradient,
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(
+                    color: const Color(0xFFF6DE8A),
+                    width: 1,
                   ),
-                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    // Ambient shadow lembut
+                    BoxShadow(
+                      color: const Color(0xFF000000).withValues(alpha: 0.05),
+                      blurRadius: 20,
+                      spreadRadius: 0,
+                      offset: const Offset(0, 6),
+                    ),
+                    // Key shadow hangat
+                    BoxShadow(
+                      color: const Color(0xFFF59E0B).withValues(alpha: 0.08),
+                      blurRadius: 8,
+                      spreadRadius: 0,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
                 ),
               ),
             ),
 
-            // Greeting text (Align.centerLeft)
+            // Konten Hero Card (Logo, Nama, Greeting, Deskripsi)
             Align(
               alignment: Alignment.centerLeft,
               child: ConstrainedBox(
                 constraints: const BoxConstraints(minHeight: 140),
                 child: Padding(
-                  padding: const EdgeInsets.only(right: 140, top: 4, bottom: 8),
+                  padding: const EdgeInsets.fromLTRB(26, 16, 125, 16),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       // Top Bar: Avatar & Logo OsteoCare
                       Row(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
                           Container(
-                            width: 38,
-                            height: 38,
+                            width: 36,
+                            height: 36,
                             decoration: const BoxDecoration(
                               shape: BoxShape.circle,
                               color: Color(0xFFF59E0B),
@@ -280,7 +551,7 @@ class _HeaderSection extends StatelessWidget {
                               child: Text(
                                 avatarLetter,
                                 style: const TextStyle(
-                                  fontSize: 17,
+                                  fontSize: 16,
                                   fontWeight: FontWeight.w700,
                                   color: Colors.white,
                                 ),
@@ -294,7 +565,7 @@ class _HeaderSection extends StatelessWidget {
                                 TextSpan(
                                   text: 'Osteo',
                                   style: TextStyle(
-                                    fontSize: 19,
+                                    fontSize: 18,
                                     fontWeight: FontWeight.w800,
                                     color: Color(0xFF1E293B),
                                     letterSpacing: -0.5,
@@ -303,7 +574,7 @@ class _HeaderSection extends StatelessWidget {
                                 TextSpan(
                                   text: 'Care',
                                   style: TextStyle(
-                                    fontSize: 19,
+                                    fontSize: 18,
                                     fontWeight: FontWeight.w800,
                                     color: Color(0xFFF59E0B),
                                     letterSpacing: -0.5,
@@ -320,20 +591,20 @@ class _HeaderSection extends StatelessWidget {
                       Text(
                         'Hallo, $displayName! 👋',
                         style: const TextStyle(
-                          fontSize: 19,
+                          fontSize: 18,
                           fontWeight: FontWeight.w800,
                           color: _DashboardColors.textDark,
                           letterSpacing: -0.4,
                         ),
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 6),
                       const Text(
                         'Yuk jaga kesehatan tulangmu\nmulai hari ini!',
                         style: TextStyle(
-                          fontSize: 12,
+                          fontSize: 11.5,
                           fontWeight: FontWeight.w400,
                           color: _DashboardColors.textMuted,
-                          height: 1.3,
+                          height: 1.35,
                         ),
                       ),
                     ],
@@ -342,14 +613,17 @@ class _HeaderSection extends StatelessWidget {
               ),
             ),
 
-            // Positioned bone_character.png di pojok kanan atas
+            // Positioned bone_character.png di pojok kanan
             Positioned(
-              right: 0,
+              right: 6,
               top: 0,
-              child: Image.asset(
-                'assets/images/bone_character.png',
-                height: 140,
-                fit: BoxFit.contain,
+              bottom: 0,
+              child: Center(
+                child: Image.asset(
+                  'assets/images/bone_character.png',
+                  height: 130,
+                  fit: BoxFit.contain,
+                ),
               ),
             ),
           ],
@@ -847,10 +1121,6 @@ class _MainMenuSection extends StatelessWidget {
               subtitle: 'Cek risiko osteoporosis',
               icon: Icons.assignment_outlined,
               iconColor: const Color(0xFFD97706),
-              iconBgColor: const Color(0xFFFEF3C7),
-              arrowColor: const Color(0xFFD97706),
-              arrowBgColor: const Color(0xFFFEF08A),
-              backgroundColor: const Color(0xFFFFFDF5),
               onTap: () {
                 Navigator.push(
                   context,
@@ -865,10 +1135,6 @@ class _MainMenuSection extends StatelessWidget {
               subtitle: 'Tanya langsung dengan dokter ahli',
               icon: Icons.person_outline_rounded,
               iconColor: const Color(0xFF2563EB),
-              iconBgColor: const Color(0xFFDBEAFE),
-              arrowColor: const Color(0xFF2563EB),
-              arrowBgColor: const Color(0xFFBFDBFE),
-              backgroundColor: const Color(0xFFF0F7FF),
               onTap: () {
                 Navigator.push(
                   context,
@@ -883,10 +1149,6 @@ class _MainMenuSection extends StatelessWidget {
               subtitle: 'Pelajari lebih banyak tentang kesehatan tulang',
               icon: Icons.menu_book_rounded,
               iconColor: const Color(0xFFF43F5E),
-              iconBgColor: _DashboardColors.pink,
-              arrowColor: const Color(0xFFE11D48),
-              arrowBgColor: const Color(0xFFFECDD3),
-              backgroundColor: const Color(0xFFFFF9FA),
               onTap: () {
                 Navigator.push(
                   context,
@@ -901,10 +1163,6 @@ class _MainMenuSection extends StatelessWidget {
               subtitle: 'Lihat hasil skrining dan aktivitasmu',
               icon: Icons.access_time_filled_rounded,
               iconColor: const Color(0xFF8B5CF6),
-              iconBgColor: const Color(0xFFEDE9FE),
-              arrowColor: const Color(0xFF7C3AED),
-              arrowBgColor: const Color(0xFFDDD6FE),
-              backgroundColor: const Color(0xFFFAF8FF),
               onTap: () {
                 Navigator.push(
                   context,
@@ -922,15 +1180,14 @@ class _MainMenuSection extends StatelessWidget {
 }
 
 /// Card individual untuk tiap item Menu Utama
-class _MenuItemCard extends StatelessWidget {
+/// Tampilan modern terinspirasi dari referensi dengan background pastel butter yellow,
+/// transisi animasi halus menjadi Butter Yellow (#F7C948) saat ditekan,
+/// dan icon ditempatkan langsung di card tanpa kotak latar belakang.
+class _MenuItemCard extends StatefulWidget {
   final String title;
   final String subtitle;
   final IconData icon;
   final Color iconColor;
-  final Color iconBgColor;
-  final Color arrowColor;
-  final Color arrowBgColor;
-  final Color backgroundColor;
   final VoidCallback? onTap;
 
   const _MenuItemCard({
@@ -938,147 +1195,113 @@ class _MenuItemCard extends StatelessWidget {
     required this.subtitle,
     required this.icon,
     required this.iconColor,
-    required this.iconBgColor,
-    required this.arrowColor,
-    required this.arrowBgColor,
-    required this.backgroundColor,
     this.onTap,
   });
 
   @override
+  State<_MenuItemCard> createState() => _MenuItemCardState();
+}
+
+class _MenuItemCardState extends State<_MenuItemCard> {
+  bool _isPressed = false;
+
+  void _handleTap() async {
+    setState(() => _isPressed = true);
+    await Future.delayed(const Duration(milliseconds: 140));
+    if (mounted) {
+      setState(() => _isPressed = false);
+    }
+    widget.onTap?.call();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        // Card selalu putih bersih; warna pastel hanya pada kotak icon
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(
-          color: const Color(0xFFF2F2F2),
-          width: 1,
-        ),
-        boxShadow: [
-          // Ambient shadow – lembut menyebar
-          BoxShadow(
-            color: const Color(0xFF000000).withValues(alpha: 0.05),
-            blurRadius: 24,
-            spreadRadius: 0,
-            offset: const Offset(0, 8),
-          ),
-          // Key shadow – terarah tipis
-          BoxShadow(
-            color: const Color(0xFF000000).withValues(alpha: 0.03),
-            blurRadius: 6,
-            spreadRadius: 0,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(24),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(24),
-          onTap: onTap,
-          child: Stack(
-            children: [
-              // Highlight putih lembut di tepi atas card (inner top glow)
-              Positioned(
-                top: 0,
-                left: 0,
-                right: 0,
-                child: Container(
-                  height: 36,
-                  decoration: BoxDecoration(
-                    borderRadius: const BorderRadius.vertical(
-                      top: Radius.circular(24),
-                    ),
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        Colors.white.withValues(alpha: 0.85),
-                        Colors.white.withValues(alpha: 0.0),
-                      ],
-                    ),
-                  ),
-                ),
+    final Color pastelButterYellow = _DashboardColors.pastelButterYellow;
+    final Color butterYellowPressed = _DashboardColors.primaryButterYellow;
+
+    return GestureDetector(
+      onTapDown: (_) => setState(() => _isPressed = true),
+      onTapUp: (_) => setState(() => _isPressed = false),
+      onTapCancel: () => setState(() => _isPressed = false),
+      onTap: _handleTap,
+      child: AnimatedScale(
+        scale: _isPressed ? 0.97 : 1.0,
+        duration: const Duration(milliseconds: 150),
+        curve: Curves.easeOutCubic,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOutCubic,
+          decoration: BoxDecoration(
+            color: _isPressed ? butterYellowPressed : pastelButterYellow,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: _isPressed
+                  ? const Color(0xFFE5A91E)
+                  : const Color(0xFFF3E7BE),
+              width: 1.2,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: _isPressed
+                    ? butterYellowPressed.withValues(alpha: 0.35)
+                    : const Color(0xFFD97706).withValues(alpha: 0.05),
+                blurRadius: _isPressed ? 14 : 10,
+                offset: _isPressed ? const Offset(0, 4) : const Offset(0, 3),
               ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.start,
+            ],
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Baris atas: Icon langsung tanpa kotak latar & menu titik tiga modern seperti referensi
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    // Baris atas: Icon & tombol panah
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Container(
-                          width: 40,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            color: iconBgColor,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Center(
-                            child: Icon(
-                              icon,
-                              size: 22,
-                              color: iconColor,
-                            ),
-                          ),
-                        ),
-                        Container(
-                          width: 22,
-                          height: 22,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: arrowBgColor,
-                          ),
-                          child: Center(
-                            child: Icon(
-                              Icons.chevron_right_rounded,
-                              size: 14,
-                              color: arrowColor,
-                            ),
-                          ),
-                        ),
-                      ],
+                    Icon(
+                      widget.icon,
+                      size: 26,
+                      color: widget.iconColor,
                     ),
-                    const SizedBox(height: 6),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          title,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontSize: 13.5,
-                            fontWeight: FontWeight.w700,
-                            color: _DashboardColors.textDark,
-                            letterSpacing: -0.2,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          subtitle,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontSize: 10.5,
-                            fontWeight: FontWeight.w400,
-                            color: _DashboardColors.textMuted,
-                            height: 1.25,
-                          ),
-                        ),
-                      ],
+                    Icon(
+                      Icons.more_vert_rounded,
+                      size: 18,
+                      color: _isPressed
+                          ? const Color(0xFF1F2937).withValues(alpha: 0.6)
+                          : const Color(0xFF9CA3AF),
                     ),
                   ],
                 ),
-              ),
-            ],
+                const SizedBox(height: 10),
+                Text(
+                  widget.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w700,
+                    color: _DashboardColors.textDark,
+                    letterSpacing: -0.2,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  widget.subtitle,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w400,
+                    color: _isPressed
+                        ? const Color(0xFF374151)
+                        : _DashboardColors.textMuted,
+                    height: 1.25,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -1461,19 +1684,11 @@ class _EducationBannerSection extends StatelessWidget {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        // Background butter yellow lembut menyeluruh dengan gradient halus
-        gradient: const LinearGradient(
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
-          colors: [
-            Color(0xFFFFFDF6),
-            Color(0xFFFFF7D6),
-            Color(0xFFFFF3BF),
-          ],
-        ),
+        // Background Soft Butter Yellow identik dengan Hero Card
+        gradient: _DashboardColors.softButterYellowCardGradient,
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: const Color(0xFFF5E6B8),
+          color: const Color(0xFFF6DE8A),
           width: 1,
         ),
         boxShadow: [
