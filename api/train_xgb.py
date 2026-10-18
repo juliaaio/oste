@@ -4,7 +4,7 @@ import pandas as pd
 
 from xgboost import XGBClassifier
 from sklearn.model_selection import train_test_split, GridSearchCV, StratifiedKFold
-from sklearn.preprocessing import LabelEncoder
+from sklearn.preprocessing import OrdinalEncoder
 from sklearn.metrics import (
     accuracy_score,
     precision_score,
@@ -26,9 +26,11 @@ def load_data():
 
     if "Id" in df.columns:
         df = df.drop(columns=["Id"])
+    if "Hormonal Changes" in df.columns:
+        df = df.drop(columns=["Hormonal Changes"])
 
-    # Tangani missing values pada kolom kategorikal secara eksplisit
-    categorical_cols = df.select_dtypes(include=["object"]).columns
+    # Tangani missing values pada kolom kategorikal
+    categorical_cols = df.select_dtypes(include=["object", "string"]).columns
     for col in categorical_cols:
         df[col] = df[col].fillna("None")
 
@@ -36,27 +38,27 @@ def load_data():
 
 
 def preprocess_data(df):
-    encoders = {}
-
-    for column in df.columns:
-        # Jangan encode kolom target
-        if column == "Osteoporosis":
-            continue
-
-        # Encode semua kolom yang bukan numerik
-        if not pd.api.types.is_numeric_dtype(df[column]):
-            encoder = LabelEncoder()
-
-            df[column] = encoder.fit_transform(
-                df[column].astype(str)
-            )
-
-            encoders[column] = encoder
-
-    X = df.drop(columns=["Osteoporosis"])
+    X = df.drop(columns=["Osteoporosis"]).copy()
     y = df["Osteoporosis"]
 
-    return X, y, encoders
+    # Ambil daftar kolom kategorikal
+    categorical_cols = X.select_dtypes(include=["object", "string"]).columns.tolist()
+
+    # Menggunakan OrdinalEncoder khusus fitur
+    encoder = OrdinalEncoder(
+        handle_unknown="use_encoded_value", 
+        unknown_value=-1
+    )
+    
+    X[categorical_cols] = encoder.fit_transform(X[categorical_cols])
+
+    # Simpan encoder beserta daftar kolom kategorikal dalam satu struktur dict
+    encoders_dict = {
+        "ordinal_encoder": encoder,
+        "categorical_cols": categorical_cols
+    }
+
+    return X, y, encoders_dict
 
 
 def train_model(X_train, y_train):
@@ -67,8 +69,8 @@ def train_model(X_train, y_train):
 
     param_grid = {
         "n_estimators": [100, 200, 300],
-        "max_depth": [3, 5, 7],
-        "learning_rate": [0.01, 0.05, 0.1],
+        "max_depth": [3, 5],
+        "learning_rate": [0.05, 0.1, 0.2],
         "subsample": [0.8, 1.0],
         "colsample_bytree": [0.8, 1.0]
     }
@@ -92,12 +94,12 @@ def train_model(X_train, y_train):
     print("\n" + "=" * 26)
     print("BEST PARAMETERS")
     print("=" * 26)
-    print(f"n_estimators = {best_params.get('n_estimators')}")
-    print(f"max_depth = {best_params.get('max_depth')}")
-    print(f"learning_rate = {best_params.get('learning_rate')}")
-    print(f"subsample = {best_params.get('subsample')}")
-    print(f"colsample_bytree = {best_params.get('colsample_bytree')}")
-    print(f"Best CV Score (F1) = {grid_search.best_score_:.4f}")
+    print(f"n_estimators      = {best_params.get('n_estimators')}")
+    print(f"max_depth         = {best_params.get('max_depth')}")
+    print(f"learning_rate     = {best_params.get('learning_rate')}")
+    print(f"subsample         = {best_params.get('subsample')}")
+    print(f"colsample_bytree  = {best_params.get('colsample_bytree')}")
+    print(f"Best CV Score (F1)= {grid_search.best_score_:.4f}")
 
     return grid_search.best_estimator_
 
@@ -106,7 +108,7 @@ def evaluate_model(model, X_test, y_test, X_train=None, y_train=None):
     prediction = model.predict(X_test)
     y_prob = model.predict_proba(X_test)[:, 1]
 
-    # 1. Evaluation Metrics
+    # Evaluation Metrics
     print("\n" + "=" * 26)
     print("EVALUATION METRICS")
     print("=" * 26)
@@ -126,62 +128,30 @@ def evaluate_model(model, X_test, y_test, X_train=None, y_train=None):
     print("\nConfusion Matrix:")
     print(confusion_matrix(y_test, prediction))
 
-    # Feature importances and usage analysis
-    feature_names = getattr(model, "feature_names_in_", None)
-    if feature_names is None:
-        feature_names = X_test.columns.to_numpy()
-
+    # Feature importances
+    feature_names = getattr(model, "feature_names_in_", X_test.columns.to_numpy())
     importances = model.feature_importances_
-    total_features = len(feature_names)
 
     feature_importance_df = pd.DataFrame({
         "Feature": feature_names,
         "Importance": importances
     }).sort_values(by="Importance", ascending=False).reset_index(drop=True)
 
-    used_features_df = feature_importance_df[feature_importance_df["Importance"] > 0]
-    unused_features_df = feature_importance_df[feature_importance_df["Importance"] == 0]
-    num_features_used = len(used_features_df)
-
-    # 2. Model Information
-    print("\n" + "=" * 26)
-    print("XGBOOST INFORMATION")
-    print("=" * 26)
-    print(f"Number of Estimators    : {model.n_estimators}")
-    print(f"Max Depth               : {model.max_depth}")
-    print(f"Learning Rate           : {model.learning_rate}")
-    print(f"Number of Features Used : {num_features_used} / {total_features}")
-
-    # 3. Feature Importance
     print("\n" + "=" * 26)
     print("FEATURE IMPORTANCE")
     print("=" * 26)
     for _, row in feature_importance_df.iterrows():
         print(f"{row['Feature']:<24} {row['Importance']:.4f}")
 
-    # 4. Unused Features
-    print("\n" + "=" * 26)
-    print("UNUSED FEATURES")
-    print("=" * 26)
-    if len(unused_features_df) > 0:
-        for feat in unused_features_df["Feature"]:
-            print(feat)
-    else:
-        print("(None)")
 
-    # 5. Features Used Summary Count
-    print("\nFeatures used:")
-    print(f"{num_features_used} / {total_features}")
-
-
-def save_model(model, encoders):
+def save_model(model, encoders_dict):
     joblib.dump(
         model,
         os.path.join(MODEL_DIR, "xgb_model.pkl")
     )
 
     joblib.dump(
-        encoders,
+        encoders_dict,
         os.path.join(MODEL_DIR, "xgb_encoders.pkl")
     )
 
@@ -189,7 +159,7 @@ def save_model(model, encoders):
 def main():
     df = load_data()
 
-    X, y, encoders = preprocess_data(df)
+    X, y, encoders_dict = preprocess_data(df)
 
     X_train, X_test, y_train, y_test = train_test_split(
         X,
@@ -203,9 +173,9 @@ def main():
 
     evaluate_model(model, X_test, y_test, X_train=X_train, y_train=y_train)
 
-    save_model(model, encoders)
+    save_model(model, encoders_dict)
 
-    print("\nModel berhasil disimpan.")
+    print("\nModel dan Encoder berhasil disimpan.")
 
 
 if __name__ == "__main__":

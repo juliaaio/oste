@@ -4,6 +4,8 @@ import pandas as pd
 from fastapi import FastAPI
 from pydantic import BaseModel
 
+from typing import Optional
+
 # ==========================
 # Load model & encoders
 # ==========================
@@ -26,7 +28,6 @@ app = FastAPI(
 class PredictionRequest(BaseModel):
     Age: int
     Gender: str
-    Hormonal_Changes: str
     Family_History: str
     Race_Ethnicity: str
     Body_Weight: str
@@ -38,6 +39,7 @@ class PredictionRequest(BaseModel):
     Medical_Conditions: str
     Medications: str
     Prior_Fractures: str
+    Hormonal_Changes: Optional[str] = None  # Kolom ini sudah dihapus / tidak dipakai
 
 
 # ==========================
@@ -57,11 +59,10 @@ def home():
 
 @app.post("/predict")
 def predict(data: PredictionRequest):
-    # Build DataFrame matching training dataset column names
+    # Build DataFrame matching training dataset column names (tanpa Hormonal Changes)
     raw_data = {
         "Age": data.Age,
         "Gender": data.Gender,
-        "Hormonal Changes": data.Hormonal_Changes,
         "Family History": data.Family_History,
         "Race/Ethnicity": data.Race_Ethnicity,
         "Body Weight": data.Body_Weight,
@@ -72,7 +73,7 @@ def predict(data: PredictionRequest):
         "Alcohol Consumption": data.Alcohol_Consumption,
         "Medical Conditions": data.Medical_Conditions,
         "Medications": data.Medications,
-        "Prior Fractures": data.Prior_Fractures
+        "Prior Fractures": data.Prior_Fractures,
     }
 
     # Normalize values: Ubah 'Unknown', 'nan', 'string', atau string kosong menjadi 'None'
@@ -82,22 +83,33 @@ def predict(data: PredictionRequest):
 
     df = pd.DataFrame([raw_data])
 
-    # Encode categorical columns after validating/mapping allowed values
-    for col, encoder in encoders.items():
-        if col in df.columns:
-            val = df[col].iloc[0]
-            
-            # Jika nilai masih tidak ada di encoder classes, gunakan fallback 'None' atau kelas pertama
-            if val not in encoder.classes_:
-                if "None" in encoder.classes_:
-                    df[col] = "None"
-                else:
-                    return {
-                        "error": f"Invalid value '{val}' for column '{col}'.",
-                        "allowed_values": encoder.classes_.tolist()
-                    }
+    # Encode categorical columns
+    if isinstance(encoders, dict) and "ordinal_encoder" in encoders:
+        ordinal_encoder = encoders["ordinal_encoder"]
+        categorical_cols = encoders.get("categorical_cols", [])
 
-            df[col] = encoder.transform(df[col])
+        # Saring kolom kategorikal yang ada di DataFrame
+        valid_cat_cols = [c for c in categorical_cols if c in df.columns]
+        for col in valid_cat_cols:
+            df[col] = df[col].fillna("None").astype(str)
+
+        df[valid_cat_cols] = ordinal_encoder.transform(df[valid_cat_cols])
+    elif isinstance(encoders, dict):
+        for col, encoder in encoders.items():
+            if col in df.columns:
+                val = str(df[col].iloc[0])
+                if hasattr(encoder, "classes_"):
+                    if val not in encoder.classes_:
+                        if "None" in encoder.classes_:
+                            df[col] = "None"
+                        else:
+                            return {
+                                "error": f"Invalid value '{val}' for column '{col}'.",
+                                "allowed_values": encoder.classes_.tolist()
+                            }
+                    df[col] = encoder.transform([df[col].iloc[0]])
+                elif hasattr(encoder, "transform"):
+                    df[col] = encoder.transform(df[col])
 
     # Align column order with the model's expected feature names
     if hasattr(model, "feature_names_in_"):
