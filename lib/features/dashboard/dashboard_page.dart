@@ -66,7 +66,7 @@ class _DashboardPageState extends State<DashboardPage> {
       backgroundColor: Colors.white,
       body: Stack(
         children: [
-          // 1. Base gradient #FFF9EA dan putih menyebar seperti di gambar referensi
+          // 1. Base gradient #FFF9EA + kuning amber menyebar penuh
           Positioned.fill(
             child: Container(
               decoration: const BoxDecoration(
@@ -74,37 +74,63 @@ class _DashboardPageState extends State<DashboardPage> {
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: [
-                    creamColor,        // Warna #FFF9EA di sudut atas-kiri
-                    Color(0xFFFFFDF8), // Transisi lembut
-                    Colors.white,      // Putih murni di bagian tengah & bawah
+                    Color(0xFFFFF3C0), // Kuning amber hangat kiri-atas
+                    creamColor,        // Cream #FFF9EA transisi
+                    Color(0xFFFFFDF8), // Lembut tengah
+                    Colors.white,      // Putih bawah-kanan
                   ],
-                  stops: [0.0, 0.45, 1.0],
+                  stops: [0.0, 0.30, 0.60, 1.0],
                 ),
               ),
             ),
           ),
 
-          // 2. Bentuk sebaran gradasi organik lembut #FFF9EA di area atas
+          // 2. Glow blob kuning amber besar di kiri-atas
           Positioned(
-            top: -70,
-            left: -50,
+            top: -80,
+            left: -60,
             child: Container(
-              width: 360,
-              height: 360,
+              width: 380,
+              height: 380,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
                   colors: [
-                    creamColor,
+                    const Color(0xFFFDE68A).withValues(alpha: 0.55),
+                    creamColor.withValues(alpha: 0.30),
                     creamColor.withValues(alpha: 0.0),
                   ],
+                  stops: [0.0, 0.55, 1.0],
                 ),
               ),
             ),
           ),
+
+          // Glow blob kuning di kanan-atas
           Positioned(
-            top: 220,
-            right: -60,
+            top: -40,
+            right: -50,
+            child: Container(
+              width: 260,
+              height: 260,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    const Color(0xFFFDE68A).withValues(alpha: 0.40),
+                    const Color(0xFFFFF3C0).withValues(alpha: 0.20),
+                    const Color(0xFFFFF3C0).withValues(alpha: 0.0),
+                  ],
+                  stops: [0.0, 0.50, 1.0],
+                ),
+              ),
+            ),
+          ),
+
+          // Glow blob kuning di tengah-kanan
+          Positioned(
+            top: 300,
+            right: -70,
             child: Container(
               width: 320,
               height: 320,
@@ -112,9 +138,32 @@ class _DashboardPageState extends State<DashboardPage> {
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
                   colors: [
-                    creamColor.withValues(alpha: 0.70),
+                    const Color(0xFFFDE68A).withValues(alpha: 0.35),
+                    creamColor.withValues(alpha: 0.20),
                     creamColor.withValues(alpha: 0.0),
                   ],
+                  stops: [0.0, 0.55, 1.0],
+                ),
+              ),
+            ),
+          ),
+
+          // Glow blob cream di bawah-kiri
+          Positioned(
+            bottom: -60,
+            left: -60,
+            child: Container(
+              width: 300,
+              height: 300,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    const Color(0xFFFFF3C0).withValues(alpha: 0.50),
+                    creamColor.withValues(alpha: 0.20),
+                    creamColor.withValues(alpha: 0.0),
+                  ],
+                  stops: [0.0, 0.55, 1.0],
                 ),
               ),
             ),
@@ -173,6 +222,45 @@ class _DashboardPageState extends State<DashboardPage> {
             ),
           ),
 
+          // Sparkle bintang tambahan di tengah-bawah kanan
+          Positioned(
+            bottom: 300,
+            right: 36,
+            child: SizedBox(
+              width: 14,
+              height: 14,
+              child: CustomPaint(
+                painter: _FourPointStarPainter(color: decorColor),
+              ),
+            ),
+          ),
+
+          // Sparkle bintang tambahan di bawah tengah
+          Positioned(
+            bottom: 80,
+            left: 90,
+            child: SizedBox(
+              width: 20,
+              height: 20,
+              child: CustomPaint(
+                painter: _FourPointStarPainter(color: decorColor),
+              ),
+            ),
+          ),
+
+          // Sparkle bintang kecil di area kiri tengah
+          Positioned(
+            top: 580,
+            left: 52,
+            child: SizedBox(
+              width: 12,
+              height: 12,
+              child: CustomPaint(
+                painter: _FourPointStarPainter(color: decorColor),
+              ),
+            ),
+          ),
+
           // Bola/sphere dekoratif di kanan atas (seperti di referensi)
           Positioned(
             top: 50,
@@ -194,6 +282,41 @@ class _DashboardPageState extends State<DashboardPage> {
             ),
           ),
 
+          // Sphere tambahan di kiri bawah
+          Positioned(
+            bottom: 220,
+            left: 14,
+            child: Container(
+              width: 14,
+              height: 14,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: decorColor.withValues(alpha: 0.80),
+                boxShadow: [
+                  BoxShadow(
+                    color: decorColor.withValues(alpha: 0.4),
+                    blurRadius: 5,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // Sphere tambahan kanan-tengah bawah
+          Positioned(
+            bottom: 400,
+            right: 16,
+            child: Container(
+              width: 12,
+              height: 12,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: decorColor.withValues(alpha: 0.75),
+              ),
+            ),
+          ),
+
           // Aksen balon oval halus di sudut kiri atas
           Positioned(
             top: 30,
@@ -211,6 +334,23 @@ class _DashboardPageState extends State<DashboardPage> {
             ),
           ),
 
+          // Oval kecil tambahan di kanan bawah
+          Positioned(
+            bottom: 150,
+            right: -10,
+            child: Transform.rotate(
+              angle: 0.45,
+              child: Container(
+                width: 36,
+                height: 56,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(18),
+                  color: decorColor.withValues(alpha: 0.45),
+                ),
+              ),
+            ),
+          ),
+
           // Dot bulat kecil di tengah-kanan
           Positioned(
             top: 350,
@@ -221,6 +361,34 @@ class _DashboardPageState extends State<DashboardPage> {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: decorColor,
+              ),
+            ),
+          ),
+
+          // Dot kecil tambahan di kiri bawah-tengah
+          Positioned(
+            bottom: 340,
+            left: 38,
+            child: Container(
+              width: 8,
+              height: 8,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: decorColor.withValues(alpha: 0.85),
+              ),
+            ),
+          ),
+
+          // Dot kecil tambahan di bawah-tengah kanan
+          Positioned(
+            bottom: 120,
+            right: 70,
+            child: Container(
+              width: 7,
+              height: 7,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: decorColor.withValues(alpha: 0.70),
               ),
             ),
           ),
@@ -245,6 +413,32 @@ class _DashboardPageState extends State<DashboardPage> {
             child: SizedBox(
               width: 65,
               height: 65,
+              child: CustomPaint(
+                painter: _BackgroundWaveArcLeftPainter(color: decorColor),
+              ),
+            ),
+          ),
+
+          // Gelombang lengkung tambahan di kanan atas
+          Positioned(
+            top: 200,
+            right: 10,
+            child: SizedBox(
+              width: 70,
+              height: 60,
+              child: CustomPaint(
+                painter: _BackgroundWaveArcPainter(color: decorColor),
+              ),
+            ),
+          ),
+
+          // Gelombang lengkung tambahan di kiri bawah
+          Positioned(
+            bottom: 240,
+            left: 6,
+            child: SizedBox(
+              width: 55,
+              height: 50,
               child: CustomPaint(
                 painter: _BackgroundWaveArcLeftPainter(color: decorColor),
               ),
@@ -497,32 +691,16 @@ class _HeaderSection extends StatelessWidget {
         return Stack(
           clipBehavior: Clip.none,
           children: [
-            // Background Soft Butter Yellow identik dengan Card Tahukah Anda
+            // Background identik dengan Card "Kenali Risikomu" di Skrining
             Positioned.fill(
               child: Container(
                 decoration: BoxDecoration(
-                  gradient: _DashboardColors.softButterYellowCardGradient,
+                  color: const Color(0xFFFDEEA0),
                   borderRadius: BorderRadius.circular(24),
                   border: Border.all(
-                    color: const Color(0xFFF6DE8A),
-                    width: 1,
+                    color: const Color(0xFFFDE68A),
+                    width: 1.2,
                   ),
-                  boxShadow: [
-                    // Ambient shadow lembut
-                    BoxShadow(
-                      color: const Color(0xFF000000).withValues(alpha: 0.05),
-                      blurRadius: 20,
-                      spreadRadius: 0,
-                      offset: const Offset(0, 6),
-                    ),
-                    // Key shadow hangat
-                    BoxShadow(
-                      color: const Color(0xFFF59E0B).withValues(alpha: 0.08),
-                      blurRadius: 8,
-                      spreadRadius: 0,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
                 ),
               ),
             ),
@@ -698,15 +876,12 @@ class _LatestScreeningSection extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: const Color(0xFFFDEEA0),
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF1F2937).withValues(alpha: 0.05),
-            blurRadius: 16,
-            offset: const Offset(0, 6),
-          ),
-        ],
+        border: Border.all(
+          color: const Color(0xFFFDE68A),
+          width: 1.2,
+        ),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
@@ -840,19 +1015,12 @@ class _LatestScreeningSection extends StatelessWidget {
         width: double.infinity,
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: const Color(0xFFFDEEA0),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: borderColor,
-            width: 1,
+            color: const Color(0xFFFDE68A),
+            width: 1.2,
           ),
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0xFF1F2937).withValues(alpha: 0.05),
-              blurRadius: 16,
-              offset: const Offset(0, 6),
-            ),
-          ],
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
@@ -1234,19 +1402,21 @@ class _MenuItemCardState extends State<_MenuItemCard> {
           duration: const Duration(milliseconds: 200),
           curve: Curves.easeOutCubic,
           decoration: BoxDecoration(
-            color: _isPressed ? butterYellowPressed : pastelButterYellow,
+            color: _isPressed
+                ? butterYellowPressed.withValues(alpha: 0.90)
+                : const Color(0xFFFFFDF8),
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
               color: _isPressed
                   ? const Color(0xFFE5A91E)
-                  : const Color(0xFFF3E7BE),
+                  : const Color(0xFFF3E7BE).withValues(alpha: 0.90),
               width: 1.2,
             ),
             boxShadow: [
               BoxShadow(
                 color: _isPressed
-                    ? butterYellowPressed.withValues(alpha: 0.35)
-                    : const Color(0xFFD97706).withValues(alpha: 0.05),
+                    ? butterYellowPressed.withValues(alpha: 0.30)
+                    : const Color(0xFFD97706).withValues(alpha: 0.04),
                 blurRadius: _isPressed ? 14 : 10,
                 offset: _isPressed ? const Offset(0, 4) : const Offset(0, 3),
               ),
@@ -1612,29 +1782,13 @@ class _EducationBannerSection extends StatelessWidget {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        // Background Soft Butter Yellow identik dengan Hero Card
-        gradient: _DashboardColors.softButterYellowCardGradient,
+        // Background identik dengan Card "Kenali Risikomu" di Skrining
+        color: const Color(0xFFFDEEA0),
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: const Color(0xFFF6DE8A),
-          width: 1,
+          color: const Color(0xFFFDE68A),
+          width: 1.2,
         ),
-        boxShadow: [
-          // Ambient shadow lembut
-          BoxShadow(
-            color: const Color(0xFF000000).withValues(alpha: 0.05),
-            blurRadius: 20,
-            spreadRadius: 0,
-            offset: const Offset(0, 6),
-          ),
-          // Key shadow hangat
-          BoxShadow(
-            color: const Color(0xFFF59E0B).withValues(alpha: 0.08),
-            blurRadius: 8,
-            spreadRadius: 0,
-            offset: const Offset(0, 2),
-          ),
-        ],
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(24),
