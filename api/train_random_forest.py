@@ -26,9 +26,11 @@ def load_data():
 
     if "Id" in df.columns:
         df = df.drop(columns=["Id"])
+    if "Hormonal Changes" in df.columns:
+        df = df.drop(columns=["Hormonal Changes"])
 
     # Tangani missing values pada kolom kategorikal secara eksplisit
-    categorical_cols = df.select_dtypes(include=["object"]).columns
+    categorical_cols = df.select_dtypes(include=["object", "string"]).columns
     for col in categorical_cols:
         df[col] = df[col].fillna("None")
 
