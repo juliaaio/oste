@@ -21,6 +21,7 @@ class HistoryModel {
   // Detail tambahan khusus riwayat skrining
   final String? riskCategory;
   final String? summary;
+  final double? modelConfidence;
   final List<PredictionItem>? predictionData;
   final List<String>? recommendations;
 
@@ -37,6 +38,7 @@ class HistoryModel {
     this.type = HistoryType.screening,
     this.riskCategory,
     this.summary,
+    this.modelConfidence,
     this.predictionData,
     this.recommendations,
     this.consultation,
@@ -52,6 +54,7 @@ class HistoryModel {
     required bool isPositive,
     String? riskCategory,
     String? summary,
+    double? modelConfidence,
     List<PredictionItem>? predictionData,
     List<String>? recommendations,
   }) {
@@ -65,6 +68,7 @@ class HistoryModel {
       type: HistoryType.screening,
       riskCategory: riskCategory,
       summary: summary,
+      modelConfidence: modelConfidence,
       predictionData: predictionData,
       recommendations: recommendations,
     );
@@ -104,6 +108,7 @@ class HistoryModel {
     HistoryType? type,
     String? riskCategory,
     String? summary,
+    double? modelConfidence,
     List<PredictionItem>? predictionData,
     List<String>? recommendations,
     ConsultationHistory? consultation,
@@ -118,6 +123,7 @@ class HistoryModel {
       type: type ?? this.type,
       riskCategory: riskCategory ?? this.riskCategory,
       summary: summary ?? this.summary,
+      modelConfidence: modelConfidence ?? this.modelConfidence,
       predictionData: predictionData ?? this.predictionData,
       recommendations: recommendations ?? this.recommendations,
       consultation: consultation ?? this.consultation,
@@ -136,6 +142,7 @@ class HistoryModel {
       'type': type.name,
       'riskCategory': riskCategory,
       'summary': summary,
+      'modelConfidence': modelConfidence,
       'recommendations': recommendations,
     };
   }
@@ -156,6 +163,7 @@ class HistoryModel {
           : HistoryType.screening,
       riskCategory: map['riskCategory'] as String?,
       summary: map['summary'] as String?,
+      modelConfidence: (map['modelConfidence'] as num?)?.toDouble(),
       recommendations: (map['recommendations'] as List<dynamic>?)
           ?.map((e) => e.toString())
           .toList(),

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:oste/features/screening/hasil_page.dart';
-import 'package:oste/services/screening_service.dart';
+import 'package:oste/features/history/models/history_model.dart';
+import 'package:oste/services/api_service.dart';
+import 'package:oste/services/history_service.dart';
 /// Palet warna utama halaman Skrining Osteoporosis
 class _ScreeningColors {
   static const Color background = Color(0xFFFAF9F5);
@@ -33,9 +35,8 @@ class _ScreeningPageState extends State<ScreeningPage> {
   final TextEditingController _heightController = TextEditingController();
   final TextEditingController _weightController = TextEditingController();
 
-  // State pilihan jawaban
+  // State pilihan jawaban (tanpa Hormonal_Changes)
   String? _selectedGender;
-  String? _selectedHormonal;
   String? _selectedRace;
   String? _selectedAlcohol;
   String? _selectedSmoking;
@@ -45,6 +46,9 @@ class _ScreeningPageState extends State<ScreeningPage> {
   String? _selectedMedicalCondition;
   String? _selectedMedication;
   String? _selectedFractureHistory;
+
+  // State loading untuk HTTP request
+  bool _isLoading = false;
 
   // State perhitungan BMI
   double? _calculatedBmi;
@@ -100,17 +104,16 @@ class _ScreeningPageState extends State<ScreeningPage> {
     }
   }
 
-  void _onSubmit() {
-    // Validasi kelengkapan form
-    final isAgeFilled = _ageController.text.trim().isNotEmpty;
-    final isHeightFilled = _heightController.text.trim().isNotEmpty;
-    final isWeightFilled = _weightController.text.trim().isNotEmpty;
+  /// Validasi form dan kirim ke FastAPI secara async
+  Future<void> _onSubmit() async {
+    final isAgeFilled     = _ageController.text.trim().isNotEmpty;
+    final isHeightFilled  = _heightController.text.trim().isNotEmpty;
+    final isWeightFilled  = _weightController.text.trim().isNotEmpty;
 
     if (!isAgeFilled ||
         _selectedGender == null ||
         !isHeightFilled ||
         !isWeightFilled ||
-        _selectedHormonal == null ||
         _selectedRace == null ||
         _selectedAlcohol == null ||
         _selectedSmoking == null ||
@@ -136,60 +139,122 @@ class _ScreeningPageState extends State<ScreeningPage> {
       return;
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text(
-          'Skrining berhasil disimpan!',
-          style: TextStyle(fontWeight: FontWeight.w600),
-        ),
-        backgroundColor: const Color(0xFF10B981),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
-        ),
-      ),
-    );
+    setState(() => _isLoading = true);
 
-    final age = int.tryParse(_ageController.text.trim()) ?? 0;
-    final height = double.tryParse(_heightController.text.trim().replaceAll(',', '.')) ?? 0;
-    final weight = double.tryParse(_weightController.text.trim().replaceAll(',', '.')) ?? 0;
-    final bmi = _calculatedBmi ?? (height > 0 ? weight / ((height / 100) * (height / 100)) : 0);
+    final age         = int.tryParse(_ageController.text.trim()) ?? 0;
+    final height      = double.tryParse(_heightController.text.trim().replaceAll(',', '.')) ?? 0;
+    final weight      = double.tryParse(_weightController.text.trim().replaceAll(',', '.')) ?? 0;
     final bmiCategory = _calculatedBmiCategory ?? 'Normal';
 
-    final input = ScreeningInput(
-      age: age,
-      gender: _selectedGender!,
-      height: height,
-      weight: weight,
-      bmi: bmi,
-      bmiCategory: bmiCategory,
-      hormonal: _selectedHormonal!,
-      race: _selectedRace!,
-      alcohol: _selectedAlcohol!,
-      smoking: _selectedSmoking!,
-      calcium: _selectedCalcium!,
-      vitaminD: _selectedVitaminD!,
+    final payload = buildScreeningPayload(
+      age:              age,
+      gender:           _selectedGender!,
+      race:             _selectedRace!,
+      bmiCategory:      bmiCategory,
+      alcohol:          _selectedAlcohol!,
+      smoking:          _selectedSmoking!,
+      calcium:          _selectedCalcium!,
+      vitaminD:         _selectedVitaminD!,
       physicalActivity: _selectedPhysicalActivity!,
       medicalCondition: _selectedMedicalCondition!,
-      medication: _selectedMedication!,
-      fractureHistory: _selectedFractureHistory!,
+      medication:       _selectedMedication!,
+      fractureHistory:  _selectedFractureHistory!,
     );
 
-    final result = ScreeningService().calculate(input);
+    try {
+      // 1. Kirim ke FastAPI
+      final apiResponse = await ApiService().predict(payload);
 
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => HasilScreeningPage(
-          scorePercentage: result.scorePercentage,
-          riskTitle: result.riskTitle,
-          riskDescription: result.riskDescription,
-          predictionData: result.predictionData,
-          recommendations: result.recommendations,
-          source: 'screening',
+      // 2. Interpretasi hasil
+      final interp = interpretApiResponse(apiResponse);
+
+      // 3. Bangun predictionItems untuk ditampilkan
+      final predictionItems = buildPredictionItems(
+        age:              age,
+        gender:           _selectedGender!,
+        race:             _selectedRace!,
+        height:           height,
+        weight:           weight,
+        bmiCategory:      bmiCategory,
+        alcohol:          _selectedAlcohol!,
+        smoking:          _selectedSmoking!,
+        calcium:          _selectedCalcium!,
+        vitaminD:         _selectedVitaminD!,
+        physicalActivity: _selectedPhysicalActivity!,
+        medicalCondition: _selectedMedicalCondition!,
+        medication:       _selectedMedication!,
+        fractureHistory:  _selectedFractureHistory!,
+      );
+
+      // 4. Simpan ke Firestore (non-blocking)
+      final docId = await ApiService().saveToFirestore(
+        payload:         payload,
+        apiResponse:     apiResponse,
+        recommendations: interp.recommendations,
+        riskTitle:       interp.riskTitle,
+        riskDescription: interp.riskDescription,
+        statusHasil:     interp.statusHasil,
+      );
+
+      // 5. Simpan ke HistoryService in-memory
+      final now = DateTime.now();
+      final timeStr =
+          'Pukul ${now.hour.toString().padLeft(2, '0')}.${now.minute.toString().padLeft(2, '0')} WIB';
+      HistoryService().addScreening(
+        HistoryModel.fromScreening(
+          id:              docId,
+          tanggal:         now,
+          waktu:           timeStr,
+          probabilitas:    apiResponse.probability.toInt(),
+          status:          interp.statusHasil,
+          isPositive:      interp.isPositive,
+          riskCategory:    interp.riskCategory,
+          summary:         interp.riskDescription,
+          modelConfidence: apiResponse.confidence,
+          predictionData:  predictionItems,
+          recommendations: interp.recommendations,
         ),
-      ),
-    );
+      );
+
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+
+      // 6. Navigasi ke halaman hasil
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => HasilScreeningPage(
+            scorePercentage: apiResponse.probability,
+            modelConfidence: apiResponse.confidence,
+            prediction:      apiResponse.prediction,
+            riskTitle:       interp.riskTitle,
+            riskDescription: interp.riskDescription,
+            predictionData:  predictionItems,
+            recommendations: interp.recommendations,
+            screeningId:     docId,
+            autoSave:        false, // sudah disimpan di sini
+            source:          'screening',
+          ),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            e.toString().replaceFirst('Exception: ', ''),
+            style: const TextStyle(fontWeight: FontWeight.w600),
+          ),
+          backgroundColor: const Color(0xFFEF4444),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+          duration: const Duration(seconds: 6),
+        ),
+      );
+    }
   }
 
   @override
@@ -366,25 +431,11 @@ class _ScreeningPageState extends State<ScreeningPage> {
               const SizedBox(height: 14),
 
               // -------------------------------------------------------------
-              // 5. Perubahan hormonal
+              // 5. Ras
               // -------------------------------------------------------------
               QuestionCard(
-                title: '5.  Perubahan hormonal',
-                subtitle: 'Bagaimana perubahan hormonal anda?',
-                child: _buildVerticalOptions<String>(
-                  options: const ['Normal', 'Pascamenopause'],
-                  groupValue: _selectedHormonal,
-                  onChanged: (val) => setState(() => _selectedHormonal = val),
-                ),
-              ),
-              const SizedBox(height: 14),
-
-              // -------------------------------------------------------------
-              // 6. Ras
-              // -------------------------------------------------------------
-              QuestionCard(
-                title: '6.  Ras',
-                subtitle: 'Apa ras yang anda anut?',
+                title: '5.  Ras',
+                subtitle: 'Apa ras atau etnis Anda?',
                 child: _buildVerticalOptions<String>(
                   options: const ['Afrika-Amerika', 'Asia', 'Kaukasia'],
                   groupValue: _selectedRace,
@@ -394,10 +445,10 @@ class _ScreeningPageState extends State<ScreeningPage> {
               const SizedBox(height: 14),
 
               // -------------------------------------------------------------
-              // 7. Konsumsi alkohol (Horizontal)
+              // 6. Konsumsi alkohol
               // -------------------------------------------------------------
               QuestionCard(
-                title: '7.  Konsumsi alkohol',
+                title: '6.  Konsumsi alkohol',
                 subtitle: 'Apakah Anda mengonsumsi minuman beralkohol?',
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -421,13 +472,13 @@ class _ScreeningPageState extends State<ScreeningPage> {
               const SizedBox(height: 14),
 
               // -------------------------------------------------------------
-              // 8. Status merokok
+              // 7. Status merokok
               // -------------------------------------------------------------
               QuestionCard(
-                title: '8.  Status merokok',
+                title: '7.  Status merokok',
                 subtitle: 'Apakah Anda perokok?',
                 child: _buildVerticalOptions<String>(
-                  options: const ['Iya', 'Tidak'],
+                  options: const ['Ya', 'Tidak'],
                   groupValue: _selectedSmoking,
                   onChanged: (val) => setState(() => _selectedSmoking = val),
                 ),
@@ -435,11 +486,11 @@ class _ScreeningPageState extends State<ScreeningPage> {
               const SizedBox(height: 14),
 
               // -------------------------------------------------------------
-              // 9. Asupan kalsium
+              // 8. Asupan kalsium
               // -------------------------------------------------------------
               QuestionCard(
-                title: '9.  Asupan kalsium',
-                subtitle: 'Bagaimana asupan kalsium anda?',
+                title: '8.  Asupan kalsium',
+                subtitle: 'Bagaimana asupan kalsium Anda?',
                 child: _buildVerticalOptions<String>(
                   options: const ['Cukup', 'Rendah'],
                   groupValue: _selectedCalcium,
@@ -449,13 +500,13 @@ class _ScreeningPageState extends State<ScreeningPage> {
               const SizedBox(height: 14),
 
               // -------------------------------------------------------------
-              // 10. Asupan vitamin D
+              // 9. Asupan vitamin D
               // -------------------------------------------------------------
               QuestionCard(
-                title: '10.  Asupan vitamin D',
-                subtitle: 'Bagaimana asupan vitamin D anda?',
+                title: '9.  Asupan vitamin D',
+                subtitle: 'Bagaimana asupan vitamin D Anda?',
                 child: _buildVerticalOptions<String>(
-                  options: const ['Tidak cukup', 'Cukup'],
+                  options: const ['Cukup', 'Rendah'],
                   groupValue: _selectedVitaminD,
                   onChanged: (val) => setState(() => _selectedVitaminD = val),
                 ),
@@ -463,11 +514,11 @@ class _ScreeningPageState extends State<ScreeningPage> {
               const SizedBox(height: 14),
 
               // -------------------------------------------------------------
-              // 11. Aktivitas fisik
+              // 10. Aktivitas fisik
               // -------------------------------------------------------------
               QuestionCard(
-                title: '11.  Aktivitas fisik',
-                subtitle: 'Bagaimana aktivitas anda?',
+                title: '10.  Aktivitas fisik',
+                subtitle: 'Bagaimana aktivitas Anda?',
                 child: _buildVerticalOptions<String>(
                   options: const ['Aktif', 'Kurang bergerak'],
                   groupValue: _selectedPhysicalActivity,
@@ -477,14 +528,14 @@ class _ScreeningPageState extends State<ScreeningPage> {
               const SizedBox(height: 14),
 
               // -------------------------------------------------------------
-              // 12. Kondisi medis
+              // 11. Kondisi medis
               // -------------------------------------------------------------
               QuestionCard(
-                title: '12.  Kondisi medis',
-                subtitle: 'Penyakit apa yang sedang anda derita?',
+                title: '11.  Kondisi medis',
+                subtitle: 'Penyakit apa yang sedang Anda derita?',
                 child: _buildVerticalOptions<String>(
                   options: const [
-                    'Hipertiroidisme (benjolan di leher)',
+                    'Hipertiroidisme (gangguan kelenjar tiroid terlalu aktif)',
                     'Artritis reumatoid (peradangan sendi)',
                     'Tidak ada',
                   ],
@@ -495,14 +546,14 @@ class _ScreeningPageState extends State<ScreeningPage> {
               const SizedBox(height: 14),
 
               // -------------------------------------------------------------
-              // 13. Konsumsi obat
+              // 12. Konsumsi obat
               // -------------------------------------------------------------
               QuestionCard(
-                title: '13.  Konsumsi obat',
-                subtitle: 'Obat apa yang sedang anda konsumsi?',
+                title: '12.  Konsumsi obat',
+                subtitle: 'Obat apa yang sedang Anda konsumsi?',
                 child: _buildVerticalOptions<String>(
                   options: const [
-                    'Kortikosteroid (obat radang sendi)',
+                    'Kortikosteroid (obat anti-radang, mis:prednison, dexamethasone)',
                     'Tidak ada',
                   ],
                   groupValue: _selectedMedication,
@@ -512,13 +563,13 @@ class _ScreeningPageState extends State<ScreeningPage> {
               const SizedBox(height: 14),
 
               // -------------------------------------------------------------
-              // 14. Riwayat patah tulang
+              // 13. Riwayat patah tulang
               // -------------------------------------------------------------
               QuestionCard(
-                title: '14.  Riwayat patah tulang',
-                subtitle: 'Apakah anda memiliki riwayat patah tulang ?',
+                title: '13.  Riwayat patah tulang',
+                subtitle: 'Apakah Anda memiliki riwayat patah tulang?',
                 child: _buildVerticalOptions<String>(
-                  options: const ['Iya', 'Tidak'],
+                  options: const ['Ya', 'Tidak'],
                   groupValue: _selectedFractureHistory,
                   onChanged: (val) => setState(() => _selectedFractureHistory = val),
                 ),
@@ -529,8 +580,9 @@ class _ScreeningPageState extends State<ScreeningPage> {
               // Tombol Mulai Skrining
               // -------------------------------------------------------------
               PrimaryButton(
-                text: 'Mulai Skrining',
-                onPressed: _onSubmit,
+                text: _isLoading ? 'Menganalisis...' : 'Mulai Skrining',
+                onPressed: _isLoading ? null : _onSubmit,
+                isLoading: _isLoading,
               ),
               const SizedBox(height: 32),
             ],
@@ -898,11 +950,13 @@ class BMICard extends StatelessWidget {
 class PrimaryButton extends StatelessWidget {
   final String text;
   final VoidCallback? onPressed;
+  final bool isLoading;
 
   const PrimaryButton({
     super.key,
     required this.text,
     this.onPressed,
+    this.isLoading = false,
   });
 
   @override
@@ -911,36 +965,46 @@ class PrimaryButton extends StatelessWidget {
       width: double.infinity,
       height: 54,
       child: ElevatedButton(
-        onPressed: onPressed,
+        onPressed: isLoading ? null : onPressed,
         style: ElevatedButton.styleFrom(
           backgroundColor: _ScreeningColors.primaryYellow,
           foregroundColor: _ScreeningColors.textDark,
           elevation: 0,
           shadowColor: Colors.transparent,
+          disabledBackgroundColor: _ScreeningColors.primaryYellow.withValues(alpha: 0.6),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(27),
           ),
         ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              text,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-                color: _ScreeningColors.textDark,
-                letterSpacing: -0.2,
+        child: isLoading
+            ? const SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.5,
+                  valueColor: AlwaysStoppedAnimation<Color>(_ScreeningColors.textDark),
+                ),
+              )
+            : Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    text,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: _ScreeningColors.textDark,
+                      letterSpacing: -0.2,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  const Icon(
+                    Icons.arrow_forward_rounded,
+                    size: 20,
+                    color: _ScreeningColors.textDark,
+                  ),
+                ],
               ),
-            ),
-            const SizedBox(width: 8),
-            const Icon(
-              Icons.arrow_forward_rounded,
-              size: 20,
-              color: _ScreeningColors.textDark,
-            ),
-          ],
-        ),
       ),
     );
   }

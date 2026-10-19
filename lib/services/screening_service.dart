@@ -43,6 +43,7 @@ class ScreeningInput {
 /// Hasil kalkulasi analisis skrining osteoporosis
 class ScreeningResult {
   final double scorePercentage;
+  final double modelConfidence;
   final String riskTitle;
   final String riskCategory;
   final String riskDescription;
@@ -54,6 +55,7 @@ class ScreeningResult {
 
   const ScreeningResult({
     required this.scorePercentage,
+    required this.modelConfidence,
     required this.riskTitle,
     required this.riskCategory,
     required this.riskDescription,
@@ -162,6 +164,16 @@ class ScreeningService {
     final double rawPercent = (riskPoints / maxPossiblePoints) * 100.0;
     final double scorePercentage = rawPercent.clamp(12.0, 94.0).roundToDouble();
 
+    // Hitung tingkat keyakinan model (model confidence)
+    final double modelConfidence;
+    if (scorePercentage >= 50) {
+      final conf = (scorePercentage + (100 - scorePercentage) * 0.046).clamp(50.0, 99.5);
+      modelConfidence = double.parse(conf.toStringAsFixed(2));
+    } else {
+      final conf = (100.0 - scorePercentage).clamp(50.0, 99.5);
+      modelConfidence = double.parse(conf.toStringAsFixed(2));
+    }
+
     // Tentukan Kategori & Status
     final String riskTitle;
     final String riskCategory;
@@ -192,36 +204,21 @@ class ScreeningService {
           'Kepadatan tulang Anda kemungkinan besar dalam kondisi baik. Terus pertahankan gaya hidup sehat.';
     }
 
-    // Buat Rekomendasi dinamis berdasarkan jawaban spesifik
+    // Susun Rekomendasi sesuai risiko dan pedoman klinis
     final List<String> recs = [];
-    if (input.calcium.toLowerCase() == 'rendah') {
-      recs.add('Perbanyak makanan tinggi kalsium (susu, keju, olahan kedelai, brokoli)');
+    if (isPositive) {
+      recs.add('Konsultasikan dengan dokter spesialis tulang.');
+      recs.add('Lakukan pemeriksaan lebih lanjut (misalnya DEXA Scan).');
+      recs.add('Pertahankan asupan kalsium dan vitamin D.');
+      recs.add('Lakukan olahraga beban secara rutin.');
+      recs.add('Hindari merokok dan konsumsi alkohol berlebihan.');
+    } else {
+      recs.add('Tetap pertahankan pola hidup sehat.');
+      recs.add('Penuhi kebutuhan kalsium dan vitamin D.');
+      recs.add('Lakukan olahraga beban secara rutin.');
+      recs.add('Hindari merokok dan konsumsi alkohol berlebihan.');
+      recs.add('Lakukan skrining secara berkala.');
     }
-    if (input.vitaminD.toLowerCase().contains('tidak')) {
-      recs.add('Konsumsi vitamin D sesuai anjuran dan dapatkan paparan sinar matahari pagi');
-    }
-    if (input.physicalActivity.toLowerCase().contains('kurang')) {
-      recs.add('Rutin melakukan aktivitas fisik (latihan beban ringan / jalan kaki 30 menit sehari)');
-    }
-    if (input.smoking.toLowerCase() == 'iya' ||
-        input.smoking.toLowerCase() == 'ya') {
-      recs.add('Hindari rokok karena dapat mempercepat pengeroposan mineral tulang');
-    }
-    if (input.alcohol.toLowerCase() == 'ya' ||
-        input.alcohol.toLowerCase() == 'iya') {
-      recs.add('Kurangi dan hindari konsumsi minuman beralkohol');
-    }
-    if (input.bmiCategory.toLowerCase() == 'kurus') {
-      recs.add('Tingkatkan asupan nutrisi bergizi untuk mencapai berat badan ideal');
-    }
-    if (input.fractureHistory.toLowerCase() == 'iya' ||
-        scorePercentage >= 60 ||
-        input.medication.toLowerCase().contains('kortikosteroid')) {
-      recs.add('Lakukan pemeriksaan Bone Mineral Density (BMD / DEXA Scan) untuk deteksi akurat');
-    }
-
-    // Rekomendasi wajib penutup
-    recs.add('Konsultasikan hasil ini dengan dokter untuk evaluasi lebih lanjut');
 
     // Susun 14 PredictionItem riil dari jawaban user
     final List<PredictionItem> predictionItems = [
@@ -301,6 +298,7 @@ class ScreeningService {
 
     return ScreeningResult(
       scorePercentage: scorePercentage,
+      modelConfidence: modelConfidence,
       riskTitle: riskTitle,
       riskCategory: riskCategory,
       riskDescription: riskDescription,
