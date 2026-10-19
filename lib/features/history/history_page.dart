@@ -178,6 +178,7 @@ class _HistoryPageState extends State<HistoryPage> {
                   MaterialPageRoute(
                     builder: (_) => HasilScreeningPage(
                       scorePercentage: item.probabilitas.toDouble(),
+                      modelConfidence: item.modelConfidence,
                       riskTitle: item.riskCategory ??
                           (item.isPositive ? 'risiko sedang' : 'risiko rendah'),
                       riskDescription: item.summary ?? '',

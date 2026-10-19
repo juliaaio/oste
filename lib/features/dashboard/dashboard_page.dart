@@ -936,6 +936,7 @@ class _LatestScreeningSection extends StatelessWidget {
           MaterialPageRoute(
             builder: (_) => HasilScreeningPage(
               scorePercentage: latest.probabilitas.toDouble(),
+              modelConfidence: latest.modelConfidence,
               riskTitle: latest.riskCategory ?? (isPos ? 'risiko sedang' : 'risiko rendah'),
               riskDescription: latest.summary ?? '',
               predictionData: latest.predictionData,
