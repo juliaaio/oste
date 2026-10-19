@@ -37,7 +37,7 @@ class _DashboardColors {
 
   // Warna background referensi
   static const Color bgCreamYellow = Color(0xFFFFF9EA);
-  static const Color bgDecorLavender = Color(0xFFEDEBF7);
+  static const Color bgDecorLavender = Color(0xFFC2B8DE);
 
   // Warna pendukung untuk hierarki visual & tipografi
   static const Color textDark = Color(0xFF1F2937);
@@ -66,7 +66,8 @@ class _DashboardPageState extends State<DashboardPage> {
       backgroundColor: Colors.white,
       body: Stack(
         children: [
-          // 1. Base gradient #FFF9EA + kuning amber menyebar penuh
+          // 1. Full-screen diagonal gradient: menyebar ke seluruh layar dari kiri-atas ke kanan-bawah
+          // (Biru langit lembut di kiri-atas -> transisi putih terang & luas di tengah -> butter yellow hangat di kanan-bawah)
           Positioned.fill(
             child: Container(
               decoration: const BoxDecoration(
@@ -74,96 +75,32 @@ class _DashboardPageState extends State<DashboardPage> {
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: [
-                    Color(0xFFFFF3C0), // Kuning amber hangat kiri-atas
-                    creamColor,        // Cream #FFF9EA transisi
-                    Color(0xFFFFFDF8), // Lembut tengah
-                    Colors.white,      // Putih bawah-kanan
+                    Color(0xFFE5F3FD), // Biru langit soft di sudut kiri atas (sedikit & lembut)
+                    Color(0xFFF4FAFE), // Transisi lembut ke putih
+                    Colors.white,      // Gradasi putih bersih & terang di tengah (menyebar luas)
+                    Color(0xFFFFF9E8), // Cream butter yellow lembut
+                    Color(0xFFFDE68A), // Butter yellow hangat di kanan bawah
                   ],
-                  stops: [0.0, 0.30, 0.60, 1.0],
+                  stops: [0.0, 0.20, 0.50, 0.80, 1.0],
                 ),
               ),
             ),
           ),
 
-          // 2. Glow blob kuning amber besar di kiri-atas
-          Positioned(
-            top: -80,
-            left: -60,
+          // 2. Full-screen linear gradient pelengkap: butter yellow menyebar dari kanan-atas ke arah tengah
+          // (Membuat seluruh sisi kanan dari atas hingga bawah memiliki hangatnya butter yellow seperti di referensi)
+          Positioned.fill(
             child: Container(
-              width: 380,
-              height: 380,
               decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: RadialGradient(
+                gradient: LinearGradient(
+                  begin: Alignment.topRight,
+                  end: Alignment.bottomLeft,
                   colors: [
-                    const Color(0xFFFDE68A).withValues(alpha: 0.55),
-                    creamColor.withValues(alpha: 0.30),
-                    creamColor.withValues(alpha: 0.0),
+                    const Color(0xFFFDE68A).withValues(alpha: 0.35), // Butter yellow di kanan atas menyebar
+                    const Color(0xFFFFF3C0).withValues(alpha: 0.15),
+                    Colors.transparent,                              // Transparan lembut ke tengah & kiri bawah
                   ],
-                  stops: [0.0, 0.55, 1.0],
-                ),
-              ),
-            ),
-          ),
-
-          // Glow blob kuning di kanan-atas
-          Positioned(
-            top: -40,
-            right: -50,
-            child: Container(
-              width: 260,
-              height: 260,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: RadialGradient(
-                  colors: [
-                    const Color(0xFFFDE68A).withValues(alpha: 0.40),
-                    const Color(0xFFFFF3C0).withValues(alpha: 0.20),
-                    const Color(0xFFFFF3C0).withValues(alpha: 0.0),
-                  ],
-                  stops: [0.0, 0.50, 1.0],
-                ),
-              ),
-            ),
-          ),
-
-          // Glow blob kuning di tengah-kanan
-          Positioned(
-            top: 300,
-            right: -70,
-            child: Container(
-              width: 320,
-              height: 320,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: RadialGradient(
-                  colors: [
-                    const Color(0xFFFDE68A).withValues(alpha: 0.35),
-                    creamColor.withValues(alpha: 0.20),
-                    creamColor.withValues(alpha: 0.0),
-                  ],
-                  stops: [0.0, 0.55, 1.0],
-                ),
-              ),
-            ),
-          ),
-
-          // Glow blob cream di bawah-kiri
-          Positioned(
-            bottom: -60,
-            left: -60,
-            child: Container(
-              width: 300,
-              height: 300,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: RadialGradient(
-                  colors: [
-                    const Color(0xFFFFF3C0).withValues(alpha: 0.50),
-                    creamColor.withValues(alpha: 0.20),
-                    creamColor.withValues(alpha: 0.0),
-                  ],
-                  stops: [0.0, 0.55, 1.0],
+                  stops: const [0.0, 0.40, 0.85],
                 ),
               ),
             ),
@@ -695,7 +632,7 @@ class _HeaderSection extends StatelessWidget {
             Positioned.fill(
               child: Container(
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFDEEA0),
+                  color: const Color(0xFFFFF7D6),
                   borderRadius: BorderRadius.circular(24),
                   border: Border.all(
                     color: const Color(0xFFFDE68A),
@@ -876,7 +813,7 @@ class _LatestScreeningSection extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: const Color(0xFFFDEEA0),
+        color: const Color(0xFFFFF7D6),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
           color: const Color(0xFFFDE68A),
@@ -1015,7 +952,7 @@ class _LatestScreeningSection extends StatelessWidget {
         width: double.infinity,
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
-          color: const Color(0xFFFDEEA0),
+          color: const Color(0xFFFFF7D6),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: const Color(0xFFFDE68A),
@@ -1783,7 +1720,7 @@ class _EducationBannerSection extends StatelessWidget {
       width: double.infinity,
       decoration: BoxDecoration(
         // Background identik dengan Card "Kenali Risikomu" di Skrining
-        color: const Color(0xFFFDEEA0),
+        color: const Color(0xFFFFF7D6),
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
           color: const Color(0xFFFDE68A),
