@@ -9,7 +9,6 @@ import 'package:oste/services/user_service.dart';
 /// Palet warna halaman Register
 class _RegisterColors {
   static const Color primaryButterYellow = Color(0xFFF7C948);
-  static const Color badgeBg = Color(0xFFFFF5DD);
   static const Color textDark = Color(0xFF1E293B);
   static const Color textMuted = Color(0xFF64748B);
   static const Color textLight = Color(0xFF94A3B8);
@@ -208,14 +207,15 @@ class _RegisterPageState extends State<RegisterPage> {
                   const SizedBox(height: 24),
 
                   // Logo Medallion Osteocare di bagian atas
-                  const SizedBox(
-                    width: 145,
-                    height: 145,
-                    child: CustomPaint(
-                      painter: _OsteocareLogoPainter(),
+                  SizedBox(
+                    width: 155,
+                    height: 155,
+                    child: Image.asset(
+                      'assets/images/logo_bone.png',
+                      fit: BoxFit.contain,
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 18),
 
                   // Judul "Osteocare"
                   RichText(
@@ -858,133 +858,6 @@ class _RegisterBackgroundGradients extends StatelessWidget {
   }
 }
 
-// =============================================================================
-// LOGO MEDALLION OSTEOCARE (CUSTOM PAINTER)
-// =============================================================================
-class _OsteocareLogoPainter extends CustomPainter {
-  const _OsteocareLogoPainter();
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height / 2);
-    final radius = size.width / 2;
-
-    // 1. Lingkaran Medallion Kuning Pastel Lembut
-    final badgePaint = Paint()
-      ..color = _RegisterColors.badgeBg
-      ..style = PaintingStyle.fill;
-    canvas.drawCircle(center, radius, badgePaint);
-
-    // 2. Kilau bintang (Sparkle) di kiri atas tulang
-    final sparklePaint = Paint()
-      ..color = _RegisterColors.primaryButterYellow
-      ..style = PaintingStyle.fill;
-    _drawSparkle(canvas, Offset(size.width * 0.44, size.height * 0.34), 7.0, sparklePaint);
-
-    // 3. Ring orbital emas yang melingkari tulang
-    final ringPaint = Paint()
-      ..color = _RegisterColors.primaryButterYellow
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 3.0
-      ..strokeCap = StrokeCap.round;
-
-    final ringPath = Path();
-    ringPath.moveTo(size.width * 0.38, size.height * 0.42);
-    ringPath.cubicTo(
-      size.width * 0.22,
-      size.height * 0.56,
-      size.width * 0.45,
-      size.height * 0.70,
-      size.width * 0.68,
-      size.height * 0.64,
-    );
-    canvas.drawPath(ringPath, ringPaint);
-
-    // 4. Tulang diagonal di tengah
-    canvas.save();
-    canvas.translate(size.width * 0.50, size.height * 0.50);
-    canvas.rotate(-0.58);
-
-    final boneFill = Paint()
-      ..color = Colors.white
-      ..style = PaintingStyle.fill;
-
-    final boneStroke = Paint()
-      ..color = _RegisterColors.primaryButterYellow
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 3.6
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round;
-
-    final bonePath = Path();
-    bonePath.moveTo(-10, -34);
-    bonePath.cubicTo(-19, -44, -3, -49, 0, -39);
-    bonePath.cubicTo(3, -49, 19, -44, 10, -34);
-    bonePath.cubicTo(8, -15, 8, 15, 10, 34);
-    bonePath.cubicTo(19, 44, 3, 49, 0, 39);
-    bonePath.cubicTo(-3, 49, -19, 44, -10, 34);
-    bonePath.cubicTo(-8, 15, -8, -15, -10, -34);
-    bonePath.close();
-
-    canvas.drawPath(bonePath, boneFill);
-    canvas.drawPath(bonePath, boneStroke);
-
-    canvas.restore();
-
-    // 5. Daun herbal emas di kanan bawah
-    final leafPaint = Paint()
-      ..color = _RegisterColors.primaryButterYellow
-      ..style = PaintingStyle.fill;
-
-    final leafPath1 = Path();
-    leafPath1.moveTo(size.width * 0.64, size.height * 0.62);
-    leafPath1.quadraticBezierTo(
-      size.width * 0.80,
-      size.height * 0.54,
-      size.width * 0.75,
-      size.height * 0.68,
-    );
-    leafPath1.quadraticBezierTo(
-      size.width * 0.70,
-      size.height * 0.68,
-      size.width * 0.64,
-      size.height * 0.62,
-    );
-    leafPath1.close();
-    canvas.drawPath(leafPath1, leafPaint);
-
-    final leafPath2 = Path();
-    leafPath2.moveTo(size.width * 0.64, size.height * 0.67);
-    leafPath2.quadraticBezierTo(
-      size.width * 0.82,
-      size.height * 0.68,
-      size.width * 0.74,
-      size.height * 0.79,
-    );
-    leafPath2.quadraticBezierTo(
-      size.width * 0.68,
-      size.height * 0.76,
-      size.width * 0.64,
-      size.height * 0.67,
-    );
-    leafPath2.close();
-    canvas.drawPath(leafPath2, leafPaint);
-  }
-
-  void _drawSparkle(Canvas canvas, Offset center, double size, Paint paint) {
-    final path = Path();
-    path.moveTo(center.dx, center.dy - size);
-    path.quadraticBezierTo(center.dx, center.dy, center.dx + size, center.dy);
-    path.quadraticBezierTo(center.dx, center.dy, center.dx + size, center.dy);
-    path.quadraticBezierTo(center.dx, center.dy, center.dx - size, center.dy);
-    path.quadraticBezierTo(center.dx, center.dy, center.dx - size, center.dy);
-    path.close();
-    canvas.drawPath(path, paint);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
 
 // =============================================================================
 // LOGO GOOGLE (CUSTOM PAINTER OTENTIK 4 WARNA)

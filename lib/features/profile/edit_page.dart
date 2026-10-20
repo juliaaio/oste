@@ -236,65 +236,43 @@ class _EditPageState extends State<EditPage> {
 
                   const SizedBox(height: 24),
 
-                  // ── Foto Profil & Ikon Kamera ────────────────────────────
+                  // ── Avatar Lingkaran Inisial Nama (Konsisten dengan Profil & Dashboard) ──
                   Center(
-                    child: Stack(
-                      children: [
-                        Container(
-                          width: 88,
-                          height: 88,
+                    child: AnimatedBuilder(
+                      animation: Listenable.merge([_nameController, UserService()]),
+                      builder: (context, _) {
+                        final user = UserService().currentUser;
+                        final nameInput = _nameController.text.trim();
+                        final rawName = nameInput.isNotEmpty
+                            ? nameInput
+                            : (user?.name.trim() ?? (user?.firstName.trim() ?? ''));
+
+                        final cleanName = rawName.trim();
+                        final String avatarLetter =
+                            (cleanName.isNotEmpty && cleanName != '-')
+                                ? cleanName[0].toUpperCase()
+                                : 'A';
+
+                        return Container(
+                          width: 74,
+                          height: 74,
                           decoration: const BoxDecoration(
                             shape: BoxShape.circle,
+                            color: Color(0xFFF59E0B),
                           ),
-                          child: ClipOval(
-                            child: Image.network(
-                              'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=400&q=80',
-                              width: 88,
-                              height: 88,
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) =>
-                                  Container(
-                                color: const Color(0xFFE2E8F0),
-                                child: const Icon(
-                                  Icons.person_rounded,
-                                  size: 48,
-                                  color: _iconGrey,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                        Positioned(
-                          bottom: 0,
-                          right: 0,
-                          child: Container(
-                            width: 30,
-                            height: 30,
-                            decoration: BoxDecoration(
-                              color: _butterYellow,
-                              shape: BoxShape.circle,
-                              border: Border.all(
+                          child: Center(
+                            child: Text(
+                              avatarLetter,
+                              style: const TextStyle(
+                                fontSize: 30,
+                                fontWeight: FontWeight.w700,
                                 color: Colors.white,
-                                width: 2.5,
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.1),
-                                  blurRadius: 4,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ],
-                            ),
-                            child: const Center(
-                              child: Icon(
-                                Icons.photo_camera_rounded,
-                                size: 15,
-                                color: Colors.white,
+                                letterSpacing: 0,
                               ),
                             ),
                           ),
-                        ),
-                      ],
+                        );
+                      },
                     ),
                   ),
 

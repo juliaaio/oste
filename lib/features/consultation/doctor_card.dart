@@ -18,16 +18,16 @@ class DoctorCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
+        color: const Color(0xFFFFFFFF),
+        borderRadius: BorderRadius.circular(28),
         border: Border.all(
-          color: const Color(0xFFF1F5F9),
-          width: 1.2,
+          color: const Color(0xFFE8EBF1),
+          width: 1.0,
         ),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF0F172A).withValues(alpha: 0.04),
-            blurRadius: 12,
+            color: const Color(0xFF14213D).withValues(alpha: 0.04),
+            blurRadius: 14,
             offset: const Offset(0, 4),
             spreadRadius: 0,
           ),
@@ -36,34 +36,36 @@ class DoctorCard extends StatelessWidget {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(28),
           onTap: onTap,
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
             child: Row(
               children: [
-                // Avatar dokter
+                // Foto avatar dokter
                 Container(
-                  width: 58,
-                  height: 58,
+                  width: 60,
+                  height: 60,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: const Color(0xFFF1F5F9),
+                    color: const Color(0xFFE8EBF1),
                     border: Border.all(
-                      color: const Color(0xFFE2E8F0),
+                      color: const Color(0xFFE8EBF1),
                       width: 1,
                     ),
                   ),
                   child: ClipOval(
                     child: Image.network(
                       doctor.imageUrl,
+                      width: 60,
+                      height: 60,
                       fit: BoxFit.cover,
                       errorBuilder: (context, error, stackTrace) {
                         return const Center(
                           child: Icon(
                             Icons.person_rounded,
-                            size: 32,
-                            color: Color(0xFF94A3B8),
+                            size: 36,
+                            color: Color(0xFF8A9AB5),
                           ),
                         );
                       },
@@ -75,7 +77,7 @@ class DoctorCard extends StatelessWidget {
                             height: 20,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
-                              color: Color(0xFFF7C948),
+                              color: Color(0xFFFFD34E),
                             ),
                           ),
                         );
@@ -83,7 +85,7 @@ class DoctorCard extends StatelessWidget {
                     ),
                   ),
                 ),
-                const SizedBox(width: 14),
+                const SizedBox(width: 12),
 
                 // Info dokter
                 Expanded(
@@ -93,12 +95,12 @@ class DoctorCard extends StatelessWidget {
                       // Nama dokter
                       Text(
                         doctor.name,
-                        maxLines: 2,
+                        maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
-                          fontSize: 14,
+                          fontSize: 13.8,
                           fontWeight: FontWeight.w700,
-                          color: Color(0xFF1E293B),
+                          color: Color(0xFF14213D),
                           letterSpacing: -0.2,
                           height: 1.25,
                         ),
@@ -108,12 +110,12 @@ class DoctorCard extends StatelessWidget {
                       // Spesialisasi
                       Text(
                         doctor.specialist,
-                        maxLines: 2,
+                        maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                           fontSize: 11.5,
                           fontWeight: FontWeight.w400,
-                          color: Color(0xFF64748B),
+                          color: Color(0xFF8A9AB5),
                           height: 1.25,
                         ),
                       ),
@@ -125,7 +127,7 @@ class DoctorCard extends StatelessWidget {
                           const Icon(
                             Icons.star_rounded,
                             size: 16,
-                            color: Color(0xFFF59E0B),
+                            color: Color(0xFFFFB703),
                           ),
                           const SizedBox(width: 3),
                           ListenableBuilder(
@@ -133,45 +135,96 @@ class DoctorCard extends StatelessWidget {
                             builder: (context, _) {
                               final avg = DoctorReviewService()
                                   .getAverageRating(doctor.id);
-                              final ratingText =
-                                  avg == 0.0 ? '0.0' : avg.toStringAsFixed(1);
+                              final ratingText = avg == 0.0
+                                  ? doctor.rating.toStringAsFixed(1)
+                                  : avg.toStringAsFixed(1);
                               return Text(
                                 ratingText,
                                 style: const TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w700,
-                                  color: Color(0xFFF59E0B),
+                                  color: Color(0xFFFFB703),
                                 ),
                               );
                             },
                           ),
-                          const SizedBox(width: 8),
+                          const SizedBox(width: 6),
                           const Text(
-                            '·',
+                            '•',
                             style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w800,
-                              color: Color(0xFF94A3B8),
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF8A9AB5),
                             ),
                           ),
-                          const SizedBox(width: 8),
+                          const SizedBox(width: 6),
                           if (doctor.isOnline) ...[
-                            const Icon(
-                              Icons.check_circle_rounded,
-                              size: 13,
-                              color: Color(0xFF16A34A),
-                            ),
-                            const SizedBox(width: 4),
-                            const Text(
-                              'Online',
-                              style: TextStyle(
-                                fontSize: 11.5,
-                                fontWeight: FontWeight.w600,
-                                color: Color(0xFF16A34A),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 2.5,
+                              ),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFE5F9EC),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Container(
+                                    width: 6,
+                                    height: 6,
+                                    decoration: const BoxDecoration(
+                                      color: Color(0xFF16B86A),
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  const Text(
+                                    'Online',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                      color: Color(0xFF16B86A),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           ],
                         ],
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+
+                // Tombol "Lihat Profil" kapsul pastel yellow
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 7,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFF0BD),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Lihat Profil',
+                        style: TextStyle(
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF14213D),
+                        ),
+                      ),
+                      SizedBox(width: 2),
+                      Icon(
+                        Icons.chevron_right_rounded,
+                        size: 16,
+                        color: Color(0xFF14213D),
                       ),
                     ],
                   ),

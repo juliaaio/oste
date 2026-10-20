@@ -243,6 +243,7 @@ class _DashboardPageState extends State<DashboardPage> {
           // Sphere tambahan kanan-tengah bawah
           Positioned(
             bottom: 400,
+            
             right: 16,
             child: Container(
               width: 12,
@@ -1324,7 +1325,6 @@ class _MenuItemCardState extends State<_MenuItemCard> {
 
   @override
   Widget build(BuildContext context) {
-    final Color pastelButterYellow = _DashboardColors.pastelButterYellow;
     final Color butterYellowPressed = _DashboardColors.primaryButterYellow;
 
     return GestureDetector(
@@ -1365,24 +1365,11 @@ class _MenuItemCardState extends State<_MenuItemCard> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Baris atas: Icon langsung tanpa kotak latar & menu titik tiga modern seperti referensi
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Icon(
-                      widget.icon,
-                      size: 26,
-                      color: widget.iconColor,
-                    ),
-                    Icon(
-                      Icons.more_vert_rounded,
-                      size: 18,
-                      color: _isPressed
-                          ? const Color(0xFF1F2937).withValues(alpha: 0.6)
-                          : const Color(0xFF9CA3AF),
-                    ),
-                  ],
+                // Baris atas: Icon utama menu tanpa titik tiga
+                Icon(
+                  widget.icon,
+                  size: 26,
+                  color: widget.iconColor,
                 ),
                 const SizedBox(height: 10),
                 Text(
