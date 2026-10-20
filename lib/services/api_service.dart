@@ -12,7 +12,6 @@ import 'package:oste/features/screening/hasil_page.dart';
 //   Flutter Web / iOS Simulator : 'http://127.0.0.1:8000'
 //   Android Emulator            : 'http://10.0.2.2:8000'
 //   Physical Device (LAN)       : 'http://<IP-Lokal>:8000'
-// ---------------------------------------------------------------------------
 const String kFastApiBaseUrl = 'http://127.0.0.1:8000';
 
 // ---------------------------------------------------------------------------
