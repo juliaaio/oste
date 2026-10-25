@@ -4,6 +4,8 @@ import 'package:oste/features/consultation/doctor_data.dart';
 import 'package:oste/features/consultation/doctor_profile_page.dart';
 import 'package:oste/features/dashboard/dashboard_page.dart';
 import 'package:oste/models/doctor_model.dart';
+import 'package:oste/services/chat_service.dart';
+import 'package:oste/services/user_service.dart';
 
 /// Halaman Daftar Dokter OSTEOCARE
 /// Redesain modern, clean, dan profesional sesuai panduan desain OSTEOCARE
@@ -17,6 +19,15 @@ class DoctorListPage extends StatefulWidget {
 class _DoctorListPageState extends State<DoctorListPage> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
+
+  @override
+  void initState() {
+    super.initState();
+    final patientUid = UserService().currentUser?.uid ?? '';
+    if (patientUid.isNotEmpty) {
+      ChatService().startListeningPatientConversations(patientUid);
+    }
+  }
 
   @override
   void dispose() {
@@ -236,7 +247,100 @@ class _DoctorListPageState extends State<DoctorListPage> {
                 ),
               ),
             ),
-            const SizedBox(height: 16),
+            // Banner Notifikasi Balasan Dokter (Jika Ada Pesan Belum Dibaca)
+            ListenableBuilder(
+              listenable: ChatService(),
+              builder: (context, _) {
+                final totalUnread = ChatService().totalPatientUnreadCount;
+                if (totalUnread <= 0) return const SizedBox.shrink();
+
+                return Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 14),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFFBEB),
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(
+                        color: const Color(0xFFFDE68A),
+                        width: 1.2,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color:
+                              const Color(0xFFF59E0B).withValues(alpha: 0.08),
+                          blurRadius: 10,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF7C948)
+                                .withValues(alpha: 0.35),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.mark_chat_unread_rounded,
+                            size: 20,
+                            color: Color(0xFFD97706),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Balasan Baru Dari Dokter',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xFF14213D),
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                'Ada $totalUnread pesan belum dibaca. Ketuk dokter terkait untuk membalas.',
+                                style: const TextStyle(
+                                  fontSize: 11.5,
+                                  fontWeight: FontWeight.w400,
+                                  color: Color(0xFF6B7280),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFE11D48),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            '$totalUnread baru',
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
 
             // 3. Section Header: "Dokter Tersedia" & Jumlah Dokter
             Padding(

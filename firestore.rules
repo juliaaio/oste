@@ -1,0 +1,52 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Pengguna (Profil User & Dokter)
+    match /users/{userId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Percakapan Chat Utama (Metadata Dokumen chats/{chatId})
+    // Pasien hanya dapat membaca percakapannya sendiri (patientId == auth.uid).
+    // Dokter hanya dapat membaca percakapan yang menjadi kewenangannya (doctorId == auth.uid).
+    match /chats/{chatId} {
+      allow read: if request.auth != null &&
+        (resource.data.patientId == request.auth.uid || resource.data.doctorId == request.auth.uid);
+
+      allow create: if request.auth != null &&
+        (request.resource.data.patientId == request.auth.uid || request.resource.data.doctorId == request.auth.uid);
+
+      allow update: if request.auth != null &&
+        (resource.data.patientId == request.auth.uid || resource.data.doctorId == request.auth.uid);
+
+      // Sub-koleksi pesan individual di chats/{chatId}/messages/{messageId}
+      match /messages/{messageId} {
+        allow read: if request.auth != null &&
+          (get(/databases/$(database)/documents/chats/$(chatId)).data.patientId == request.auth.uid ||
+           get(/databases/$(database)/documents/chats/$(chatId)).data.doctorId == request.auth.uid);
+
+        allow create: if request.auth != null &&
+          request.resource.data.senderId == request.auth.uid &&
+          (get(/databases/$(database)/documents/chats/$(chatId)).data.patientId == request.auth.uid ||
+           get(/databases/$(database)/documents/chats/$(chatId)).data.doctorId == request.auth.uid);
+
+        // Update diizinkan untuk pembaruan status baca (isRead) oleh penerima atau pengirim
+        allow update: if request.auth != null &&
+          (resource.data.receiverId == request.auth.uid || resource.data.senderId == request.auth.uid);
+      }
+    }
+
+    // Riwayat konsultasi & skrining
+    match /consultations/{consultationId} {
+      allow read, write: if request.auth != null &&
+        (resource == null || resource.data.patientId == request.auth.uid || resource.data.doctorId == request.auth.uid);
+    }
+
+    match /screenings/{screeningId} {
+      allow read, write: if request.auth != null &&
+        (resource == null || resource.data.userId == request.auth.uid);
+    }
+  }
+}

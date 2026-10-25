@@ -3,7 +3,9 @@ import 'package:oste/features/consultation/chat_page.dart';
 import 'package:oste/features/consultation/consultation_history_page.dart';
 import 'package:oste/features/consultation/doctor_review_page.dart';
 import 'package:oste/models/doctor_model.dart';
+import 'package:oste/services/chat_service.dart';
 import 'package:oste/services/doctor_review_service.dart';
+import 'package:oste/services/user_service.dart';
 
 /// Halaman Profil Dokter Osteo Reusable
 class DoctorProfilePage extends StatelessWidget {
@@ -412,61 +414,95 @@ class DoctorProfilePage extends StatelessWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Tombol Chat Sekarang (Kuning Butter)
-                  Container(
-                    width: double.infinity,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF7C948),
-                      borderRadius: BorderRadius.circular(24),
-                      boxShadow: [
-                        BoxShadow(
-                          color: const Color(0xFFF7C948).withValues(alpha: 0.45),
-                          blurRadius: 14,
-                          offset: const Offset(0, 4),
+                  // Tombol Chat Sekarang (Kuning Butter) dengan indikator pesan belum dibaca
+                  ListenableBuilder(
+                    listenable: ChatService(),
+                    builder: (context, _) {
+                      final unreadCount =
+                          ChatService().getPatientUnreadCountForDoctor(doctor.id);
+
+                      return Container(
+                        width: double.infinity,
+                        height: 48,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF7C948),
+                          borderRadius: BorderRadius.circular(24),
+                          boxShadow: [
+                            BoxShadow(
+                              color:
+                                  const Color(0xFFF7C948).withValues(alpha: 0.45),
+                              blurRadius: 14,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-                    child: Material(
-                      color: Colors.transparent,
-                      child: InkWell(
-                        borderRadius: BorderRadius.circular(24),
-                        onTap: () {
-                          final startTime = DateTime.now();
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => ChatPage(
-                                doctor: doctor,
-                                consultationStartTime: startTime,
+                        child: Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(24),
+                            onTap: () {
+                              final startTime = DateTime.now();
+                              final patientUid =
+                                  UserService().currentUser?.uid;
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => ChatPage(
+                                    doctor: doctor,
+                                    consultationStartTime: startTime,
+                                    patientId: patientUid,
+                                  ),
+                                ),
+                              );
+                            },
+                            child: Center(
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const Icon(
+                                    Icons.chat_bubble_outline_rounded,
+                                    size: 18,
+                                    color: Color(0xFF1E293B),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  const Text(
+                                    'Chat Sekarang',
+                                    style: TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w700,
+                                      color: Color(0xFF1E293B),
+                                      letterSpacing: -0.2,
+                                    ),
+                                  ),
+                                  if (unreadCount > 0) ...[
+                                    const SizedBox(width: 8),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 7,
+                                        vertical: 2,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFE11D48),
+                                        borderRadius:
+                                            BorderRadius.circular(10),
+                                      ),
+                                      child: Text(
+                                        '$unreadCount',
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ],
                               ),
                             ),
-                          );
-                        },
-                        child: const Center(
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.chat_bubble_outline_rounded,
-                                size: 18,
-                                color: Color(0xFF1E293B),
-                              ),
-                              SizedBox(width: 8),
-                              Text(
-                                'Chat Sekarang',
-                                style: TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w700,
-                                  color: Color(0xFF1E293B),
-                                  letterSpacing: -0.2,
-                                ),
-                              ),
-                            ],
                           ),
                         ),
-                      ),
-                    ),
+                      );
+                    },
                   ),
                   const SizedBox(height: 10),
 

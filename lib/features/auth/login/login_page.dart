@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:oste/features/dashboard/dashboard_page.dart';
+import 'package:oste/features/doctor_dashboard/doctor_dashboard_page.dart';
 import 'package:oste/features/auth/register/register_page.dart';
 import 'package:oste/features/auth/forgot_password/forgot_password_page.dart';
 import 'package:oste/features/auth/login/google_login/google_account_picker_page.dart';
@@ -430,12 +431,15 @@ class _LoginPageState extends State<LoginPage> {
                   return;
                 }
 
-                // Login berhasil → navigasi ke Dashboard
+                // Login berhasil → navigasi sesuai role yang terverifikasi
                 messenger.hideCurrentSnackBar();
+                final isDoctor = UserService().currentUser?.isDoctor ?? false;
                 Navigator.pushReplacement(
                   context,
                   MaterialPageRoute(
-                    builder: (_) => const DashboardPage(),
+                    builder: (_) => isDoctor
+                        ? const DoctorDashboardPage()
+                        : const DashboardPage(),
                   ),
                 );
               },

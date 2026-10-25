@@ -13,6 +13,8 @@ class UserModel {
   final String birthDate;
   final double? weight;
   final double? height;
+  final String role;
+  final String specialist;
 
   const UserModel({
     required this.uid,
@@ -23,7 +25,15 @@ class UserModel {
     this.birthDate = '',
     this.weight,
     this.height,
+    this.role = 'patient',
+    this.specialist = '',
   });
+
+  /// Mengidentifikasi apakah pengguna memiliki peran dokter terverifikasi
+  bool get isDoctor {
+    final r = role.trim().toLowerCase();
+    return r == 'doctor' || r == 'dokter';
+  }
 
   /// Mengembalikan sapaan singkat berdasarkan nama (kata pertama)
   String get firstName {
@@ -64,6 +74,8 @@ class UserModel {
       birthDate: _parseString(data['birth_date'] ?? data['birthDate']),
       weight: _parseNum(data['weight']),
       height: _parseNum(data['height']),
+      role: _parseString(data['role']).isNotEmpty ? _parseString(data['role']) : 'patient',
+      specialist: _parseString(data['specialist']),
     );
   }
 
@@ -78,6 +90,8 @@ class UserModel {
       'birth_date': birthDate,
       'weight': weight,
       'height': height,
+      'role': role,
+      'specialist': specialist,
     };
   }
 
@@ -93,6 +107,8 @@ class UserModel {
     String? birthDate,
     double? weight,
     double? height,
+    String? role,
+    String? specialist,
   }) {
     return UserModel(
       uid: uid ?? this.uid,
@@ -103,6 +119,8 @@ class UserModel {
       birthDate: birthDate ?? this.birthDate,
       weight: weight ?? this.weight,
       height: height ?? this.height,
+      role: role ?? this.role,
+      specialist: specialist ?? this.specialist,
     );
   }
 }

@@ -89,6 +89,18 @@ class UserService extends ChangeNotifier {
   }
 
   /// Muat dokumen Firestore berdasarkan UID dan simpan ke _currentUser.
+  Future<UserModel?> loadUserFromFirestore(String uid) async {
+    return _loadUserFromFirestore(uid);
+  }
+
+  /// Memuat ulang data pengguna dari Firestore untuk memastikan data role terkini
+  Future<UserModel?> refreshUser() async {
+    final uid = _currentUser?.uid ?? FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return null;
+    return _loadUserFromFirestore(uid);
+  }
+
+  /// Muat dokumen Firestore internal berdasarkan UID dan simpan ke _currentUser.
   Future<UserModel?> _loadUserFromFirestore(String uid) async {
     try {
       final doc = await FirebaseFirestore.instance

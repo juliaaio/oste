@@ -25,7 +25,14 @@ class _ProfileColors {
 
 /// Halaman Profil Pengguna Oste.
 class ProfilePage extends StatelessWidget {
-  const ProfilePage({super.key});
+  final bool showBottomNav;
+  final bool isDoctor;
+
+  const ProfilePage({
+    super.key,
+    this.showBottomNav = true,
+    this.isDoctor = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -330,7 +337,7 @@ class ProfilePage extends StatelessWidget {
           );
         },
       ),
-      bottomNavigationBar: _buildBottomNav(context),
+      bottomNavigationBar: showBottomNav ? _buildBottomNav(context) : null,
     );
   }
 

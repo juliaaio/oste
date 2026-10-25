@@ -1,17 +1,31 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:oste/features/consultation/chat_bubble.dart';
-import 'package:oste/features/consultation/consultation_summary_page.dart';
 import 'package:oste/models/doctor_model.dart';
+import 'package:oste/services/chat_service.dart';
+import 'package:oste/services/user_service.dart';
 
-/// Halaman Chat Konsultasi Dokter Osteo dengan pengalaman percakapan interaktif
+/// Halaman Chat Konsultasi Dokter Osteo dengan dukungan POV Pasien & Dokter
 class ChatPage extends StatefulWidget {
   final Doctor doctor;
   final DateTime? consultationStartTime;
+  final bool isDoctorPOV;
+  final String? chatId;
+  final String? patientId;
+  final String? patientName;
+  final String? patientInitial;
+  final bool isPatientOnline;
 
   const ChatPage({
     super.key,
     required this.doctor,
     this.consultationStartTime,
+    this.isDoctorPOV = false,
+    this.chatId,
+    this.patientId,
+    this.patientName,
+    this.patientInitial,
+    this.isPatientOnline = true,
   });
 
   @override
@@ -24,39 +38,83 @@ class _ChatPageState extends State<ChatPage> {
   final ScrollController _scrollController = ScrollController();
 
   final List<ChatMessage> _messages = [];
-  bool _isDoctorTyping = false;
-  bool _showSummaryCard = false;
-  bool _isConsultationCompleted = false;
+  StreamSubscription<List<ChatMessage>>? _messageSubscription;
 
-  int _currentTurn = 0;
+  String get _effectiveChatId {
+    if (widget.chatId != null && widget.chatId!.isNotEmpty) {
+      return widget.chatId!;
+    }
+    final patientUid = widget.patientId ??
+        (widget.isDoctorPOV
+            ? 'demo_patient'
+            : (UserService().currentUser?.uid ?? 'local_user'));
+    return ChatService.formatChatId(
+      doctorId: widget.doctor.id,
+      patientId: patientUid,
+    );
+  }
 
-  // Percakapan utama yang telah disiapkan secara terstruktur
-  static const List<String> _doctorMainReplies = [
-    'Dari data kamu, coba atur pola makan, perbanyak serat, dan kelola stress dengan baik.',
-    'Hindari mengangkat beban berat secara mendadak. Usahakan olahraga ringan seperti jalan santai 30 menit setiap hari.',
-    'Sama-sama, Aulia. Sesi konsultasi awal kita sudah selesai dengan baik. Semoga kesehatan tulang Anda selalu terjaga.',
-  ];
+  String get _patientInitial {
+    if (widget.patientInitial != null && widget.patientInitial!.isNotEmpty) {
+      return widget.patientInitial!;
+    }
+    if (widget.patientName != null && widget.patientName!.isNotEmpty) {
+      return widget.patientName![0].toUpperCase();
+    }
+    return 'P';
+  }
 
   @override
   void initState() {
     super.initState();
-    final start = widget.consultationStartTime ?? DateTime.now();
-    final initialTime =
-        '${start.hour.toString().padLeft(2, '0')}:${start.minute.toString().padLeft(2, '0')}';
 
-    // Pada saat ChatPage dibuka, hanya tampilkan 1 pesan sapaan awal dari dokter
-    _messages.add(
-      ChatMessage(
-        id: 'msg_greeting',
-        text: 'Selamat pagi, Aulia.\nAda yang bisa saya bantu hari ini?',
-        time: initialTime,
-        isFromDoctor: true,
-      ),
-    );
+    // 1. Muat pesan awal yang tersimpan dari cache lokal ChatService
+    final existingMessages = ChatService().getMessages(_effectiveChatId);
+    if (existingMessages.isNotEmpty) {
+      _messages.addAll(existingMessages);
+    }
+
+    // 2. Tandai pesan sebagai sudah dibaca sesuai peran pengguna saat ini
+    _markCurrentConversationAsRead();
+
+    // 3. Dengarkan pembaruan real-time dari ChatService / Firestore
+    _messageSubscription =
+        ChatService().getMessagesStream(_effectiveChatId).listen((newMessages) {
+      if (newMessages.isNotEmpty && mounted) {
+        setState(() {
+          // Sinkronisasi list pesan dengan data real-time Firestore
+          final pendingLocal = _messages
+              .where((m) => !newMessages.any((nm) => nm.id == m.id))
+              .toList();
+          _messages
+            ..clear()
+            ..addAll(newMessages)
+            ..addAll(pendingLocal);
+        });
+        _scrollToBottom();
+
+        // Jika halaman masih dibuka saat balasan baru tiba, langsung tandai dibaca
+        _markCurrentConversationAsRead();
+      }
+    });
+  }
+
+  void _markCurrentConversationAsRead() {
+    if (widget.isDoctorPOV) {
+      ChatService().markConversationAsRead(_effectiveChatId);
+    } else {
+      final patientUid = widget.patientId ??
+          (UserService().currentUser?.uid ?? 'local_user');
+      ChatService().markConversationAsReadByPatient(
+        _effectiveChatId,
+        patientUid,
+      );
+    }
   }
 
   @override
   void dispose() {
+    _messageSubscription?.cancel();
     _textController.dispose();
     _focusNode.dispose();
     _scrollController.dispose();
@@ -83,113 +141,211 @@ class _ChatPageState extends State<ChatPage> {
   }
 
   Future<void> _handleSendMessage() async {
-    if (_isConsultationCompleted) return;
-
     final text = _textController.text.trim();
-    if (text.isEmpty || _isDoctorTyping) return;
+    if (text.isEmpty) return;
 
     final userTime = _formatCurrentTime();
+    _textController.clear();
 
-    // 1. Tambahkan pesan pengguna langsung
-    setState(() {
-      _messages.add(
-        ChatMessage(
-          id: 'user_${DateTime.now().millisecondsSinceEpoch}',
-          text: text,
-          time: userTime,
-          isFromDoctor: false,
-        ),
+    // ── KONDISI 1: PENGIRIMAN PESAN DALAM POV DOKTER ────────────────────────
+    if (widget.isDoctorPOV) {
+      final doctorUid = UserService().currentUser?.uid ?? widget.doctor.id;
+      final targetPatientId = widget.patientId ??
+          (_effectiveChatId.startsWith('chat_${widget.doctor.id}_')
+              ? _effectiveChatId.substring('chat_${widget.doctor.id}_'.length)
+              : 'patient_current');
+
+      final doctorMsg = ChatMessage(
+        id: 'doc_${DateTime.now().millisecondsSinceEpoch}',
+        text: text,
+        time: userTime,
+        isFromDoctor: true,
+        senderId: doctorUid,
+        receiverId: targetPatientId,
+        senderRole: 'doctor',
+        createdAt: DateTime.now(),
       );
-      _isDoctorTyping = true;
+
+      setState(() {
+        _messages.add(doctorMsg);
+      });
+
+      _scrollToBottom();
+      _focusNode.requestFocus();
+
+      // Simpan ke ChatService & Cloud Firestore dengan receiverId milik pasien
+      await ChatService().sendMessage(
+        chatId: _effectiveChatId,
+        text: text,
+        isFromDoctor: true,
+        senderId: doctorUid,
+        receiverId: targetPatientId,
+        patientName: widget.patientName ?? '',
+        patientId: targetPatientId,
+        doctorId: widget.doctor.id,
+        doctorName: widget.doctor.name,
+        doctorSpecialist: widget.doctor.specialist,
+        doctorImageUrl: widget.doctor.imageUrl,
+      );
+
+      // Selesai! Dalam mode dokter, TIDAK ADA balasan bot otomatis apa pun.
+      return;
+    }
+
+    // ── KONDISI 2: PENGIRIMAN PESAN DALAM POV PASIEN ────────────────────────
+    final patientUid = UserService().currentUser?.uid ?? 'patient_current';
+    final patientName = UserService().currentUser?.name ?? 'Pasien';
+    final targetDoctorId = widget.doctor.id;
+
+    final userMsg = ChatMessage(
+      id: 'user_${DateTime.now().millisecondsSinceEpoch}',
+      text: text,
+      time: userTime,
+      isFromDoctor: false,
+      senderId: patientUid,
+      receiverId: targetDoctorId,
+      senderRole: 'patient',
+      createdAt: DateTime.now(),
+    );
+
+    setState(() {
+      _messages.add(userMsg);
     });
 
-    _textController.clear();
     _scrollToBottom();
     _focusNode.requestFocus();
 
-    // 2. Dokter membalas otomatis setelah sekitar 800 ms
-    await Future.delayed(const Duration(milliseconds: 800));
-    if (!mounted) return;
-
-    String replyText;
-    if (_currentTurn < _doctorMainReplies.length) {
-      replyText = _doctorMainReplies[_currentTurn];
-    } else {
-      replyText =
-          'Jangan ragu untuk berkonsultasi kembali jika keluhan bertambah berat. Tetap jaga kesehatan tulang!';
-    }
-
-    final doctorTime = _formatCurrentTime();
-
-    // 3. Tambahkan balasan dokter
-    setState(() {
-      _isDoctorTyping = false;
-      _messages.add(
-        ChatMessage(
-          id: 'doctor_${DateTime.now().millisecondsSinceEpoch}',
-          text: replyText,
-          time: doctorTime,
-          isFromDoctor: true,
-        ),
-      );
-      _currentTurn++;
-    });
-
-    _scrollToBottom();
-
-    // 4. Cek apakah sesi telah selesai untuk memunculkan SATU kartu ringkasan konsultasi & menutup chat
-    if (_currentTurn >= _doctorMainReplies.length && !_isConsultationCompleted) {
-      _focusNode.unfocus();
-
-      await Future.delayed(const Duration(milliseconds: 400));
-      if (!mounted) return;
-
-      setState(() {
-        _messages.add(
-          const ChatMessage(
-            id: 'closing_notice',
-            text:
-                'Sesi konsultasi Anda telah selesai dengan baik.\nSilakan tinjau ringkasan konsultasi Anda di bawah.',
-            time: '',
-            isFromDoctor: false,
-            isSystemClosing: true,
-          ),
-        );
-      });
-      _scrollToBottom();
-
-      await Future.delayed(const Duration(milliseconds: 400));
-      if (!mounted) return;
-
-      setState(() {
-        _showSummaryCard = true;
-        _isConsultationCompleted = true;
-      });
-      _scrollToBottom();
-    } else {
-      _focusNode.requestFocus();
-    }
+    // Simpan pesan pasien ke ChatService & Firestore dengan receiverId dokter
+    await ChatService().sendMessage(
+      chatId: _effectiveChatId,
+      text: text,
+      isFromDoctor: false,
+      senderId: patientUid,
+      receiverId: targetDoctorId,
+      patientName: patientName,
+      patientId: patientUid,
+      doctorId: targetDoctorId,
+      doctorName: widget.doctor.name,
+      doctorSpecialist: widget.doctor.specialist,
+      doctorImageUrl: widget.doctor.imageUrl,
+    );
+    // Pesan balasan dari dokter akan diterima secara real-time via Firestore stream
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(
-            Icons.arrow_back_rounded,
-            color: Color(0xFF1E293B),
-            size: 24,
-          ),
-          onPressed: () => Navigator.pop(context),
-        ),
-        titleSpacing: 0,
-        title: Row(
+      appBar: _buildAppBar(),
+      body: SafeArea(
+        child: Column(
           children: [
-            // Foto dokter dengan indikator online
+            // Area pesan chat yang dapat discroll
+            Expanded(
+              child: ListView(
+                controller: _scrollController,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                children: [
+                  // Badge tanggal "Hari ini"
+                  const ChatDateBadge(),
+
+                  // Daftar pesan chat dengan POV dinamis
+                  ..._messages.map(
+                    (msg) => ChatBubble(
+                      key: ValueKey(msg.id),
+                      message: msg,
+                      doctorAvatarUrl: widget.doctor.imageUrl,
+                      isDoctorPOV: widget.isDoctorPOV,
+                      patientInitial: _patientInitial,
+                    ),
+                  ),
+
+                  // Garis pemisah
+                  const ChatDividerNotice(),
+                  const SizedBox(height: 8),
+                ],
+              ),
+            ),
+
+            // Kolom input pesan dan tombol kirim
+            MessageInput(
+              controller: _textController,
+              focusNode: _focusNode,
+              isEnabled: true,
+              onSend: _handleSendMessage,
+              hintText: widget.isDoctorPOV
+                  ? 'Ketik pesan balasan untuk ${widget.patientName ?? "pasien"}...'
+                  : 'Tulis pesan...',
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// AppBar yang menampilkan identitas lawan bicara (Pasien di POV Dokter, atau Dokter di POV Pasien)
+  PreferredSizeWidget _buildAppBar() {
+    return AppBar(
+      backgroundColor: Colors.white,
+      elevation: 0,
+      leading: IconButton(
+        icon: const Icon(
+          Icons.arrow_back_rounded,
+          color: Color(0xFF1E293B),
+          size: 24,
+        ),
+        onPressed: () => Navigator.pop(context),
+      ),
+      titleSpacing: 0,
+      title: Row(
+        children: [
+          // ── AVATAR LAWAN BICARA ─────────────────────────────────────
+          if (widget.isDoctorPOV)
+            // Avatar Pasien (lingkaran amber dengan inisial)
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Color(0xFFF59E0B),
+                  ),
+                  child: Center(
+                    child: Text(
+                      _patientInitial,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  right: -1,
+                  bottom: -1,
+                  child: Container(
+                    width: 10,
+                    height: 10,
+                    decoration: BoxDecoration(
+                      color: widget.isPatientOnline
+                          ? const Color(0xFF10B981)
+                          : const Color(0xFF94A3B8),
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: Colors.white,
+                        width: 1.8,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            )
+          else
+            // Avatar Dokter (foto profil dokter)
             Stack(
               clipBehavior: Clip.none,
               children: [
@@ -235,195 +391,75 @@ class _ChatPageState extends State<ChatPage> {
                   ),
               ],
             ),
-            const SizedBox(width: 12),
 
-            // Nama dokter, spesialisasi, dan status online
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    widget.doctor.name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 14.5,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF1E293B),
-                      letterSpacing: -0.2,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Row(
-                    children: [
-                      Flexible(
-                        child: Text(
-                          widget.doctor.specialist,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w400,
-                            color: Color(0xFF64748B),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      const Text(
-                        '·',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF94A3B8),
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      const Text(
-                        'Online',
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF10B981),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Area pesan chat yang dapat discroll
-            Expanded(
-              child: ListView(
-                controller: _scrollController,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                children: [
-                  // Badge tanggal "Hari ini"
-                  const ChatDateBadge(),
+          const SizedBox(width: 12),
 
-                  // Daftar pesan chat dengan animasi slide & fade
-                  ..._messages.map(
-                    (msg) => ChatBubble(
-                      key: ValueKey(msg.id),
-                      message: msg,
-                      doctorAvatarUrl: widget.doctor.imageUrl,
-                    ),
-                  ),
-
-                  // Indikator mengetik dokter yang tampil saat memproses balasan
-                  if (_isDoctorTyping)
-                    AnimatedOpacity(
-                      opacity: _isDoctorTyping ? 1.0 : 0.0,
-                      duration: const Duration(milliseconds: 250),
-                      child: TypingIndicator(
-                        avatarUrl: widget.doctor.imageUrl,
-                      ),
-                    ),
-
-                  // Garis pemisah
-                  const ChatDividerNotice(),
-                  const SizedBox(height: 8),
-                ],
-              ),
-            ),
-
-            // Tampilkan SATU Kartu Ringkasan Konsultasi Reusable yang dapat diklik
-            if (_showSummaryCard)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 6, 16, 10),
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(16),
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => ConsultationSummaryPage(
-                          doctor: widget.doctor,
-                          messages: _messages,
-                        ),
-                      ),
-                    );
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 18,
-                      vertical: 16,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: const Color(0xFFF7C948),
-                        width: 1.5,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color:
-                              const Color(0xFFF7C948).withValues(alpha: 0.18),
-                          blurRadius: 12,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: const Row(
-                      children: [
-                        Icon(
-                          Icons.description_outlined,
-                          color: Color(0xFFB45309),
-                          size: 24,
-                        ),
-                        SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                "Lihat Ringkasan Konsultasi",
-                                style: TextStyle(
-                                  fontSize: 14.5,
-                                  fontWeight: FontWeight.w700,
-                                  color: Color(0xFF1E293B),
-                                ),
-                              ),
-                              SizedBox(height: 2),
-                              Text(
-                                "Ketuk untuk melihat diagnosis & rekomendasi",
-                                style: TextStyle(
-                                  fontSize: 11.5,
-                                  fontWeight: FontWeight.w400,
-                                  color: Color(0xFF64748B),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Icon(
-                          Icons.chevron_right_rounded,
-                          color: Color(0xFFF59E0B),
-                          size: 24,
-                        ),
-                      ],
-                    ),
+          // ── NAMA & STATUS LAWAN BICARA ──────────────────────────────
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  widget.isDoctorPOV
+                      ? (widget.patientName ?? 'Pasien')
+                      : widget.doctor.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 14.5,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF1E293B),
+                    letterSpacing: -0.2,
                   ),
                 ),
-              ),
-
-            // Kolom input pesan dan tombol kirim (dinonaktifkan jika konsultasi telah selesai)
-            MessageInput(
-              controller: _textController,
-              focusNode: _focusNode,
-              isEnabled: !_isConsultationCompleted,
-              onSend: _handleSendMessage,
+                const SizedBox(height: 2),
+                Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        widget.isDoctorPOV
+                            ? 'Pasien OsteoCare'
+                            : widget.doctor.specialist,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w400,
+                          color: Color(0xFF64748B),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    const Text(
+                      '·',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF94A3B8),
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      widget.isDoctorPOV
+                          ? (widget.isPatientOnline ? 'Online' : 'Offline')
+                          : 'Online',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: (widget.isDoctorPOV
+                                ? widget.isPatientOnline
+                                : widget.doctor.isOnline)
+                            ? const Color(0xFF10B981)
+                            : const Color(0xFF94A3B8),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

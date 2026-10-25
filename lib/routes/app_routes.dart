@@ -4,6 +4,7 @@ class AppRoutes {
   static const String login = '/login';
   static const String register = '/register';
   static const String dashboard = '/dashboard';
+  static const String doctorDashboard = '/doctor-dashboard';
   static const String doctorList = '/doctor-list';
   static const String doctorProfile = '/doctor-profile';
   static const String chat = '/chat';

@@ -7,11 +7,15 @@ export 'package:oste/models/chat_message.dart';
 class ChatBubble extends StatelessWidget {
   final ChatMessage message;
   final String doctorAvatarUrl;
+  final bool isDoctorPOV;
+  final String patientInitial;
 
   const ChatBubble({
     super.key,
     required this.message,
     required this.doctorAvatarUrl,
+    this.isDoctorPOV = false,
+    this.patientInitial = 'P',
   });
 
   @override
@@ -20,17 +24,34 @@ class ChatBubble extends StatelessWidget {
 
     if (message.isSystemClosing) {
       bubbleContent = _SystemClosingNotice(text: message.text);
-    } else if (message.isFromDoctor) {
-      bubbleContent = DoctorChatBubble(
-        text: message.text,
-        time: message.time,
-        avatarUrl: doctorAvatarUrl,
-      );
     } else {
-      bubbleContent = UserChatBubble(
-        text: message.text,
-        time: message.time,
-      );
+      // Tentukan apakah pesan ini adalah pesan keluar (dari sudut pandang pengguna yang sedang melihat)
+      final bool isOutgoing = isDoctorPOV ? message.isFromDoctor : !message.isFromDoctor;
+
+      if (isOutgoing) {
+        // Pesan keluar: di sisi KANAN (UserChatBubble)
+        bubbleContent = UserChatBubble(
+          text: message.text,
+          time: message.time,
+        );
+      } else {
+        // Pesan masuk: di sisi KIRI
+        if (isDoctorPOV) {
+          // Dari POV dokter: pesan masuk berasal dari Pasien
+          bubbleContent = PatientChatBubble(
+            text: message.text,
+            time: message.time,
+            patientInitial: patientInitial,
+          );
+        } else {
+          // Dari POV pasien: pesan masuk berasal dari Dokter
+          bubbleContent = DoctorChatBubble(
+            text: message.text,
+            time: message.time,
+            avatarUrl: doctorAvatarUrl,
+          );
+        }
+      }
     }
 
     return TweenAnimationBuilder<double>(
@@ -47,6 +68,90 @@ class ChatBubble extends StatelessWidget {
         );
       },
       child: bubbleContent,
+    );
+  }
+}
+
+/// Bubble pesan dari Pasien di sisi kiri (tampil saat dokter melihat chat)
+class PatientChatBubble extends StatelessWidget {
+  final String text;
+  final String time;
+  final String patientInitial;
+
+  const PatientChatBubble({
+    super.key,
+    required this.text,
+    required this.time,
+    this.patientInitial = 'P',
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 14),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Avatar inisial pasien
+          Container(
+            width: 34,
+            height: 34,
+            decoration: const BoxDecoration(
+              shape: BoxShape.circle,
+              color: Color(0xFFF59E0B),
+            ),
+            child: Center(
+              child: Text(
+                patientInitial.isNotEmpty ? patientInitial[0].toUpperCase() : 'P',
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+
+          // Bubble pesan
+          Flexible(
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(14, 12, 14, 8),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF1F5F9),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    text,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w400,
+                      color: Color(0xFF334155),
+                      height: 1.4,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Align(
+                    alignment: Alignment.bottomRight,
+                    child: Text(
+                      time,
+                      style: const TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w400,
+                        color: Color(0xFF94A3B8),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(width: 40),
+        ],
+      ),
     );
   }
 }

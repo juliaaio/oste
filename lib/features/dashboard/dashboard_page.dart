@@ -10,6 +10,7 @@ import 'package:oste/features/history/history_page.dart';
 import 'package:oste/features/profile/profile_page.dart';
 import 'package:oste/features/screening/hasil_page.dart';
 import 'package:oste/features/screening/screening_page.dart';
+import 'package:oste/services/chat_service.dart';
 import 'package:oste/services/history_service.dart';
 import 'package:oste/services/user_service.dart';
 
@@ -56,6 +57,15 @@ class DashboardPage extends StatefulWidget {
 
 class _DashboardPageState extends State<DashboardPage> {
   final int _currentIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    final patientUid = UserService().currentUser?.uid ?? '';
+    if (patientUid.isNotEmpty) {
+      ChatService().startListeningPatientConversations(patientUid);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1239,17 +1249,24 @@ class _MainMenuSection extends StatelessWidget {
                 );
               },
             ),
-            _MenuItemCard(
-              title: 'Konsultasi Dokter',
-              subtitle: 'Tanya langsung dengan dokter ahli',
-              icon: Icons.person_outline_rounded,
-              iconColor: const Color(0xFF2563EB),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const ConsultationPage(),
-                  ),
+            ListenableBuilder(
+              listenable: ChatService(),
+              builder: (context, _) {
+                final unread = ChatService().totalPatientUnreadCount;
+                return _MenuItemCard(
+                  title: 'Konsultasi Dokter',
+                  subtitle: 'Tanya langsung dengan dokter ahli',
+                  icon: Icons.person_outline_rounded,
+                  iconColor: const Color(0xFF2563EB),
+                  badgeCount: unread,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const ConsultationPage(),
+                      ),
+                    );
+                  },
                 );
               },
             ),
@@ -1297,6 +1314,7 @@ class _MenuItemCard extends StatefulWidget {
   final String subtitle;
   final IconData icon;
   final Color iconColor;
+  final int badgeCount;
   final VoidCallback? onTap;
 
   const _MenuItemCard({
@@ -1304,6 +1322,7 @@ class _MenuItemCard extends StatefulWidget {
     required this.subtitle,
     required this.icon,
     required this.iconColor,
+    this.badgeCount = 0,
     this.onTap,
   });
 
@@ -1365,11 +1384,43 @@ class _MenuItemCardState extends State<_MenuItemCard> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Baris atas: Icon utama menu tanpa titik tiga
-                Icon(
-                  widget.icon,
-                  size: 26,
-                  color: widget.iconColor,
+                // Baris atas: Icon utama menu dan badge jika ada pesan balasan
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Icon(
+                      widget.icon,
+                      size: 26,
+                      color: widget.iconColor,
+                    ),
+                    if (widget.badgeCount > 0)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 7,
+                          vertical: 2.5,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE11D48),
+                          borderRadius: BorderRadius.circular(10),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFFE11D48)
+                                  .withValues(alpha: 0.35),
+                              blurRadius: 6,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Text(
+                          '${widget.badgeCount} baru',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
                 const SizedBox(height: 10),
                 Text(
