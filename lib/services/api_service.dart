@@ -11,8 +11,12 @@ import 'package:oste/features/screening/hasil_page.dart';
 // Ganti sesuai environment:
 //   Flutter Web / iOS Simulator : 'http://127.0.0.1:8000'
 //   Android Emulator            : 'http://10.0.2.2:8000'
-//   Physical Device (LAN)       : 'http://10.125.173.142:8000'
-const String kFastApiBaseUrl = 'http://10.125.173.142:8000';
+//   Physical Device (LAN)       : 'http://192.168.18.107:8000'
+//
+// Catatan: jika berjalan di Flutter Web, URL LAN mungkin diblokir browser.
+//          Gunakan 'http://localhost:8000' untuk Flutter Web.
+const String kFastApiBaseUrl =
+    kIsWeb ? 'http://localhost:8000' : 'http://192.168.18.107:8000';
 
 // ---------------------------------------------------------------------------
 // Mapping helpers: Flutter form values -> FastAPI feature labels
@@ -173,31 +177,46 @@ class ApiService {
     final body = json.encode(payload.toJson());
 
     http.Response? response;
-    try {
-      response = await http
-          .post(uri, headers: headers, body: body)
-          .timeout(const Duration(seconds: 15));
-    } catch (e) {
-      debugPrint('[ApiService] Connection error to $uri: $e');
 
-      // Khusus web (Chrome): Coba fallback ke localhost jika 127.0.0.1 gagal
-      if (kIsWeb && kFastApiBaseUrl.contains('127.0.0.1')) {
-        try {
-          final fallbackUri = Uri.parse('http://localhost:8000/predict');
-          debugPrint('[ApiService] Retrying with fallback: $fallbackUri');
-          response = await http
-              .post(fallbackUri, headers: headers, body: body)
-              .timeout(const Duration(seconds: 15));
-        } catch (e2) {
-          debugPrint('[ApiService] Fallback connection error: $e2');
+    // Daftar URL yang akan dicoba secara berurutan
+    final List<String> urlsToTry = kIsWeb
+        ? [
+            '$kFastApiBaseUrl/predict',
+            'http://localhost:8000/predict',
+            'http://127.0.0.1:8000/predict',
+          ]
+        : [
+            '$kFastApiBaseUrl/predict',
+            'http://10.0.2.2:8000/predict', // Android Emulator fallback
+          ];
+
+    for (final urlStr in urlsToTry) {
+      try {
+        final tryUri = Uri.parse(urlStr);
+        debugPrint('[ApiService] Mencoba koneksi ke: $tryUri');
+        response = await http
+            .post(tryUri, headers: headers, body: body)
+            .timeout(const Duration(seconds: 10)); // Timeout 10 detik
+        if (response.statusCode == 200) {
+          debugPrint('[ApiService] Berhasil terhubung ke: $tryUri');
+          break;
         }
+      } catch (e) {
+        debugPrint('[ApiService] Gagal ke $urlStr: $e');
+        response = null; // reset agar lanjut ke URL berikutnya
       }
     }
 
     if (response == null) {
       throw Exception(
-        'Tidak dapat terhubung ke server FastAPI ($kFastApiBaseUrl). '
-        'Pastikan server uvicorn sedang berjalan (uvicorn main:app --reload --port 8000).',
+        'Tidak dapat terhubung ke server.\n\n'
+        'Kemungkinan penyebab:\n'
+        '• Server FastAPI belum dijalankan\n'
+        '• IP server berubah (cek IP dengan ipconfig)\n'
+        '• Firewall memblokir port 8000\n\n'
+        'Jalankan server dengan perintah:\n'
+        '  uvicorn main:app --host 0.0.0.0 --port 8000 --reload\n\n'
+        'IP saat ini dikonfigurasi: $kFastApiBaseUrl',
       );
     }
 

@@ -4,6 +4,7 @@ import 'package:oste/features/consultation/consultation_history_page.dart';
 import 'package:oste/features/consultation/doctor_review_page.dart';
 import 'package:oste/models/doctor_model.dart';
 import 'package:oste/services/chat_service.dart';
+import 'package:oste/services/doctor_presence_service.dart';
 import 'package:oste/services/doctor_review_service.dart';
 import 'package:oste/services/user_service.dart';
 
@@ -54,108 +55,174 @@ class DoctorProfilePage extends StatelessWidget {
                     const SizedBox(height: 16),
 
                     // Foto Profil Dokter & Status
-                    Center(
-                      child: Stack(
-                        children: [
-                          Container(
-                            width: 104,
-                            height: 104,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: const Color(0xFFF1F5F9),
-                              border: Border.all(
-                                color: const Color(0xFFF7C948),
-                                width: 2.5,
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: const Color(0xFFF7C948).withValues(alpha: 0.25),
-                                  blurRadius: 16,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ],
-                            ),
-                            child: ClipOval(
-                              child: Image.network(
-                                doctor.imageUrl,
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) =>
-                                    const Icon(
-                                  Icons.person_rounded,
-                                  size: 48,
-                                  color: Color(0xFF94A3B8),
-                                ),
-                              ),
-                            ),
-                          ),
-                          if (doctor.isOnline)
-                            Positioned(
-                              right: 4,
-                              bottom: 4,
-                              child: Container(
-                                width: 18,
-                                height: 18,
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF16A34A),
-                                  shape: BoxShape.circle,
-                                  border: Border.all(
-                                    color: Colors.white,
-                                    width: 2.5,
-                                  ),
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 14),
+                    // Foto Profil Dokter & Status
+                    ListenableBuilder(
+                      listenable: DoctorPresenceService(),
+                      builder: (context, _) {
+                        final isOnline =
+                            DoctorPresenceService().isOnline(doctor.id);
 
-                    // Nama & Spesialisasi
-                    Center(
-                      child: Column(
-                        children: [
-                          Text(
-                            doctor.name,
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w800,
-                              color: Color(0xFF1E293B),
-                              letterSpacing: -0.3,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            doctor.specialist,
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
-                              color: Color(0xFF64748B),
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Icon(
-                                Icons.location_on_outlined,
-                                size: 14,
-                                color: Color(0xFF94A3B8),
+                        return Column(
+                          children: [
+                            Center(
+                              child: Stack(
+                                children: [
+                                  Container(
+                                    width: 104,
+                                    height: 104,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: const Color(0xFFF1F5F9),
+                                      border: Border.all(
+                                        color: isOnline
+                                            ? const Color(0xFF16A34A)
+                                            : const Color(0xFFF7C948),
+                                        width: 2.5,
+                                      ),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: (isOnline
+                                                  ? const Color(0xFF16A34A)
+                                                  : const Color(0xFFF7C948))
+                                              .withValues(alpha: 0.25),
+                                          blurRadius: 16,
+                                          offset: const Offset(0, 4),
+                                        ),
+                                      ],
+                                    ),
+                                    child: ClipOval(
+                                      child: Image.network(
+                                        doctor.imageUrl,
+                                        fit: BoxFit.cover,
+                                        errorBuilder:
+                                            (context, error, stackTrace) =>
+                                                const Icon(
+                                          Icons.person_rounded,
+                                          size: 48,
+                                          color: Color(0xFF94A3B8),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  Positioned(
+                                    right: 4,
+                                    bottom: 4,
+                                    child: Container(
+                                      width: 18,
+                                      height: 18,
+                                      decoration: BoxDecoration(
+                                        color: isOnline
+                                            ? const Color(0xFF16A34A)
+                                            : const Color(0xFF94A3B8),
+                                        shape: BoxShape.circle,
+                                        border: Border.all(
+                                          color: Colors.white,
+                                          width: 2.5,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
-                              const SizedBox(width: 4),
-                              Text(
-                                doctor.hospital,
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w400,
-                                  color: Color(0xFF94A3B8),
-                                ),
+                            ),
+                            const SizedBox(height: 14),
+
+                            // Nama & Spesialisasi
+                            Center(
+                              child: Column(
+                                children: [
+                                  Text(
+                                    doctor.name,
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w800,
+                                      color: Color(0xFF1E293B),
+                                      letterSpacing: -0.3,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    doctor.specialist,
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w500,
+                                      color: Color(0xFF64748B),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      const Icon(
+                                        Icons.location_on_outlined,
+                                        size: 14,
+                                        color: Color(0xFF94A3B8),
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        doctor.hospital,
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w400,
+                                          color: Color(0xFF94A3B8),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 8),
+                                  // Badge Status Online / Offline
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: 3,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: isOnline
+                                          ? const Color(0xFFDCFCE7)
+                                          : const Color(0xFFF1F5F9),
+                                      borderRadius: BorderRadius.circular(20),
+                                      border: Border.all(
+                                        color: isOnline
+                                            ? const Color(0xFF86EFAC)
+                                            : const Color(0xFFCBD5E1),
+                                        width: 0.8,
+                                      ),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Container(
+                                          width: 7,
+                                          height: 7,
+                                          decoration: BoxDecoration(
+                                            color: isOnline
+                                                ? const Color(0xFF16A34A)
+                                                : const Color(0xFF94A3B8),
+                                            shape: BoxShape.circle,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 5),
+                                        Text(
+                                          isOnline ? 'Online' : 'Offline',
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w600,
+                                            color: isOnline
+                                                ? const Color(0xFF15803D)
+                                                : const Color(0xFF64748B),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
                               ),
-                            ],
-                          ),
-                        ],
-                      ),
+                            ),
+                          ],
+                        );
+                      },
                     ),
                     const SizedBox(height: 20),
 

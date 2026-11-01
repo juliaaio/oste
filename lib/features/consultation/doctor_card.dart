@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:oste/models/doctor_model.dart';
 import 'package:oste/services/chat_service.dart';
+import 'package:oste/services/doctor_presence_service.dart';
 import 'package:oste/services/doctor_review_service.dart';
 
 /// Reusable card component for displaying doctor information in a list
@@ -17,10 +18,14 @@ class DoctorCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: ChatService(),
+      listenable: Listenable.merge([
+        ChatService(),
+        DoctorPresenceService(), // re-build saat status online berubah
+      ]),
       builder: (context, _) {
         final unreadCount =
             ChatService().getPatientUnreadCountForDoctor(doctor.id);
+        final isOnline = DoctorPresenceService().isOnline(doctor.id);
 
         return Container(
           margin: const EdgeInsets.only(bottom: 14),
@@ -208,7 +213,7 @@ class DoctorCard extends StatelessWidget {
                                 ),
                               ),
                               const SizedBox(width: 6),
-                              if (doctor.isOnline) ...[
+                              if (isOnline) ...[
                                 Container(
                                   padding: const EdgeInsets.symmetric(
                                     horizontal: 8,
@@ -236,6 +241,39 @@ class DoctorCard extends StatelessWidget {
                                           fontSize: 11,
                                           fontWeight: FontWeight.w600,
                                           color: Color(0xFF16B86A),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ] else ...[
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 2.5,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFF1F5F9),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Container(
+                                        width: 6,
+                                        height: 6,
+                                        decoration: const BoxDecoration(
+                                          color: Color(0xFF94A3B8),
+                                          shape: BoxShape.circle,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 4),
+                                      const Text(
+                                        'Offline',
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w600,
+                                          color: Color(0xFF94A3B8),
                                         ),
                                       ),
                                     ],

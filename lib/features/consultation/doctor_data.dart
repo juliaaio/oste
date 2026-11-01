@@ -6,7 +6,7 @@ const List<Doctor> doctorList = [
     name: 'dr. Andi Wijaya, Sp.OT',
     specialist: 'Sp. Orthopaedi & Traumatologi',
     rating: 4.9,
-    isOnline: true,
+    isOnline: false, // status real-time dari DoctorPresenceService (Firestore)
     imageUrl:
         'https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&w=400&q=80',
     experienceYears: 10,
@@ -23,7 +23,7 @@ const List<Doctor> doctorList = [
     name: 'dr. Edwin Ardianta, Sp.OT(K)., Subsp.PL',
     specialist: 'Sp. Bedah Panggul & Lutut',
     rating: 4.8,
-    isOnline: true,
+    isOnline: false, // status real-time dari DoctorPresenceService (Firestore)
     imageUrl:
         'https://images.unsplash.com/photo-1537368910025-700350fe46c7?auto=format&fit=crop&w=400&q=80',
     experienceYears: 12,
@@ -40,7 +40,7 @@ const List<Doctor> doctorList = [
     name: 'dr. Hanna Widiana, Sp.OT',
     specialist: 'Sp. Orthopaedi & Traumatologi',
     rating: 4.82,
-    isOnline: true,
+    isOnline: false, // status real-time dari DoctorPresenceService (Firestore)
     imageUrl:
         'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&w=400&q=80',
     experienceYears: 8,
@@ -57,7 +57,7 @@ const List<Doctor> doctorList = [
     name: 'dr. Dian Amelia, Sp.OT',
     specialist: 'Sp. Orthopaedi & Traumatologi',
     rating: 4.8,
-    isOnline: true,
+    isOnline: false, // status real-time dari DoctorPresenceService (Firestore)
     imageUrl:
         'https://images.unsplash.com/photo-1594824813620-6d43ecbb6251?auto=format&fit=crop&w=400&q=80',
     experienceYears: 7,
@@ -74,7 +74,7 @@ const List<Doctor> doctorList = [
     name: 'dr. Martin Hartono, Sp.OT.,Subsp.A(K)., M.H',
     specialist: 'Sp. OT (Subspesialis Orthopaedi Anak)',
     rating: 4.91,
-    isOnline: true,
+    isOnline: false, // status real-time dari DoctorPresenceService (Firestore)
     imageUrl:
         'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?auto=format&fit=crop&w=400&q=80',
     experienceYears: 15,

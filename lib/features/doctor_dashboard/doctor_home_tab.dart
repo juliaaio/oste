@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:oste/features/doctor_dashboard/widgets/doctor_decorations.dart';
+import 'package:oste/services/doctor_presence_service.dart';
 import 'package:oste/services/user_service.dart';
 
 /// Tab Beranda Dokter sesuai Desain Figma
@@ -171,82 +172,197 @@ class DoctorHomeTab extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // Header kecil: Foto dokter bulat + Teks OsteoCare
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          Container(
-                            width: 44,
-                            height: 44,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: const Color(0xFFF7C948),
-                                width: 2,
-                              ),
-                              color: const Color(0xFFFEF3C7),
-                            ),
-                            child: ClipOval(
-                              child: Image.network(
-                                'https://images.unsplash.com/photo-1594824813620-6d43ecbb6251?auto=format&fit=crop&w=400&q=80',
-                                fit: BoxFit.cover,
-                                errorBuilder: (ctx, err, st) => const Icon(
-                                  Icons.person_rounded,
-                                  color: Color(0xFFB45309),
-                                  size: 26,
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                RichText(
-                                  text: const TextSpan(
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w800,
-                                      letterSpacing: -0.3,
+                      // Header kecil: Foto dokter bulat + Teks OsteoCare + Status Online
+                      ListenableBuilder(
+                        listenable: DoctorPresenceService(),
+                        builder: (context, _) {
+                          final uid = UserService().currentUser?.uid ?? '';
+                          final isOnline = DoctorPresenceService().isOnline(uid);
+
+                          return Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              Stack(
+                                clipBehavior: Clip.none,
+                                children: [
+                                  Container(
+                                    width: 44,
+                                    height: 44,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      border: Border.all(
+                                        color: isOnline
+                                            ? const Color(0xFF10B981)
+                                            : const Color(0xFFF7C948),
+                                        width: 2,
+                                      ),
+                                      color: const Color(0xFFFEF3C7),
                                     ),
-                                    children: [
-                                      TextSpan(
-                                        text: 'Osteo',
-                                        style: TextStyle(color: Color(0xFF1E293B)),
+                                    child: ClipOval(
+                                      child: Image.network(
+                                        'https://images.unsplash.com/photo-1594824813620-6d43ecbb6251?auto=format&fit=crop&w=400&q=80',
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (ctx, err, st) =>
+                                            const Icon(
+                                          Icons.person_rounded,
+                                          color: Color(0xFFB45309),
+                                          size: 26,
+                                        ),
                                       ),
-                                      TextSpan(
-                                        text: 'Care',
-                                        style: TextStyle(color: Color(0xFFF59E0B)),
+                                    ),
+                                  ),
+                                  Positioned(
+                                    right: -1,
+                                    bottom: -1,
+                                    child: Container(
+                                      width: 12,
+                                      height: 12,
+                                      decoration: BoxDecoration(
+                                        color: isOnline
+                                            ? const Color(0xFF10B981)
+                                            : const Color(0xFF94A3B8),
+                                        shape: BoxShape.circle,
+                                        border: Border.all(
+                                          color: Colors.white,
+                                          width: 2,
+                                        ),
                                       ),
-                                    ],
+                                    ),
                                   ),
+                                ],
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        RichText(
+                                          text: const TextSpan(
+                                            style: TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w800,
+                                              letterSpacing: -0.3,
+                                            ),
+                                            children: [
+                                              TextSpan(
+                                                text: 'Osteo',
+                                                style: TextStyle(
+                                                    color: Color(0xFF1E293B)),
+                                              ),
+                                              TextSpan(
+                                                text: 'Care',
+                                                style: TextStyle(
+                                                    color: Color(0xFFF59E0B)),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        const Spacer(),
+                                        // Badge toggle Online/Offline
+                                        GestureDetector(
+                                          onTap: () {
+                                            if (uid.isEmpty) return;
+                                            if (isOnline) {
+                                              DoctorPresenceService()
+                                                  .setOffline(uid);
+                                            } else {
+                                              final linkedId = UserService()
+                                                      .currentUser
+                                                      ?.linkedDoctorId ??
+                                                  '';
+                                              DoctorPresenceService().setOnline(
+                                                uid,
+                                                doctorId: linkedId.isNotEmpty
+                                                    ? linkedId
+                                                    : uid,
+                                              );
+                                            }
+                                          },
+                                          child: AnimatedContainer(
+                                            duration: const Duration(
+                                                milliseconds: 200),
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 8,
+                                              vertical: 3,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: isOnline
+                                                  ? const Color(0xFFDCFCE7)
+                                                  : const Color(0xFFF1F5F9),
+                                              borderRadius:
+                                                  BorderRadius.circular(12),
+                                              border: Border.all(
+                                                color: isOnline
+                                                    ? const Color(0xFF86EFAC)
+                                                    : const Color(0xFFCBD5E1),
+                                                width: 0.8,
+                                              ),
+                                            ),
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Container(
+                                                  width: 6,
+                                                  height: 6,
+                                                  decoration: BoxDecoration(
+                                                    color: isOnline
+                                                        ? const Color(
+                                                            0xFF16A34A)
+                                                        : const Color(
+                                                            0xFF94A3B8),
+                                                    shape: BoxShape.circle,
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 4),
+                                                Text(
+                                                  isOnline
+                                                      ? 'Online'
+                                                      : 'Offline',
+                                                  style: TextStyle(
+                                                    fontSize: 10,
+                                                    fontWeight: FontWeight.w700,
+                                                    color: isOnline
+                                                        ? const Color(
+                                                            0xFF15803D)
+                                                        : const Color(
+                                                            0xFF64748B),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 1),
+                                    Text(
+                                      doctorName,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        fontSize: 12.5,
+                                        fontWeight: FontWeight.w700,
+                                        color: Color(0xFF1E293B),
+                                      ),
+                                    ),
+                                    Text(
+                                      specialist,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        fontSize: 10,
+                                        color: Color(0xFF64748B),
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                                const SizedBox(height: 1),
-                                Text(
-                                  doctorName,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    fontSize: 12.5,
-                                    fontWeight: FontWeight.w700,
-                                    color: Color(0xFF1E293B),
-                                  ),
-                                ),
-                                Text(
-                                  specialist,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    fontSize: 10,
-                                    color: Color(0xFF64748B),
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
+                              ),
+                            ],
+                          );
+                        },
                       ),
 
                       const SizedBox(height: 16),

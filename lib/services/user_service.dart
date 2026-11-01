@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:oste/models/user_model.dart';
+import 'package:oste/services/doctor_presence_service.dart';
 
 // ---------------------------------------------------------------------------
 // Konstanta nama koleksi Firestore
@@ -281,6 +282,13 @@ class UserService extends ChangeNotifier {
 
   /// Keluar dari sesi Firebase dan bersihkan data lokal.
   Future<void> logout() async {
+    // Jika dokter, set offline terlebih dahulu
+    if (_currentUser?.isDoctor == true) {
+      final uid = _currentUser?.uid ?? '';
+      if (uid.isNotEmpty) {
+        await DoctorPresenceService().setOffline(uid);
+      }
+    }
     try {
       await FirebaseAuth.instance.signOut();
     } catch (_) {}

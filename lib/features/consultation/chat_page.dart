@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:oste/features/consultation/chat_bubble.dart';
 import 'package:oste/models/doctor_model.dart';
 import 'package:oste/services/chat_service.dart';
+import 'package:oste/services/doctor_presence_service.dart';
 import 'package:oste/services/user_service.dart';
 
 /// Halaman Chat Konsultasi Dokter Osteo dengan dukungan POV Pasien & Dokter
@@ -298,168 +299,176 @@ class _ChatPageState extends State<ChatPage> {
         onPressed: () => Navigator.pop(context),
       ),
       titleSpacing: 0,
-      title: Row(
-        children: [
-          // ── AVATAR LAWAN BICARA ─────────────────────────────────────
-          if (widget.isDoctorPOV)
-            // Avatar Pasien (lingkaran amber dengan inisial)
-            Stack(
-              clipBehavior: Clip.none,
-              children: [
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: const BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Color(0xFFF59E0B),
-                  ),
-                  child: Center(
-                    child: Text(
-                      _patientInitial,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w800,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                ),
-                Positioned(
-                  right: -1,
-                  bottom: -1,
-                  child: Container(
-                    width: 10,
-                    height: 10,
-                    decoration: BoxDecoration(
-                      color: widget.isPatientOnline
-                          ? const Color(0xFF10B981)
-                          : const Color(0xFF94A3B8),
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: Colors.white,
-                        width: 1.8,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            )
-          else
-            // Avatar Dokter (foto profil dokter)
-            Stack(
-              clipBehavior: Clip.none,
-              children: [
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: const Color(0xFFF1F5F9),
-                    border: Border.all(
-                      color: const Color(0xFFE2E8F0),
-                      width: 1,
-                    ),
-                  ),
-                  child: ClipOval(
-                    child: Image.network(
-                      widget.doctor.imageUrl,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) => const Icon(
-                        Icons.person_rounded,
-                        size: 24,
-                        color: Color(0xFF94A3B8),
-                      ),
-                    ),
-                  ),
-                ),
-                if (widget.doctor.isOnline)
-                  Positioned(
-                    right: -1,
-                    bottom: -1,
-                    child: Container(
-                      width: 10,
-                      height: 10,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF10B981),
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: Colors.white,
-                          width: 1.8,
-                        ),
-                      ),
-                    ),
-                  ),
-              ],
-            ),
+      title: ListenableBuilder(
+        listenable: DoctorPresenceService(),
+        builder: (context, _) {
+          final isDoctorOnline =
+              DoctorPresenceService().isOnline(widget.doctor.id);
+          final isOnline =
+              widget.isDoctorPOV ? widget.isPatientOnline : isDoctorOnline;
 
-          const SizedBox(width: 12),
-
-          // ── NAMA & STATUS LAWAN BICARA ──────────────────────────────
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  widget.isDoctorPOV
-                      ? (widget.patientName ?? 'Pasien')
-                      : widget.doctor.name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 14.5,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF1E293B),
-                    letterSpacing: -0.2,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Row(
+          return Row(
+            children: [
+              // ── AVATAR LAWAN BICARA ─────────────────────────────────────
+              if (widget.isDoctorPOV)
+                // Avatar Pasien (lingkaran amber dengan inisial)
+                Stack(
+                  clipBehavior: Clip.none,
                   children: [
-                    Flexible(
-                      child: Text(
-                        widget.isDoctorPOV
-                            ? 'Pasien OsteoCare'
-                            : widget.doctor.specialist,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w400,
-                          color: Color(0xFF64748B),
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: const BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Color(0xFFF59E0B),
+                      ),
+                      child: Center(
+                        child: Text(
+                          _patientInitial,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                            color: Colors.white,
+                          ),
                         ),
                       ),
                     ),
-                    const SizedBox(width: 6),
-                    const Text(
-                      '·',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF94A3B8),
+                    Positioned(
+                      right: -1,
+                      bottom: -1,
+                      child: Container(
+                        width: 10,
+                        height: 10,
+                        decoration: BoxDecoration(
+                          color: widget.isPatientOnline
+                              ? const Color(0xFF10B981)
+                              : const Color(0xFF94A3B8),
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: Colors.white,
+                            width: 1.8,
+                          ),
+                        ),
                       ),
                     ),
-                    const SizedBox(width: 6),
-                    Text(
-                      widget.isDoctorPOV
-                          ? (widget.isPatientOnline ? 'Online' : 'Offline')
-                          : 'Online',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: (widget.isDoctorPOV
-                                ? widget.isPatientOnline
-                                : widget.doctor.isOnline)
-                            ? const Color(0xFF10B981)
-                            : const Color(0xFF94A3B8),
+                  ],
+                )
+              else
+                // Avatar Dokter (foto profil dokter)
+                Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: const Color(0xFFF1F5F9),
+                        border: Border.all(
+                          color: const Color(0xFFE2E8F0),
+                          width: 1,
+                        ),
+                      ),
+                      child: ClipOval(
+                        child: Image.network(
+                          widget.doctor.imageUrl,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) =>
+                              const Icon(
+                            Icons.person_rounded,
+                            size: 24,
+                            color: Color(0xFF94A3B8),
+                          ),
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      right: -1,
+                      bottom: -1,
+                      child: Container(
+                        width: 10,
+                        height: 10,
+                        decoration: BoxDecoration(
+                          color: isDoctorOnline
+                              ? const Color(0xFF10B981)
+                              : const Color(0xFF94A3B8),
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: Colors.white,
+                            width: 1.8,
+                          ),
+                        ),
                       ),
                     ),
                   ],
                 ),
-              ],
-            ),
-          ),
-        ],
+
+              const SizedBox(width: 12),
+
+              // ── NAMA & STATUS LAWAN BICARA ──────────────────────────────
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      widget.isDoctorPOV
+                          ? (widget.patientName ?? 'Pasien')
+                          : widget.doctor.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF1E293B),
+                        letterSpacing: -0.2,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            widget.isDoctorPOV
+                                ? 'Pasien OsteoCare'
+                                : widget.doctor.specialist,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w400,
+                              color: Color(0xFF64748B),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        const Text(
+                          '·',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF94A3B8),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          isOnline ? 'Online' : 'Offline',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: isOnline
+                                ? const Color(0xFF10B981)
+                                : const Color(0xFF94A3B8),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }

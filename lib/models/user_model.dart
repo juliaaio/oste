@@ -15,6 +15,9 @@ class UserModel {
   final double? height;
   final String role;
   final String specialist;
+  /// ID dokter statis (doc_1, doc_2, dst.) yang ditautkan ke akun ini.
+  /// Diisi saat dokter pertama kali login dan memilih profil mereka.
+  final String linkedDoctorId;
 
   const UserModel({
     required this.uid,
@@ -27,6 +30,7 @@ class UserModel {
     this.height,
     this.role = 'patient',
     this.specialist = '',
+    this.linkedDoctorId = '',
   });
 
   /// Mengidentifikasi apakah pengguna memiliki peran dokter terverifikasi
@@ -76,6 +80,7 @@ class UserModel {
       height: _parseNum(data['height']),
       role: _parseString(data['role']).isNotEmpty ? _parseString(data['role']) : 'patient',
       specialist: _parseString(data['specialist']),
+      linkedDoctorId: _parseString(data['linkedDoctorId']),
     );
   }
 
@@ -92,6 +97,7 @@ class UserModel {
       'height': height,
       'role': role,
       'specialist': specialist,
+      'linkedDoctorId': linkedDoctorId,
     };
   }
 
@@ -109,6 +115,7 @@ class UserModel {
     double? height,
     String? role,
     String? specialist,
+    String? linkedDoctorId,
   }) {
     return UserModel(
       uid: uid ?? this.uid,
@@ -121,6 +128,7 @@ class UserModel {
       height: height ?? this.height,
       role: role ?? this.role,
       specialist: specialist ?? this.specialist,
+      linkedDoctorId: linkedDoctorId ?? this.linkedDoctorId,
     );
   }
 }

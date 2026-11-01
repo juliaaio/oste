@@ -5,6 +5,7 @@ import 'package:oste/features/doctor_dashboard/doctor_home_tab.dart';
 import 'package:oste/features/doctor_dashboard/widgets/doctor_decorations.dart';
 import 'package:oste/features/profile/profile_page.dart';
 import 'package:oste/services/chat_service.dart';
+import 'package:oste/services/doctor_presence_service.dart';
 import 'package:oste/services/user_service.dart';
 
 /// Halaman Utama Dashboard Dokter OSTEOCARE sesuai Desain Figma
@@ -20,22 +21,69 @@ class DoctorDashboardPage extends StatefulWidget {
   State<DoctorDashboardPage> createState() => _DoctorDashboardPageState();
 }
 
-class _DoctorDashboardPageState extends State<DoctorDashboardPage> {
+class _DoctorDashboardPageState extends State<DoctorDashboardPage>
+    with WidgetsBindingObserver {
   late int _currentIndex;
 
   @override
   void initState() {
     super.initState();
     _currentIndex = widget.initialIndex;
-    // Mulai memantau percakapan dari Firestore saat dashboard dibuka
-    final doctorUid = UserService().currentUser?.uid ?? '';
+    WidgetsBinding.instance.addObserver(this);
+
+    final user = UserService().currentUser;
+    final doctorUid = user?.uid ?? '';
+
     if (doctorUid.isNotEmpty) {
+      // Mulai memantau percakapan dari Firestore
       ChatService().startListeningDoctorConversations(doctorUid);
+
+      // Set status dokter menjadi Online
+      DoctorPresenceService().setOnline(
+        doctorUid,
+        doctorId: _resolveDoctorId(user?.email ?? ''),
+      );
+    }
+  }
+
+  /// Ambil doctorId statis yang ditautkan ke akun dokter ini.
+  /// Field 'linkedDoctorId' disimpan di Firestore saat dokter pertama login.
+  String _resolveDoctorId(String email) {
+    // Gunakan linkedDoctorId dari profil Firestore jika tersedia.
+    // Jika kosong, gunakan UID Firebase sebagai fallback.
+    final linkedId = UserService().currentUser?.linkedDoctorId ?? '';
+    return linkedId.isNotEmpty
+        ? linkedId
+        : (UserService().currentUser?.uid ?? '');
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    final doctorUid = UserService().currentUser?.uid ?? '';
+    if (doctorUid.isEmpty) return;
+
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.detached ||
+        state == AppLifecycleState.inactive) {
+      // App masuk background / ditutup → set offline
+      DoctorPresenceService().setOffline(doctorUid);
+    } else if (state == AppLifecycleState.resumed) {
+      // App kembali ke foreground → set online lagi
+      DoctorPresenceService().setOnline(
+        doctorUid,
+        doctorId: _resolveDoctorId(UserService().currentUser?.email ?? ''),
+      );
     }
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    // Set status dokter menjadi Offline saat halaman ditutup
+    final doctorUid = UserService().currentUser?.uid ?? '';
+    if (doctorUid.isNotEmpty) {
+      DoctorPresenceService().setOffline(doctorUid);
+    }
     ChatService().stopListeningDoctorConversations();
     super.dispose();
   }
