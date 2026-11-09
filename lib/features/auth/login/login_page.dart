@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:oste/features/admin/dashboard/admin_dashboard_page.dart';
 import 'package:oste/features/dashboard/dashboard_page.dart';
 import 'package:oste/features/doctor_dashboard/doctor_dashboard_page.dart';
 import 'package:oste/features/auth/register/register_page.dart';
@@ -431,17 +432,56 @@ class _LoginPageState extends State<LoginPage> {
                   return;
                 }
 
-                // Login berhasil → navigasi sesuai role yang terverifikasi
+                // Login berhasil -> navigasi sesuai role yang terverifikasi
                 messenger.hideCurrentSnackBar();
-                final isDoctor = UserService().currentUser?.isDoctor ?? false;
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => isDoctor
-                        ? const DoctorDashboardPage()
-                        : const DashboardPage(),
-                  ),
-                );
+                final currentUser = UserService().currentUser;
+
+                if (currentUser == null || !currentUser.hasValidRole) {
+                  messenger.showSnackBar(
+                    const SnackBar(
+                      content: Text(
+                        'Role pengguna tidak ditemukan atau tidak valid pada Firestore.',
+                      ),
+                      backgroundColor: Color(0xFFE11D48),
+                    ),
+                  );
+                  return;
+                }
+
+                if (currentUser.isAdmin) {
+                  Navigator.pushAndRemoveUntil(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const AdminDashboardPage(),
+                    ),
+                    (route) => false,
+                  );
+                } else if (currentUser.isDoctor) {
+                  Navigator.pushAndRemoveUntil(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const DoctorDashboardPage(),
+                    ),
+                    (route) => false,
+                  );
+                } else if (currentUser.isPatient) {
+                  Navigator.pushAndRemoveUntil(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const DashboardPage(),
+                    ),
+                    (route) => false,
+                  );
+                } else {
+                  messenger.showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        'Role "${currentUser.role}" tidak dikenali oleh sistem.',
+                      ),
+                      backgroundColor: const Color(0xFFE11D48),
+                    ),
+                  );
+                }
               },
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.transparent,

@@ -2,51 +2,162 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Pengguna (Profil User & Dokter)
-    match /users/{userId} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null && request.auth.uid == userId;
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
     }
 
-    // Percakapan Chat Utama (Metadata Dokumen chats/{chatId})
-    // Pasien hanya dapat membaca percakapannya sendiri (patientId == auth.uid).
-    // Dokter hanya dapat membaca percakapan yang menjadi kewenangannya (doctorId == auth.uid).
-    match /chats/{chatId} {
-      allow read: if request.auth != null &&
-        (resource.data.patientId == request.auth.uid || resource.data.doctorId == request.auth.uid);
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
 
-      allow create: if request.auth != null &&
-        (request.resource.data.patientId == request.auth.uid || request.resource.data.doctorId == request.auth.uid);
+    function isAdmin() {
+      return isAuthenticated() && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
 
-      allow update: if request.auth != null &&
-        (resource.data.patientId == request.auth.uid || resource.data.doctorId == request.auth.uid);
+    function isDoctor() {
+      return isAuthenticated() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role.matches('(?i)^(doctor|dokter)$');
+    }
 
-      // Sub-koleksi pesan individual di chats/{chatId}/messages/{messageId}
-      match /messages/{messageId} {
-        allow read: if request.auth != null &&
-          (get(/databases/$(database)/documents/chats/$(chatId)).data.patientId == request.auth.uid ||
-           get(/databases/$(database)/documents/chats/$(chatId)).data.doctorId == request.auth.uid);
+    // -------------------------------------------------------------------------
+    // 1. Koleksi Pengguna (users) & Subkoleksi Riwayat Skrining (riwayat_skrining)
+    // -------------------------------------------------------------------------
+    // - Pengguna hanya dapat membaca dan memperbarui data profil miliknya sendiri (berdasarkan UID).
+    // - Admin yang terverifikasi di koleksi admins memiliki akses baca untuk kebutuhan manajemen.
+    // - Pengguna dilarang menetapkan atau menaikkan hak akses menjadi Admin (case-insensitive).
+    // - Role yang sudah ada tidak dapat diubah secara sepihak oleh pengguna melalui aplikasi.
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow write: if isOwner(userId)
+        && (
+          !('role' in request.resource.data) ||
+          (
+            !request.resource.data.role.matches('(?i)^.*(admin|administrator).*$') &&
+            (resource == null || request.resource.data.role == resource.data.role)
+          )
+        );
 
-        allow create: if request.auth != null &&
-          request.resource.data.senderId == request.auth.uid &&
-          (get(/databases/$(database)/documents/chats/$(chatId)).data.patientId == request.auth.uid ||
-           get(/databases/$(database)/documents/chats/$(chatId)).data.doctorId == request.auth.uid);
-
-        // Update diizinkan untuk pembaruan status baca (isRead) oleh penerima atau pengirim
-        allow update: if request.auth != null &&
-          (resource.data.receiverId == request.auth.uid || resource.data.senderId == request.auth.uid);
+      // Subkoleksi riwayat skrining: users/{userId}/riwayat_skrining/{skriningId}
+      // Pasien hanya dapat membaca dan mencatat riwayat skrining miliknya sendiri.
+      match /riwayat_skrining/{skriningId} {
+        allow read, write: if isOwner(userId);
       }
     }
 
-    // Riwayat konsultasi & skrining
-    match /consultations/{consultationId} {
-      allow read, write: if request.auth != null &&
-        (resource == null || resource.data.patientId == request.auth.uid || resource.data.doctorId == request.auth.uid);
+    // -------------------------------------------------------------------------
+    // 2. Koleksi Admins (admins)
+    // -------------------------------------------------------------------------
+    // - Pengguna terautentikasi hanya memiliki izin READ untuk dokumen miliknya sendiri (berdasarkan UID).
+    // - Izin CREATE, UPDATE, dan DELETE ditutup (write: if false) untuk mencegah manipulasi dari aplikasi.
+    // - Dokumen Admin hanya dapat dikelola secara aman via Firebase Console atau backend Admin SDK.
+    match /admins/{adminId} {
+      allow read: if isOwner(adminId);
+      allow write: if false;
     }
 
+    // -------------------------------------------------------------------------
+    // 3. Status Kehadiran Dokter (doctor_presence)
+    // -------------------------------------------------------------------------
+    // - Semua pengguna terautentikasi dapat melihat status online dokter.
+    // - Hanya dokter yang bersangkutan yang dapat memperbarui status kehadirannya.
+    match /doctor_presence/{doctorUid} {
+      allow read: if isAuthenticated();
+      allow write: if isOwner(doctorUid);
+    }
+
+    // -------------------------------------------------------------------------
+    // 4. Percakapan Chat (chats) & Pesan Individual (messages)
+    // -------------------------------------------------------------------------
+    // - Pasien dan Dokter hanya dapat membaca percakapan di mana mereka menjadi peserta.
+    // - Pembuatan chat baru wajib menyertakan identitas pengguna yang valid (anti-penyamaran).
+    // - Identitas peserta (patientId dan doctorId) tidak dapat diubah setelah chat dibuat.
+    match /chats/{chatId} {
+      allow read: if isAuthenticated() &&
+        (resource.data.patientId == request.auth.uid || resource.data.doctorId == request.auth.uid);
+
+      allow create: if isAuthenticated() && (
+        (request.resource.data.patientId == request.auth.uid) ||
+        (request.resource.data.doctorId == request.auth.uid && isDoctor())
+      );
+
+      allow update: if isAuthenticated() &&
+        (resource.data.patientId == request.auth.uid || resource.data.doctorId == request.auth.uid) &&
+        request.resource.data.patientId == resource.data.patientId &&
+        request.resource.data.doctorId == resource.data.doctorId;
+
+      // Subkoleksi pesan individual: chats/{chatId}/messages/{messageId}
+      match /messages/{messageId} {
+        allow read: if isAuthenticated() && (
+          get(/databases/$(database)/documents/chats/$(chatId)).data.patientId == request.auth.uid ||
+          get(/databases/$(database)/documents/chats/$(chatId)).data.doctorId == request.auth.uid
+        );
+
+        // Pengirim harus UID login, dan role pesan harus sesuai dengan peran peserta chat (anti-impersonasi)
+        allow create: if isAuthenticated() &&
+          request.resource.data.senderId == request.auth.uid &&
+          (
+            (get(/databases/$(database)/documents/chats/$(chatId)).data.patientId == request.auth.uid &&
+             request.resource.data.senderRole == 'patient') ||
+            (get(/databases/$(database)/documents/chats/$(chatId)).data.doctorId == request.auth.uid &&
+             request.resource.data.senderRole == 'doctor')
+          );
+
+        // Update hanya diizinkan untuk pembaruan status baca (isRead) tanpa mengubah pesan atau pengirim
+        allow update: if isAuthenticated() &&
+          (resource.data.receiverId == request.auth.uid || resource.data.senderId == request.auth.uid) &&
+          request.resource.data.text == resource.data.text &&
+          request.resource.data.senderId == resource.data.senderId &&
+          request.resource.data.receiverId == resource.data.receiverId &&
+          request.resource.data.senderRole == resource.data.senderRole;
+      }
+    }
+
+    // -------------------------------------------------------------------------
+    // 5. Riwayat Konsultasi (consultations)
+    // -------------------------------------------------------------------------
+    // - Hanya dapat dibaca oleh pasien atau dokter yang terdaftar pada dokumen konsultasi.
+    // - Saat create, patientId atau doctorId harus sesuai dengan UID pengguna yang login.
+    // - Saat update, data hanya bisa diubah oleh peserta konsultasi tanpa mengubah patientId atau doctorId.
+    match /consultations/{consultationId} {
+      allow read: if isAuthenticated() &&
+        (resource.data.patientId == request.auth.uid || resource.data.doctorId == request.auth.uid);
+
+      allow create: if isAuthenticated() &&
+        (request.resource.data.patientId == request.auth.uid || request.resource.data.doctorId == request.auth.uid);
+
+      allow update: if isAuthenticated() &&
+        (resource.data.patientId == request.auth.uid || resource.data.doctorId == request.auth.uid) &&
+        request.resource.data.patientId == resource.data.patientId &&
+        request.resource.data.doctorId == resource.data.doctorId;
+
+      allow delete: if false;
+    }
+
+    // -------------------------------------------------------------------------
+    // 6. Skrining Root (screenings)
+    // -------------------------------------------------------------------------
+    // - Pengguna hanya dapat membaca, membuat, dan memperbarui hasil skrining miliknya sendiri.
+    // - Saat create, userId wajib sama dengan UID pengguna yang login.
+    // - Saat update, userId tidak dapat diubah.
     match /screenings/{screeningId} {
-      allow read, write: if request.auth != null &&
-        (resource == null || resource.data.userId == request.auth.uid);
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow update: if isAuthenticated() &&
+        resource.data.userId == request.auth.uid &&
+        request.resource.data.userId == resource.data.userId;
+      allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+    }
+
+    // -------------------------------------------------------------------------
+    // 7. Koleksi Artikel Edukasi (articles)
+    // -------------------------------------------------------------------------
+    // - Semua pengguna terautentikasi dapat membaca artikel edukasi.
+    // - Hanya Admin yang terverifikasi di koleksi admins yang dapat menulis/mengelola artikel.
+    match /articles/{articleId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
     }
   }
 }

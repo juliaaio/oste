@@ -39,6 +39,21 @@ class UserModel {
     return r == 'doctor' || r == 'dokter';
   }
 
+  /// Mengidentifikasi apakah pengguna memiliki peran admin terverifikasi
+  bool get isAdmin {
+    final r = role.trim().toLowerCase();
+    return r == 'admin' || r == 'administrator';
+  }
+
+  /// Mengidentifikasi apakah pengguna adalah pasien normal
+  bool get isPatient {
+    final r = role.trim().toLowerCase();
+    return r == 'patient' || r == 'pasien';
+  }
+
+  /// Apakah pengguna memiliki peran valid yang dikenali di sistem
+  bool get hasValidRole => isAdmin || isDoctor || isPatient;
+
   /// Mengembalikan sapaan singkat berdasarkan nama (kata pertama)
   String get firstName {
     final parts = name.trim().split(' ');
