@@ -12,6 +12,7 @@ import 'package:oste/features/screening/hasil_page.dart';
 import 'package:oste/features/screening/screening_page.dart';
 import 'package:oste/services/chat_service.dart';
 import 'package:oste/services/history_service.dart';
+import 'package:oste/services/patient_presence_service.dart';
 import 'package:oste/services/user_service.dart';
 
 /// Definisi palet warna resmi Osteo Dashboard sesuai spesifikasi
@@ -55,16 +56,51 @@ class DashboardPage extends StatefulWidget {
   State<DashboardPage> createState() => _DashboardPageState();
 }
 
-class _DashboardPageState extends State<DashboardPage> {
+class _DashboardPageState extends State<DashboardPage>
+    with WidgetsBindingObserver {
   final int _currentIndex = 0;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+
     final patientUid = UserService().currentUser?.uid ?? '';
     if (patientUid.isNotEmpty) {
+      PatientPresenceService().setOnline(
+        patientUid,
+        patientName: UserService().currentUser?.name ?? '',
+      );
       ChatService().startListeningPatientConversations(patientUid);
     }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    final patientUid = UserService().currentUser?.uid ?? '';
+    if (patientUid.isEmpty) return;
+
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.detached ||
+        state == AppLifecycleState.inactive) {
+      PatientPresenceService().setOffline(patientUid);
+    } else if (state == AppLifecycleState.resumed) {
+      PatientPresenceService().setOnline(
+        patientUid,
+        patientName: UserService().currentUser?.name ?? '',
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    final patientUid = UserService().currentUser?.uid ?? '';
+    if (patientUid.isNotEmpty) {
+      PatientPresenceService().setOffline(patientUid);
+    }
+    ChatService().stopListeningPatientConversations();
+    super.dispose();
   }
 
   @override

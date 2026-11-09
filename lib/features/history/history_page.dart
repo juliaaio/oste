@@ -57,7 +57,7 @@ class _HistoryPageState extends State<HistoryPage> {
     final consultationService = ConsultationHistoryService();
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFFAF9F5),
       body: SafeArea(
         child: AnimatedBuilder(
           animation: Listenable.merge([historyService, consultationService]),
@@ -243,7 +243,7 @@ class _HistoryPageState extends State<HistoryPage> {
   Widget _buildBottomNav(BuildContext context) {
     return Container(
       decoration: const BoxDecoration(
-        color: Colors.white,
+        color: Color(0xFFFAF9F5),
         border: Border(
           top: BorderSide(color: _HistoryPageColors.border, width: 1),
         ),
@@ -274,7 +274,7 @@ class _HistoryPageState extends State<HistoryPage> {
           }
         },
         type: BottomNavigationBarType.fixed,
-        backgroundColor: Colors.white,
+        backgroundColor: const Color(0xFFFAF9F5),
         elevation: 0,
         selectedItemColor: _HistoryPageColors.orange,
         unselectedItemColor: _HistoryPageColors.textLight,

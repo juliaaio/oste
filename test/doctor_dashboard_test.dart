@@ -115,6 +115,10 @@ void main() {
       expect(find.text('Cari nama pasien atau pesan...'), findsOneWidget);
       expect(find.text('Siti Rahmawati'), findsOneWidget);
       expect(find.text('Ahmad Maulana'), findsOneWidget);
+
+      // Keterangan status Online dan Offline pada kartu pasien
+      expect(find.text('Online'), findsWidgets);
+      expect(find.text('Offline'), findsWidgets);
     });
 
     testWidgets('Tapping bottom nav Riwayat switches to Riwayat tab',

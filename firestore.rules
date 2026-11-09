@@ -68,6 +68,16 @@ service cloud.firestore {
     }
 
     // -------------------------------------------------------------------------
+    // 3b. Status Kehadiran Pasien (patient_presence)
+    // -------------------------------------------------------------------------
+    // - Semua pengguna terautentikasi (dokter & staf) dapat melihat status online pasien.
+    // - Hanya pasien yang bersangkutan yang dapat memperbarui status kehadirannya.
+    match /patient_presence/{patientUid} {
+      allow read: if isAuthenticated();
+      allow write: if isOwner(patientUid);
+    }
+
+    // -------------------------------------------------------------------------
     // 4. Percakapan Chat (chats) & Pesan Individual (messages)
     // -------------------------------------------------------------------------
     // - Pasien dan Dokter hanya dapat membaca percakapan di mana mereka menjadi peserta.

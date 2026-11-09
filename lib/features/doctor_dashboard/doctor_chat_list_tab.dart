@@ -3,6 +3,7 @@ import 'package:oste/features/consultation/chat_page.dart';
 import 'package:oste/features/consultation/doctor_data.dart';
 import 'package:oste/features/doctor_dashboard/widgets/doctor_decorations.dart';
 import 'package:oste/services/chat_service.dart';
+import 'package:oste/services/patient_presence_service.dart';
 
 /// Tab Chat Pasien sesuai Figma Screenshot 2
 class DoctorChatListTab extends StatefulWidget {
@@ -17,15 +18,22 @@ class _DoctorChatListTabState extends State<DoctorChatListTab> {
   String _searchQuery = '';
 
   @override
+  void initState() {
+    super.initState();
+    PatientPresenceService().startListeningAllPatients();
+  }
+
+  @override
   void dispose() {
     _searchController.dispose();
+    PatientPresenceService().stopListeningAllPatients();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
-      animation: ChatService(),
+      animation: Listenable.merge([ChatService(), PatientPresenceService()]),
       builder: (context, _) {
         final allConversations = ChatService().conversations;
 
@@ -167,6 +175,11 @@ class _DoctorChatListTabState extends State<DoctorChatListTab> {
     BuildContext context,
     ConversationSummary item,
   ) {
+    final isPatientOnline = PatientPresenceService().isOnline(
+      item.patientId,
+      fallback: item.isOnline,
+    );
+
     return InkWell(
       onTap: () async {
         // Tandai percakapan sebagai sudah dibaca segera saat dokter mengetuk
@@ -189,7 +202,7 @@ class _DoctorChatListTabState extends State<DoctorChatListTab> {
               patientId: item.patientId,
               patientName: item.patientName,
               patientInitial: item.patientInitial,
-              isPatientOnline: item.isOnline,
+              isPatientOnline: isPatientOnline,
               isDoctorPOV: true, // POV DOKTER AKTIF!
             ),
           ),
@@ -253,7 +266,7 @@ class _DoctorChatListTabState extends State<DoctorChatListTab> {
                     width: 12,
                     height: 12,
                     decoration: BoxDecoration(
-                      color: item.isOnline
+                      color: isPatientOnline
                           ? const Color(0xFF10B981)
                           : const Color(0xFF94A3B8),
                       shape: BoxShape.circle,
@@ -274,16 +287,25 @@ class _DoctorChatListTabState extends State<DoctorChatListTab> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    item.patientName,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                      color: DoctorThemeColors.textDark,
-                      letterSpacing: -0.2,
-                    ),
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          item.patientName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                            color: DoctorThemeColors.textDark,
+                            letterSpacing: -0.2,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      // Keterangan status Online / Offline
+                      _buildStatusBadge(isPatientOnline),
+                    ],
                   ),
                   const SizedBox(height: 3),
                   Text(
@@ -350,6 +372,48 @@ class _DoctorChatListTabState extends State<DoctorChatListTab> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  /// Badge status keterangan Online / Offline identik dengan kartu konsultasi dokter
+  Widget _buildStatusBadge(bool isOnline) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: 8,
+        vertical: 2.5,
+      ),
+      decoration: BoxDecoration(
+        color: isOnline
+            ? const Color(0xFFE5F9EC)
+            : const Color(0xFFF1F5F9),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 6,
+            height: 6,
+            decoration: BoxDecoration(
+              color: isOnline
+                  ? const Color(0xFF16B86A)
+                  : const Color(0xFF94A3B8),
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(width: 4),
+          Text(
+            isOnline ? 'Online' : 'Offline',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: isOnline
+                  ? const Color(0xFF16B86A)
+                  : const Color(0xFF94A3B8),
+            ),
+          ),
+        ],
       ),
     );
   }

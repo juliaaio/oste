@@ -4,6 +4,7 @@ import 'package:oste/features/consultation/chat_bubble.dart';
 import 'package:oste/models/doctor_model.dart';
 import 'package:oste/services/chat_service.dart';
 import 'package:oste/services/doctor_presence_service.dart';
+import 'package:oste/services/patient_presence_service.dart';
 import 'package:oste/services/user_service.dart';
 
 /// Halaman Chat Konsultasi Dokter Osteo dengan dukungan POV Pasien & Dokter
@@ -33,7 +34,7 @@ class ChatPage extends StatefulWidget {
   State<ChatPage> createState() => _ChatPageState();
 }
 
-class _ChatPageState extends State<ChatPage> {
+class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
   final TextEditingController _textController = TextEditingController();
   final FocusNode _focusNode = FocusNode();
   final ScrollController _scrollController = ScrollController();
@@ -55,6 +56,19 @@ class _ChatPageState extends State<ChatPage> {
     );
   }
 
+  String get _effectivePatientId {
+    if (widget.patientId != null && widget.patientId!.isNotEmpty) {
+      return widget.patientId!;
+    }
+    if (_effectiveChatId.startsWith('chat_${widget.doctor.id}_')) {
+      final pid = _effectiveChatId.substring('chat_${widget.doctor.id}_'.length);
+      if (pid.isNotEmpty) return pid;
+    }
+    return widget.isDoctorPOV
+        ? 'demo_patient'
+        : (UserService().currentUser?.uid ?? 'local_user');
+  }
+
   String get _patientInitial {
     if (widget.patientInitial != null && widget.patientInitial!.isNotEmpty) {
       return widget.patientInitial!;
@@ -68,6 +82,24 @@ class _ChatPageState extends State<ChatPage> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+
+    // Inisialisasi presence real-time untuk POV Dokter maupun POV Pasien
+    if (widget.isDoctorPOV) {
+      final targetPatientId = _effectivePatientId;
+      if (targetPatientId.isNotEmpty) {
+        PatientPresenceService().startListeningPatient(targetPatientId);
+      }
+    } else {
+      final patientUid = _effectivePatientId;
+      if (patientUid.isNotEmpty) {
+        PatientPresenceService().setOnline(
+          patientUid,
+          patientName:
+              UserService().currentUser?.name ?? widget.patientName ?? '',
+        );
+      }
+    }
 
     // 1. Muat pesan awal yang tersimpan dari cache lokal ChatService
     final existingMessages = ChatService().getMessages(_effectiveChatId);
@@ -100,6 +132,44 @@ class _ChatPageState extends State<ChatPage> {
     });
   }
 
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.detached ||
+        state == AppLifecycleState.inactive) {
+      if (widget.isDoctorPOV) {
+        final doctorUid = UserService().currentUser?.uid ?? widget.doctor.id;
+        if (doctorUid.isNotEmpty) {
+          DoctorPresenceService().setOffline(doctorUid);
+        }
+      } else {
+        final patientUid = _effectivePatientId;
+        if (patientUid.isNotEmpty) {
+          PatientPresenceService().setOffline(patientUid);
+        }
+      }
+    } else if (state == AppLifecycleState.resumed) {
+      if (widget.isDoctorPOV) {
+        final doctorUid = UserService().currentUser?.uid ?? widget.doctor.id;
+        if (doctorUid.isNotEmpty) {
+          DoctorPresenceService().setOnline(
+            doctorUid,
+            doctorId: widget.doctor.id,
+          );
+        }
+      } else {
+        final patientUid = _effectivePatientId;
+        if (patientUid.isNotEmpty) {
+          PatientPresenceService().setOnline(
+            patientUid,
+            patientName:
+                UserService().currentUser?.name ?? widget.patientName ?? '',
+          );
+        }
+      }
+    }
+  }
+
   void _markCurrentConversationAsRead() {
     if (widget.isDoctorPOV) {
       ChatService().markConversationAsRead(_effectiveChatId);
@@ -115,6 +185,10 @@ class _ChatPageState extends State<ChatPage> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    if (widget.isDoctorPOV) {
+      PatientPresenceService().stopListeningPatient(_effectivePatientId);
+    }
     _messageSubscription?.cancel();
     _textController.dispose();
     _focusNode.dispose();
@@ -300,12 +374,19 @@ class _ChatPageState extends State<ChatPage> {
       ),
       titleSpacing: 0,
       title: ListenableBuilder(
-        listenable: DoctorPresenceService(),
+        listenable: Listenable.merge([
+          DoctorPresenceService(),
+          PatientPresenceService(),
+        ]),
         builder: (context, _) {
           final isDoctorOnline =
               DoctorPresenceService().isOnline(widget.doctor.id);
+          final isPatientOnline = PatientPresenceService().isOnline(
+            _effectivePatientId,
+            fallback: widget.isPatientOnline,
+          );
           final isOnline =
-              widget.isDoctorPOV ? widget.isPatientOnline : isDoctorOnline;
+              widget.isDoctorPOV ? isPatientOnline : isDoctorOnline;
 
           return Row(
             children: [
@@ -340,7 +421,7 @@ class _ChatPageState extends State<ChatPage> {
                         width: 10,
                         height: 10,
                         decoration: BoxDecoration(
-                          color: widget.isPatientOnline
+                          color: isPatientOnline
                               ? const Color(0xFF10B981)
                               : const Color(0xFF94A3B8),
                           shape: BoxShape.circle,

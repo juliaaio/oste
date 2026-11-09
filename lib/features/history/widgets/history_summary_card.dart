@@ -19,12 +19,19 @@ class HistorySummaryCard extends StatelessWidget {
       margin: const EdgeInsets.symmetric(horizontal: 20),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFFDF5),
-        borderRadius: BorderRadius.circular(20),
+        color: const Color(0xFFFFFBEB),
+        borderRadius: BorderRadius.circular(22),
         border: Border.all(
-          color: const Color(0xFFFEF3C7),
-          width: 1.5,
+          color: const Color(0xFFFDE68A).withValues(alpha: 0.9),
+          width: 1.2,
         ),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFE5A124).withValues(alpha: 0.08),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

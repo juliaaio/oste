@@ -25,16 +25,16 @@ class ScreeningHistoryCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: const Color(0xFFFFFBEB),
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: const Color(0xFFF1F5F9),
+          color: const Color(0xFFFDE68A).withValues(alpha: 0.9),
           width: 1.2,
         ),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF0F172A).withValues(alpha: 0.04),
-            blurRadius: 12,
+            color: const Color(0xFFE5A124).withValues(alpha: 0.08),
+            blurRadius: 16,
             offset: const Offset(0, 4),
           ),
         ],
