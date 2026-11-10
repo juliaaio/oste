@@ -4,19 +4,14 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:oste/core/constants/app_config.dart';
 import 'package:oste/features/screening/hasil_page.dart';
 
 // ---------------------------------------------------------------------------
 // Konfigurasi base URL FastAPI
-// Ganti sesuai environment:
-//   Flutter Web / iOS Simulator : 'http://127.0.0.1:8000'
-//   Android Emulator            : 'http://10.0.2.2:8000'
-//   Physical Device (LAN)       : 'http://192.168.18.107:8000'
-//
-// Catatan: jika berjalan di Flutter Web, URL LAN mungkin diblokir browser.
-//          Gunakan 'http://localhost:8000' untuk Flutter Web.
-const String kFastApiBaseUrl =
-    kIsWeb ? 'http://localhost:8000' : 'http://192.168.18.107:8000';
+// Diambil dari AppConfig yang menggunakan String.fromEnvironment('BASE_URL')
+// ---------------------------------------------------------------------------
+const String kFastApiBaseUrl = AppConfig.baseUrl;
 
 // ---------------------------------------------------------------------------
 // Mapping helpers: Flutter form values -> FastAPI feature labels
@@ -169,7 +164,6 @@ class ApiService {
 
   /// POST ke /predict dan kembalikan respons API.
   Future<FastApiPredictResponse> predict(ScreeningPayload payload) async {
-    final uri = Uri.parse('$kFastApiBaseUrl/predict');
     final headers = {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
@@ -181,12 +175,12 @@ class ApiService {
     // Daftar URL yang akan dicoba secara berurutan
     final List<String> urlsToTry = kIsWeb
         ? [
-            '$kFastApiBaseUrl/predict',
+            '${AppConfig.baseUrl}/predict',
             'http://localhost:8000/predict',
             'http://127.0.0.1:8000/predict',
           ]
         : [
-            '$kFastApiBaseUrl/predict',
+            '${AppConfig.baseUrl}/predict',
             'http://10.0.2.2:8000/predict', // Android Emulator fallback
           ];
 
@@ -216,7 +210,7 @@ class ApiService {
         '• Firewall memblokir port 8000\n\n'
         'Jalankan server dengan perintah:\n'
         '  uvicorn main:app --host 0.0.0.0 --port 8000 --reload\n\n'
-        'IP saat ini dikonfigurasi: $kFastApiBaseUrl',
+        'IP saat ini dikonfigurasi: ${AppConfig.baseUrl}',
       );
     }
 
