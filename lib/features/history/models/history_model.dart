@@ -149,21 +149,30 @@ class HistoryModel {
 
   /// Membuat instance dari Map.
   factory HistoryModel.fromMap(Map<String, dynamic> map) {
+    final rawProb = map['probability'] ?? map['probabilitas'];
+    final probInt = (rawProb as num?)?.toInt() ?? 0;
+
     return HistoryModel(
       id: map['id'] as String? ?? '',
       tanggal: map['tanggal'] is String
           ? DateTime.tryParse(map['tanggal'] as String) ?? DateTime.now()
           : (map['tanggal'] as DateTime? ?? DateTime.now()),
       waktu: map['waktu'] as String? ?? '',
-      probabilitas: (map['probabilitas'] as num?)?.toInt() ?? 0,
-      status: map['status'] as String? ?? '',
-      isPositive: map['isPositive'] as bool? ?? false,
+      probabilitas: probInt,
+      status: (map['statusHasil'] as String?) ??
+          (map['status'] as String?) ??
+          (probInt >= 50 ? 'Terindikasi Osteoporosis' : 'Tidak Terindikasi Osteoporosis'),
+      isPositive: (map['isPositive'] as bool?) ??
+          (map['prediction'] != null
+              ? ((map['prediction'] as num) == 1)
+              : (probInt >= 50)),
       type: map['type'] == 'consultation'
           ? HistoryType.consultation
           : HistoryType.screening,
-      riskCategory: map['riskCategory'] as String?,
-      summary: map['summary'] as String?,
-      modelConfidence: (map['modelConfidence'] as num?)?.toDouble(),
+      riskCategory: (map['riskCategory'] as String?) ?? (map['riskTitle'] as String?),
+      summary: (map['riskDescription'] as String?) ?? (map['summary'] as String?),
+      modelConfidence: (map['confidence'] as num?)?.toDouble() ??
+          (map['modelConfidence'] as num?)?.toDouble(),
       recommendations: (map['recommendations'] as List<dynamic>?)
           ?.map((e) => e.toString())
           .toList(),

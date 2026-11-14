@@ -7,9 +7,11 @@ import 'package:oste/features/education/articles/article_model.dart';
 import 'package:oste/features/education/education_page.dart';
 import 'package:oste/features/education/tahukah_anda/tahukah_anda_page.dart';
 import 'package:oste/features/history/history_page.dart';
+import 'package:oste/features/history/widgets/screening_progress_section.dart';
 import 'package:oste/features/profile/profile_page.dart';
 import 'package:oste/features/screening/hasil_page.dart';
 import 'package:oste/features/screening/screening_page.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:oste/services/chat_service.dart';
 import 'package:oste/services/history_service.dart';
 import 'package:oste/services/patient_presence_service.dart';
@@ -65,7 +67,7 @@ class _DashboardPageState extends State<DashboardPage>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
 
-    final patientUid = UserService().currentUser?.uid ?? '';
+    final patientUid = FirebaseAuth.instance.currentUser?.uid ?? '';
     if (patientUid.isNotEmpty) {
       PatientPresenceService().setOnline(
         patientUid,
@@ -77,7 +79,7 @@ class _DashboardPageState extends State<DashboardPage>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    final patientUid = UserService().currentUser?.uid ?? '';
+    final patientUid = FirebaseAuth.instance.currentUser?.uid ?? '';
     if (patientUid.isEmpty) return;
 
     if (state == AppLifecycleState.paused ||
@@ -95,7 +97,7 @@ class _DashboardPageState extends State<DashboardPage>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    final patientUid = UserService().currentUser?.uid ?? '';
+    final patientUid = FirebaseAuth.instance.currentUser?.uid ?? '';
     if (patientUid.isNotEmpty) {
       PatientPresenceService().setOffline(patientUid);
     }
@@ -442,6 +444,8 @@ class _DashboardPageState extends State<DashboardPage>
                     const _LatestScreeningSection(),
                     const SizedBox(height: 16),
                     const _MainMenuSection(),
+                    const SizedBox(height: 16),
+                    const ScreeningProgressSection(),
                     const SizedBox(height: 16),
                     const _ArticleCarouselSection(),
                     const SizedBox(height: 16),

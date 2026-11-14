@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:oste/features/consultation/doctor_data.dart';
 import 'package:oste/features/doctor_dashboard/doctor_chat_list_tab.dart';
 import 'package:oste/features/doctor_dashboard/doctor_history_tab.dart';
 import 'package:oste/features/doctor_dashboard/doctor_home_tab.dart';
@@ -6,6 +7,7 @@ import 'package:oste/features/doctor_dashboard/widgets/doctor_decorations.dart';
 import 'package:oste/features/profile/profile_page.dart';
 import 'package:oste/services/chat_service.dart';
 import 'package:oste/services/doctor_presence_service.dart';
+import 'package:oste/services/doctor_schedule_service.dart';
 import 'package:oste/services/user_service.dart';
 
 /// Halaman Utama Dashboard Dokter OSTEOCARE sesuai Desain Figma
@@ -33,10 +35,27 @@ class _DoctorDashboardPageState extends State<DoctorDashboardPage>
 
     final user = UserService().currentUser;
     final doctorUid = user?.uid ?? '';
+    final linkedDoctorId = user?.linkedDoctorId ?? '';
+
+    // Kumpulkan seluruh alias ID dokter yang relevan agar pesan dari pasien & admin selalu masuk
+    final additionalIds = <String>[];
+    if (linkedDoctorId.isNotEmpty) additionalIds.add(linkedDoctorId);
+    // Sertakan seluruh ID dokter katalog (doc_1 .. doc_5) agar percakapan ke profil dokter mana pun
+    // selalu tersinkronisasi dan masuk ke akun dokter pada perangkat kedua
+    for (final d in doctorList) {
+      additionalIds.add(d.id);
+    }
 
     if (doctorUid.isNotEmpty) {
-      // Mulai memantau percakapan dari Firestore
-      ChatService().startListeningDoctorConversations(doctorUid);
+      // Mulai sinkronisasi jadwal praktik dokter real-time
+      DoctorScheduleService().startListening();
+
+      // Mulai memantau percakapan dari Firestore untuk UID dokter dan seluruh alias ID
+      ChatService().startListeningDoctorConversations(
+        doctorUid,
+        linkedDoctorId: linkedDoctorId,
+        additionalDoctorIds: additionalIds,
+      );
 
       // Set status dokter menjadi Online
       DoctorPresenceService().setOnline(

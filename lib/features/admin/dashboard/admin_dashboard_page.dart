@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:oste/features/admin/articles/admin_articles_page.dart';
 import 'package:oste/features/admin/articles/add_article_page.dart';
 import 'package:oste/features/admin/articles/admin_article_store.dart';
+import 'package:oste/features/admin/chat/admin_doctor_list_page.dart';
 import 'package:oste/features/admin/profile/admin_profile_page.dart';
 import 'package:oste/features/education/articles/article_data.dart';
 import 'package:oste/features/education/articles/article_detail_page.dart';
+import 'package:oste/services/chat_service.dart';
+import 'package:oste/services/user_service.dart';
 
 /// Palet warna tema Admin Dashboard Osteoporosis sesuai acuan desain
 class _AdminColors {
@@ -106,6 +109,13 @@ class AdminDashboardPage extends StatefulWidget {
 
 class _AdminDashboardPageState extends State<AdminDashboardPage> {
   final int _currentIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    final adminUid = UserService().currentUser?.uid ?? 'admin_osteo';
+    ChatService().startListeningPatientConversations(adminUid);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -513,8 +523,133 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
               ),
             ],
           ),
+          const SizedBox(height: 12),
+          // Card Chat Dokter -> Navigasi ke AdminDoctorListPage
+          _buildDoctorChatActionCard(context),
         ],
       ),
+    );
+  }
+
+  Widget _buildDoctorChatActionCard(BuildContext context) {
+    return AnimatedBuilder(
+      animation: ChatService(),
+      builder: (context, _) {
+        final unreadCount = ChatService().totalPatientUnreadCount;
+
+        return Container(
+          decoration: BoxDecoration(
+            color: _AdminColors.cardSurface,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: unreadCount > 0
+                  ? const Color(0xFFFDE68A)
+                  : const Color(0xFFF1F5F9),
+              width: unreadCount > 0 ? 1.5 : 1,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF0F172A).withValues(alpha: 0.04),
+                blurRadius: 14,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(20),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const AdminDoctorListPage(),
+                  ),
+                );
+              },
+              child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFEF3C7),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: const Color(0xFFFDE68A),
+                          width: 1,
+                        ),
+                      ),
+                      child: const Center(
+                        child: Icon(
+                          Icons.forum_rounded,
+                          color: _AdminColors.amberDark,
+                          size: 22,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              const Text(
+                                'Chat Dokter',
+                                style: TextStyle(
+                                  fontSize: 14.5,
+                                  fontWeight: FontWeight.w700,
+                                  color: _AdminColors.textHeading,
+                                ),
+                              ),
+                              if (unreadCount > 0) ...[
+                                const SizedBox(width: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 7, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFF59E0B),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: Text(
+                                    '$unreadCount baru',
+                                    style: const TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w800,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                          const SizedBox(height: 3),
+                          const Text(
+                            'Kirim pesan & koordinasi langsung dengan dokter',
+                            style: TextStyle(
+                              fontSize: 11.5,
+                              color: _AdminColors.textLight,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Icon(
+                      Icons.arrow_forward_ios_rounded,
+                      size: 14,
+                      color: _AdminColors.textLight,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 

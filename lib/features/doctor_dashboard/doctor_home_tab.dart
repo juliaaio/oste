@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:oste/features/doctor_dashboard/widgets/doctor_decorations.dart';
+import 'package:oste/features/doctor_dashboard/widgets/doctor_schedule_card.dart';
 import 'package:oste/services/doctor_presence_service.dart';
 import 'package:oste/services/user_service.dart';
 
@@ -99,6 +100,11 @@ class DoctorHomeTab extends StatelessWidget {
                     ),
                   ],
                 ),
+
+                const SizedBox(height: 20),
+
+                // ── Card Jadwal Praktik Dokter ───────────────────────────
+                const DoctorScheduleCard(),
 
                 const SizedBox(height: 24),
               ],

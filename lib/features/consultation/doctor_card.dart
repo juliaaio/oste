@@ -3,6 +3,7 @@ import 'package:oste/models/doctor_model.dart';
 import 'package:oste/services/chat_service.dart';
 import 'package:oste/services/doctor_presence_service.dart';
 import 'package:oste/services/doctor_review_service.dart';
+import 'package:oste/services/doctor_schedule_service.dart';
 
 /// Reusable card component for displaying doctor information in a list
 class DoctorCard extends StatelessWidget {
@@ -21,11 +22,17 @@ class DoctorCard extends StatelessWidget {
       listenable: Listenable.merge([
         ChatService(),
         DoctorPresenceService(), // re-build saat status online berubah
+        DoctorScheduleService(), // re-build saat status praktik dokter berubah
       ]),
       builder: (context, _) {
         final unreadCount =
             ChatService().getPatientUnreadCountForDoctor(doctor.id);
         final isOnline = DoctorPresenceService().isOnline(doctor.id);
+        final schedule = DoctorScheduleService().getSchedule(
+          doctor.id,
+          fallbackDoctorName: doctor.name,
+        );
+        final isPracticing = schedule.isActive; // Gunakan isActive (pilihan manual dokter)
 
         return Container(
           margin: const EdgeInsets.only(bottom: 14),
@@ -281,6 +288,54 @@ class DoctorCard extends StatelessWidget {
                                 ),
                               ],
                             ],
+                          ),
+                          const SizedBox(height: 5),
+                          // Badge Status Praktik Dokter Realtime
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 7,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: isPracticing
+                                  ? const Color(0xFFDCFCE7)
+                                  : const Color(0xFFFEE2E2),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: isPracticing
+                                    ? const Color(0xFF86EFAC)
+                                    : const Color(0xFFFCA5A5),
+                                width: 0.8,
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Container(
+                                  width: 5,
+                                  height: 5,
+                                  decoration: BoxDecoration(
+                                    color: isPracticing
+                                        ? const Color(0xFF16A34A)
+                                        : const Color(0xFFDC2626),
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  isPracticing
+                                      ? 'Sedang Praktik'
+                                      : 'Tidak Praktik',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w700,
+                                    color: isPracticing
+                                        ? const Color(0xFF15803D)
+                                        : const Color(0xFFB91C1C),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ],
                       ),

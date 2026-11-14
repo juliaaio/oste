@@ -6,6 +6,7 @@ import 'package:oste/models/doctor_model.dart';
 import 'package:oste/services/chat_service.dart';
 import 'package:oste/services/doctor_presence_service.dart';
 import 'package:oste/services/doctor_review_service.dart';
+import 'package:oste/services/doctor_schedule_service.dart';
 import 'package:oste/services/user_service.dart';
 
 /// Halaman Profil Dokter Osteo Reusable
@@ -298,93 +299,171 @@ class DoctorProfilePage extends StatelessWidget {
                     ),
                     const SizedBox(height: 22),
 
-                    // Jadwal Praktik
-                    const Text(
-                      'Jadwal Praktik',
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF1E293B),
-                        letterSpacing: -0.2,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF8FAFC),
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(
-                          color: const Color(0xFFE2E8F0),
-                          width: 1,
-                        ),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              const Icon(
-                                Icons.calendar_month_outlined,
-                                size: 16,
-                                color: Color(0xFF64748B),
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  doctor.schedules,
-                                  style: const TextStyle(
-                                    fontSize: 12.5,
-                                    fontWeight: FontWeight.w600,
-                                    color: Color(0xFF334155),
+                    // Jadwal Praktik Dokter Realtime
+                    ListenableBuilder(
+                      listenable: DoctorScheduleService(),
+                      builder: (context, _) {
+                        final schedule = DoctorScheduleService().getSchedule(
+                          doctor.id,
+                          fallbackDoctorName: doctor.name,
+                        );
+
+                        final bool isPracticing = schedule.isActive; // Gunakan isActive (pilihan manual dokter)
+                        final bool hasToday = schedule.hasPracticeToday();
+
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Header: Judul & Label Status Praktik Saat Ini
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Text(
+                                  'Jadwal Praktik',
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w700,
+                                    color: Color(0xFF1E293B),
+                                    letterSpacing: -0.2,
                                   ),
                                 ),
-                              ),
-                            ],
-                          ),
-                          if (doctor.todaySchedule.isNotEmpty) ...[
-                            const SizedBox(height: 10),
-                            const Text(
-                              'Jam Konsultasi Tersedia Hari Ini:',
-                              style: TextStyle(
-                                fontSize: 11.5,
-                                fontWeight: FontWeight.w500,
-                                color: Color(0xFF94A3B8),
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Wrap(
-                              spacing: 8,
-                              runSpacing: 6,
-                              children: doctor.todaySchedule.map((time) {
-                                return Container(
+                                // Label Status: Hijau (Sedang Praktik) atau Merah (Tidak Praktik)
+                                Container(
                                   padding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 6,
+                                    horizontal: 10,
+                                    vertical: 4,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius: BorderRadius.circular(8),
+                                    color: isPracticing
+                                        ? const Color(0xFFDCFCE7)
+                                        : const Color(0xFFFEE2E8),
+                                    borderRadius: BorderRadius.circular(20),
                                     border: Border.all(
-                                      color: const Color(0xFFF7C948),
+                                      color: isPracticing
+                                          ? const Color(0xFF86EFAC)
+                                          : const Color(0xFFFCA5A5),
                                       width: 1,
                                     ),
                                   ),
-                                  child: Text(
-                                    '$time WIB',
-                                    style: const TextStyle(
-                                      fontSize: 11.5,
-                                      fontWeight: FontWeight.w600,
-                                      color: Color(0xFF1E293B),
-                                    ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Container(
+                                        width: 7,
+                                        height: 7,
+                                        decoration: BoxDecoration(
+                                          color: isPracticing
+                                              ? const Color(0xFF16A34A)
+                                              : const Color(0xFFDC2626),
+                                          shape: BoxShape.circle,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 5),
+                                      Text(
+                                        isPracticing
+                                            ? 'Sedang Praktik'
+                                            : 'Tidak Praktik',
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w700,
+                                          color: isPracticing
+                                              ? const Color(0xFF15803D)
+                                              : const Color(0xFFB91C1C),
+                                        ),
+                                      ),
+                                    ],
                                   ),
-                                );
-                              }).toList(),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 10),
+
+                            // Container Detail Jadwal
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(14),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF8FAFC),
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(
+                                  color: isPracticing
+                                      ? const Color(0xFFFDE68A)
+                                      : const Color(0xFFE2E8F0),
+                                  width: 1.2,
+                                ),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  // 1. Jadwal Hari Ini
+                                  Row(
+                                    children: [
+                                      Icon(
+                                        Icons.today_rounded,
+                                        size: 16,
+                                        color: isPracticing
+                                            ? const Color(0xFF16A34A)
+                                            : const Color(0xFF64748B),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          hasToday
+                                              ? 'Jadwal Hari Ini: ${schedule.getFormattedTimeRange()} WIB'
+                                              : 'Jadwal Hari Ini: Tidak ada sesi praktik',
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w700,
+                                            color: isPracticing
+                                                ? const Color(0xFF15803D)
+                                                : const Color(0xFF334155),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+
+                                  const SizedBox(height: 10),
+
+                                  // Hari rutin & Jam Praktik
+                                  Row(
+                                    children: [
+                                      const Icon(
+                                        Icons.calendar_month_outlined,
+                                        size: 16,
+                                        color: Color(0xFF94A3B8),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          '${schedule.getRepeatDaysFormatted()} (${schedule.getFormattedTimeRange()} WIB)',
+                                          style: const TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w500,
+                                            color: Color(0xFF64748B),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+
+                                  if (schedule.note.isNotEmpty) ...[
+                                    const SizedBox(height: 10),
+                                    Text(
+                                      'Catatan: ${schedule.note}',
+                                      style: const TextStyle(
+                                        fontSize: 11,
+                                        fontStyle: FontStyle.italic,
+                                        color: Color(0xFF94A3B8),
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
                             ),
                           ],
-                        ],
-                      ),
+                        );
+                      },
                     ),
                     const SizedBox(height: 14),
 

@@ -6,6 +6,7 @@ import 'package:oste/features/dashboard/dashboard_page.dart';
 import 'package:oste/models/doctor_model.dart';
 import 'package:oste/services/chat_service.dart';
 import 'package:oste/services/doctor_presence_service.dart';
+import 'package:oste/services/doctor_schedule_service.dart';
 import 'package:oste/services/user_service.dart';
 
 /// Halaman Daftar Dokter OSTEOCARE
@@ -28,8 +29,9 @@ class _DoctorListPageState extends State<DoctorListPage> {
     if (patientUid.isNotEmpty) {
       ChatService().startListeningPatientConversations(patientUid);
     }
-    // Mulai mendengarkan status online semua dokter secara real-time
+    // Mulai mendengarkan status online dan jadwal praktik semua dokter secara real-time
     DoctorPresenceService().startListeningAllDoctors();
+    DoctorScheduleService().startListening();
   }
 
   @override

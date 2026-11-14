@@ -37,11 +37,12 @@ class ChatBubble extends StatelessWidget {
       } else {
         // Pesan masuk: di sisi KIRI
         if (isDoctorPOV) {
-          // Dari POV dokter: pesan masuk berasal dari Pasien
+          // Dari POV dokter: pesan masuk berasal dari Pasien atau Admin
           bubbleContent = PatientChatBubble(
             text: message.text,
             time: message.time,
             patientInitial: patientInitial,
+            isFromAdmin: message.isFromAdmin,
           );
         } else {
           // Dari POV pasien: pesan masuk berasal dari Dokter
@@ -72,17 +73,19 @@ class ChatBubble extends StatelessWidget {
   }
 }
 
-/// Bubble pesan dari Pasien di sisi kiri (tampil saat dokter melihat chat)
+/// Bubble pesan dari Pasien / Admin di sisi kiri (tampil saat dokter melihat chat)
 class PatientChatBubble extends StatelessWidget {
   final String text;
   final String time;
   final String patientInitial;
+  final bool isFromAdmin;
 
   const PatientChatBubble({
     super.key,
     required this.text,
     required this.time,
     this.patientInitial = 'P',
+    this.isFromAdmin = false,
   });
 
   @override
@@ -92,23 +95,33 @@ class PatientChatBubble extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Avatar inisial pasien
+          // Avatar inisial pasien atau perisai admin
           Container(
             width: 34,
             height: 34,
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: Color(0xFFF59E0B),
+              color: isFromAdmin
+                  ? const Color(0xFF6B21A8)
+                  : const Color(0xFFF59E0B),
             ),
             child: Center(
-              child: Text(
-                patientInitial.isNotEmpty ? patientInitial[0].toUpperCase() : 'P',
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w800,
-                  color: Colors.white,
-                ),
-              ),
+              child: isFromAdmin
+                  ? const Icon(
+                      Icons.shield_rounded,
+                      size: 18,
+                      color: Colors.white,
+                    )
+                  : Text(
+                      patientInitial.isNotEmpty
+                          ? patientInitial[0].toUpperCase()
+                          : 'P',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.white,
+                      ),
+                    ),
             ),
           ),
           const SizedBox(width: 10),
@@ -118,12 +131,40 @@ class PatientChatBubble extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.fromLTRB(14, 12, 14, 8),
               decoration: BoxDecoration(
-                color: const Color(0xFFF1F5F9),
+                color: isFromAdmin
+                    ? const Color(0xFFFAF5FF)
+                    : const Color(0xFFF1F5F9),
                 borderRadius: BorderRadius.circular(16),
+                border: isFromAdmin
+                    ? Border.all(color: const Color(0xFFE9D5FF), width: 1)
+                    : null,
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  if (isFromAdmin)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 5),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 5, vertical: 1.5),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF3E8FF),
+                          borderRadius: BorderRadius.circular(4),
+                          border: Border.all(
+                              color: const Color(0xFFD8B4FE), width: 0.8),
+                        ),
+                        child: const Text(
+                          'ADMIN',
+                          style: TextStyle(
+                            fontSize: 9,
+                            fontWeight: FontWeight.w800,
+                            color: Color(0xFF6B21A8),
+                            letterSpacing: 0.4,
+                          ),
+                        ),
+                      ),
+                    ),
                   Text(
                     text,
                     style: const TextStyle(

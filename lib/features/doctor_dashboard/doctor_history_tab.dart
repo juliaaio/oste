@@ -16,37 +16,6 @@ class DoctorHistoryTab extends StatefulWidget {
 class _DoctorHistoryTabState extends State<DoctorHistoryTab> {
   int _selectedTabIndex = 0; // 0 = Skrining Pasien, 1 = Riwayat Konsultasi
 
-  // Riwayat skrining bawaan jika pengguna belum melakukan skrining baru
-  static final List<Map<String, dynamic>> _seededScreenings = [
-    {
-      'patientName': 'Siti Rahmawati (48 th)',
-      'date': '24 Oktober 2026',
-      'probabilitas': 72,
-      'kategori': 'Risiko Tinggi',
-      'categoryColor': const Color(0xFFE11D48),
-      'keterangan':
-          'Skor risiko osteoporosis tinggi karena riwayat fraktur dan asupan kalsium rendah.',
-    },
-    {
-      'patientName': 'Ahmad Maulana (52 th)',
-      'date': '22 Oktober 2026',
-      'probabilitas': 48,
-      'kategori': 'Risiko Sedang',
-      'categoryColor': const Color(0xFFF59E0B),
-      'keterangan':
-          'Kepadatan tulang terindikasi osteopenia ringan dengan gaya hidup minim olahraga.',
-    },
-    {
-      'patientName': 'Budi Santoso (38 th)',
-      'date': '19 Oktober 2026',
-      'probabilitas': 15,
-      'kategori': 'Risiko Rendah',
-      'categoryColor': const Color(0xFF10B981),
-      'keterangan':
-          'Kepadatan tulang terpantau normal. Rekomendasi pertahankan pola makan seimbang.',
-    },
-  ];
-
   @override
   Widget build(BuildContext context) {
     final historyService = HistoryService();
@@ -205,23 +174,35 @@ class _DoctorHistoryTabState extends State<DoctorHistoryTab> {
       );
     }
 
-    // Tampilkan data seeded jika belum ada riwayat live
-    return ListView.separated(
-      physics: const BouncingScrollPhysics(),
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-      itemCount: _seededScreenings.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 12),
-      itemBuilder: (context, index) {
-        final data = _seededScreenings[index];
-        return _buildScreeningCard(
-          title: data['patientName'] as String,
-          date: data['date'] as String,
-          probability: '${data['probabilitas']}%',
-          category: data['kategori'] as String,
-          categoryColor: data['categoryColor'] as Color,
-          description: data['keterangan'] as String,
-        );
-      },
+    // Tampilkan empty state jika belum ada data riwayat skrining
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: const [
+          Icon(
+            Icons.assignment_outlined,
+            size: 48,
+            color: Color(0xFFCBD5E1),
+          ),
+          SizedBox(height: 10),
+          Text(
+            'Belum ada riwayat skrining pasien',
+            style: TextStyle(
+              fontSize: 14,
+              color: Color(0xFF64748B),
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          SizedBox(height: 4),
+          Text(
+            'Hasil skrining pasien akan otomatis tercatat di sini',
+            style: TextStyle(
+              fontSize: 12,
+              color: Color(0xFF94A3B8),
+            ),
+          ),
+        ],
+      ),
     );
   }
 

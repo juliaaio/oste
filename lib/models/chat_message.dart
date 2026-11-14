@@ -28,6 +28,9 @@ class ChatMessage {
     this.createdAt,
   }) : senderRole = senderRole ?? (isFromDoctor ? 'doctor' : 'patient');
 
+  /// Apakah pesan ini dikirim oleh Admin
+  bool get isFromAdmin => senderRole.toLowerCase() == 'admin';
+
   ChatMessage copyWith({
     String? id,
     String? text,

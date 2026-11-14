@@ -13,18 +13,25 @@ class DoctorChatListTab extends StatefulWidget {
   State<DoctorChatListTab> createState() => _DoctorChatListTabState();
 }
 
-class _DoctorChatListTabState extends State<DoctorChatListTab> {
+class _DoctorChatListTabState extends State<DoctorChatListTab>
+    with SingleTickerProviderStateMixin {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
+  late TabController _tabController;
 
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 4, vsync: this);
+    _tabController.addListener(() {
+      if (mounted) setState(() {});
+    });
     PatientPresenceService().startListeningAllPatients();
   }
 
   @override
   void dispose() {
+    _tabController.dispose();
     _searchController.dispose();
     PatientPresenceService().stopListeningAllPatients();
     super.dispose();
@@ -37,13 +44,26 @@ class _DoctorChatListTabState extends State<DoctorChatListTab> {
       builder: (context, _) {
         final allConversations = ChatService().conversations;
 
-        // Filter percakapan berdasarkan query pencarian
-        final filteredList = allConversations.where((item) {
-          if (_searchQuery.trim().isEmpty) return true;
-          final q = _searchQuery.toLowerCase();
-          return item.patientName.toLowerCase().contains(q) ||
-              item.lastMessage.toLowerCase().contains(q);
+        // 1. Bersihkan akun dummy secara permanen
+        final cleanList = allConversations.where((item) {
+          return !ChatService.isDummyConversation(item.chatId, item.patientName);
         }).toList();
+
+        // 2. Bagi menjadi 4 kategori saling lepas (mutually exclusive)
+        // All: seluruh percakapan pasien
+        // Unread: percakapan berstatus 'unread'
+        // Active: percakapan berstatus 'active'
+        // Completed: percakapan berstatus 'completed'
+        final allList = cleanList;
+        final unreadList = cleanList
+            .where((c) => c.consultationStatus == 'unread')
+            .toList();
+        final activeList = cleanList
+            .where((c) => c.consultationStatus == 'active')
+            .toList();
+        final completedList = cleanList
+            .where((c) => c.consultationStatus == 'completed')
+            .toList();
 
         return SafeArea(
           child: Column(
@@ -125,48 +145,241 @@ class _DoctorChatListTabState extends State<DoctorChatListTab> {
                 ),
               ),
 
-              const SizedBox(height: 14),
+              const SizedBox(height: 12),
 
-              // ── Daftar Kartu Percakapan Pasien ──────────────────────────
+              // ── Horizontal Scrollable TabBar (WhatsApp-like) ───────────────
+              TabBar(
+                controller: _tabController,
+                isScrollable: true,
+                tabAlignment: TabAlignment.start,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                labelPadding: const EdgeInsets.symmetric(horizontal: 4),
+                indicatorColor: Colors.transparent,
+                dividerColor: Colors.transparent,
+                splashFactory: NoSplash.splashFactory,
+                overlayColor: WidgetStateProperty.all(Colors.transparent),
+                tabs: [
+                  _buildTabItem('All', allList.length, _tabController.index == 0),
+                  _buildTabItem(
+                      'Unread', unreadList.length, _tabController.index == 1),
+                  _buildTabItem(
+                      'Active', activeList.length, _tabController.index == 2),
+                  _buildTabItem('Completed', completedList.length,
+                      _tabController.index == 3),
+                ],
+              ),
+
+              const SizedBox(height: 8),
+
+              // ── TabBarView: Daftar Percakapan Tiap Kategori ────────────────
               Expanded(
-                child: filteredList.isEmpty
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: const [
-                            Icon(
-                              Icons.search_off_rounded,
-                              size: 48,
-                              color: Color(0xFFCBD5E1),
-                            ),
-                            SizedBox(height: 8),
-                            Text(
-                              'Percakapan tidak ditemukan',
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: Color(0xFF94A3B8),
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
-                        ),
-                      )
-                    : ListView.separated(
-                        physics: const BouncingScrollPhysics(),
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 20, vertical: 8),
-                        itemCount: filteredList.length,
-                        separatorBuilder: (_, _) => const SizedBox(height: 10),
-                        itemBuilder: (context, index) {
-                          final item = filteredList[index];
-                          return _buildPatientConversationCard(context, item);
-                        },
-                      ),
+                child: TabBarView(
+                  controller: _tabController,
+                  physics: const BouncingScrollPhysics(),
+                  children: [
+                    _buildCategoryList(allList, 'all'),
+                    _buildCategoryList(unreadList, 'unread'),
+                    _buildCategoryList(activeList, 'active'),
+                    _buildCategoryList(completedList, 'completed'),
+                  ],
+                ),
               ),
             ],
           ),
         );
       },
+    );
+  }
+
+  /// Tombol Tab kategori bergaya WhatsApp dengan badge hitungan dinamis
+  Widget _buildTabItem(String title, int count, bool isSelected) {
+    return Tab(
+      height: 38,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFFFEF3C7) : Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isSelected
+                ? const Color(0xFFF59E0B)
+                : const Color(0xFFE2E8F0),
+            width: isSelected ? 1.4 : 1.2,
+          ),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: const Color(0xFFF59E0B).withValues(alpha: 0.18),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+              : [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.02),
+                    blurRadius: 4,
+                    offset: const Offset(0, 1),
+                  ),
+                ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              title,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                color: isSelected
+                    ? const Color(0xFF92400E)
+                    : const Color(0xFF64748B),
+              ),
+            ),
+            if (count > 0) ...[
+              const SizedBox(width: 6),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                decoration: BoxDecoration(
+                  color: isSelected
+                      ? const Color(0xFFF59E0B)
+                      : const Color(0xFFE2E8F0),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  '$count',
+                  style: TextStyle(
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w800,
+                    color: isSelected ? Colors.white : const Color(0xFF475569),
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Membangun daftar chat untuk satu kategori spesifik dengan filter pencarian
+  Widget _buildCategoryList(
+    List<ConversationSummary> list,
+    String categoryType,
+  ) {
+    final filtered = list.where((item) {
+      if (_searchQuery.trim().isEmpty) return true;
+      final q = _searchQuery.toLowerCase();
+      return item.patientName.toLowerCase().contains(q) ||
+          item.lastMessage.toLowerCase().contains(q);
+    }).toList();
+
+    if (filtered.isEmpty) {
+      return _buildEmptyState(categoryType);
+    }
+
+    return ListView.separated(
+      physics: const BouncingScrollPhysics(),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      itemCount: filtered.length,
+      separatorBuilder: (_, _) => const SizedBox(height: 10),
+      itemBuilder: (context, index) {
+        final item = filtered[index];
+        return _buildPatientConversationCard(context, item);
+      },
+    );
+  }
+
+  /// Tampilan kosong khusus tiap kategori ketika tidak ada data atau hasil cari
+  Widget _buildEmptyState(String categoryType) {
+    final bool isSearching = _searchQuery.isNotEmpty;
+    IconData icon;
+    String title;
+    String subtitle;
+
+    switch (categoryType) {
+      case 'unread':
+        icon = isSearching
+            ? Icons.search_off_rounded
+            : Icons.mark_chat_unread_outlined;
+        title = isSearching
+            ? 'Pesan belum dibaca tidak ditemukan'
+            : 'Tidak ada pesan baru';
+        subtitle = isSearching
+            ? 'Coba gunakan kata kunci pencarian yang lain'
+            : 'Semua pesan baru dari pasien sudah Anda buka';
+        break;
+      case 'active':
+        icon = isSearching
+            ? Icons.search_off_rounded
+            : Icons.forum_outlined;
+        title = isSearching
+            ? 'Konsultasi aktif tidak ditemukan'
+            : 'Tidak ada konsultasi aktif';
+        subtitle = isSearching
+            ? 'Coba gunakan kata kunci pencarian yang lain'
+            : 'Buka pesan dari tab Unread untuk memulai sesi konsultasi';
+        break;
+      case 'completed':
+        icon = isSearching
+            ? Icons.search_off_rounded
+            : Icons.check_circle_outline_rounded;
+        title = isSearching
+            ? 'Riwayat konsultasi tidak ditemukan'
+            : 'Belum ada konsultasi selesai';
+        subtitle = isSearching
+            ? 'Coba gunakan kata kunci pencarian yang lain'
+            : 'Konsultasi yang telah diselesaikan akan tercatat di sini';
+        break;
+      case 'all':
+      default:
+        icon = isSearching
+            ? Icons.search_off_rounded
+            : Icons.chat_bubble_outline_rounded;
+        title = isSearching
+            ? 'Percakapan tidak ditemukan'
+            : 'Belum ada pesan masuk';
+        subtitle = isSearching
+            ? 'Coba gunakan kata kunci pencarian yang lain'
+            : 'Pesan dari pasien dan admin akan muncul di sini';
+        break;
+    }
+
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              size: 48,
+              color: const Color(0xFFCBD5E1),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 14,
+                color: Color(0xFF64748B),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              subtitle,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 12,
+                color: Color(0xFF94A3B8),
+                fontWeight: FontWeight.w400,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -189,7 +402,7 @@ class _DoctorChatListTabState extends State<DoctorChatListTab> {
 
         // Buka halaman chat konsultasi dalam POV DOKTER
         final doctor = doctorList.firstWhere(
-          (d) => d.id == 'doc_1',
+          (d) => d.id == item.doctorId,
           orElse: () => doctorList[0],
         );
 
@@ -204,6 +417,7 @@ class _DoctorChatListTabState extends State<DoctorChatListTab> {
               patientInitial: item.patientInitial,
               isPatientOnline: isPatientOnline,
               isDoctorPOV: true, // POV DOKTER AKTIF!
+              initialStatus: item.consultationStatus,
             ),
           ),
         );
@@ -243,19 +457,27 @@ class _DoctorChatListTabState extends State<DoctorChatListTab> {
                 Container(
                   width: 48,
                   height: 48,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFF59E0B), // Butter yellow / amber avatar
+                  decoration: BoxDecoration(
+                    color: item.isFromAdmin
+                        ? const Color(0xFF6B21A8) // Royal purple untuk admin
+                        : const Color(0xFFF59E0B), // Butter yellow / amber avatar
                     shape: BoxShape.circle,
                   ),
                   child: Center(
-                    child: Text(
-                      item.patientInitial,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w800,
-                        color: Colors.white,
-                      ),
-                    ),
+                    child: item.isFromAdmin
+                        ? const Icon(
+                            Icons.shield_rounded,
+                            size: 24,
+                            color: Colors.white,
+                          )
+                        : Text(
+                            item.patientInitial,
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w800,
+                              color: Colors.white,
+                            ),
+                          ),
                   ),
                 ),
                 // Indikator status (hijau = online, abu-abu = offline)
@@ -302,6 +524,28 @@ class _DoctorChatListTabState extends State<DoctorChatListTab> {
                           ),
                         ),
                       ),
+                      if (item.isFromAdmin) ...[
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF3E8FF),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(
+                                color: const Color(0xFFD8B4FE), width: 0.8),
+                          ),
+                          child: const Text(
+                            'ADMIN',
+                            style: TextStyle(
+                              fontSize: 9.5,
+                              fontWeight: FontWeight.w800,
+                              color: Color(0xFF6B21A8),
+                              letterSpacing: 0.4,
+                            ),
+                          ),
+                        ),
+                      ],
                       const SizedBox(width: 8),
                       // Keterangan status Online / Offline
                       _buildStatusBadge(isPatientOnline),

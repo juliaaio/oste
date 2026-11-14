@@ -15,10 +15,10 @@ class AppConfig {
   AppConfig._();
 
   /// Base URL backend FastAPI.
-  /// Default: 'http://10.0.2.2:8000' (alamat host mesin pengembangan dari Android Emulator).
+  /// Default: 'http://192.168.18.107:8000' (alamat IP LAN saat ini).
   static const String baseUrl = String.fromEnvironment(
     'BASE_URL',
-    defaultValue: 'http://10.0.2.2:8000',
+    defaultValue: 'http://192.168.18.107:8000',
   );
 }
 
