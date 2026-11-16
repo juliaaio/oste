@@ -88,7 +88,7 @@ class PatientPresenceService extends ChangeNotifier {
           .snapshots()
           .listen((snapshot) {
         for (final doc in snapshot.docs) {
-          final data = doc.data() as Map<String, dynamic>? ?? {};
+          final data = doc.data();
           final patientUid = doc.id;
           final isOnline = data['isOnline'] as bool? ?? false;
           _onlineStatus[patientUid] = isOnline;
@@ -115,8 +115,8 @@ class PatientPresenceService extends ChangeNotifier {
           .snapshots()
           .listen((doc) {
         if (doc.exists) {
-          final data = doc.data() as Map<String, dynamic>? ?? {};
-          _onlineStatus[patientUid] = data['isOnline'] as bool? ?? false;
+          final data = doc.data();
+          _onlineStatus[patientUid] = data?['isOnline'] as bool? ?? false;
         } else {
           _onlineStatus[patientUid] = _onlineStatus[patientUid] ?? false;
         }

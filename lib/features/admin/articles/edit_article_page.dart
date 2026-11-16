@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../services/article_service.dart';
 import 'admin_article_model.dart';
 import 'admin_article_store.dart';
 
@@ -82,6 +83,7 @@ class _EditArticlePageState extends State<EditArticlePage> {
   late TextEditingController _summaryController;
   late TextEditingController _contentController;
   late TextEditingController _sourceController;
+  late TextEditingController _urlController;
 
   late String _selectedCategory;
   late String _selectedImageAsset;
@@ -119,6 +121,7 @@ class _EditArticlePageState extends State<EditArticlePage> {
     _sourceController = TextEditingController(
       text: a.source.isNotEmpty ? a.source : 'Alodokter, 2024',
     );
+    _urlController = TextEditingController(text: a.url);
 
     // Kategori
     if (_categories.contains(a.category)) {
@@ -140,6 +143,7 @@ class _EditArticlePageState extends State<EditArticlePage> {
     _summaryController.dispose();
     _contentController.dispose();
     _sourceController.dispose();
+    _urlController.dispose();
     super.dispose();
   }
 
@@ -255,52 +259,55 @@ class _EditArticlePageState extends State<EditArticlePage> {
     setState(() => _isLoading = true);
 
     final statusText = _isPublished ? 'Dipublikasikan' : 'Draft';
+    final title = _titleController.text.trim();
+    final summary = _summaryController.text.trim();
+    final content = _contentController.text.trim();
+    final source = _sourceController.text.trim().isNotEmpty
+        ? _sourceController.text.trim()
+        : 'Alodokter, 2024';
+    final url = _urlController.text.trim();
 
     final updated = widget.article.copyWith(
-      title: _titleController.text.trim(),
+      title: title,
       category: _selectedCategory,
       imageAsset: _selectedImageAsset,
-      source: _sourceController.text.trim().isNotEmpty
-          ? _sourceController.text.trim()
-          : 'Alodokter, 2024',
-      description: _summaryController.text.trim().isNotEmpty
-          ? _summaryController.text.trim()
-          : _contentController.text.trim(),
-      content: _contentController.text.trim(),
+      source: source,
+      description: summary.isNotEmpty ? summary : content,
+      content: content,
+      url: url,
       status: statusText,
     );
 
-    // [FIREBASE_INTEGRATION_POINT]
-    // Untuk tahap Firestore nantinya, aktifkan perintah berikut:
-    // try {
-    //   await FirebaseFirestore.instance.collection('articles').doc(widget.article.id).update({
-    //     'title': updated.title,
-    //     'category': updated.category,
-    //     'imageAsset': updated.imageAsset,
-    //     'source': updated.source,
-    //     'description': updated.description,
-    //     'content': updated.content,
-    //     'status': updated.status,
-    //     'updatedAt': FieldValue.serverTimestamp(),
-    //   });
-    // } catch (e) { ... }
+    try {
+      // Simpan perubahan ke shared repository (otomatis memperbarui memori lokal dan Firestore)
+      await ArticleRepository().updateArticle(updated);
 
-    // Simpan ke in-memory store aktif aplikasi
-    AdminArticleStore().updateArticle(updated);
+      if (!mounted) return;
+      setState(() => _isLoading = false);
 
-    if (!mounted) return;
-    setState(() => _isLoading = false);
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Perubahan artikel "${updated.title}" berhasil disimpan.'),
+          backgroundColor: const Color(0xFF16A34A),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
 
-    ScaffoldMessenger.of(context).hideCurrentSnackBar();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Perubahan artikel "${updated.title}" berhasil disimpan.'),
-        backgroundColor: const Color(0xFF16A34A),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
+      Navigator.pop(context);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isLoading = false);
 
-    Navigator.pop(context);
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Gagal memperbarui artikel di Firestore: $e'),
+          backgroundColor: _EditArticleColors.requiredRed,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
 
   @override
@@ -380,6 +387,15 @@ class _EditArticlePageState extends State<EditArticlePage> {
                     _buildTextInput(
                       controller: _sourceController,
                       hintText: 'Masukkan sumber artikel (opsional)',
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    // 5b. Link / Tautan Artikel (URL)
+                    _buildFieldLabel('Tautan / Link Artikel (URL)', isRequired: false),
+                    _buildTextInput(
+                      controller: _urlController,
+                      hintText: 'https://www.alodokter.com/... (opsional)',
                     ),
 
                     const SizedBox(height: 16),

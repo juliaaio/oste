@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../services/article_service.dart';
 import 'admin_article_model.dart';
 import 'admin_article_store.dart';
 
@@ -85,6 +86,7 @@ class _AddArticlePageState extends State<AddArticlePage> {
   final TextEditingController _summaryController = TextEditingController();
   final TextEditingController _contentController = TextEditingController();
   final TextEditingController _sourceController = TextEditingController();
+  final TextEditingController _urlController = TextEditingController();
 
   String? _selectedCategory;
   String _publicationStatus = 'Published'; // 'Published' atau 'Draft'
@@ -116,6 +118,7 @@ class _AddArticlePageState extends State<AddArticlePage> {
     _summaryController.dispose();
     _contentController.dispose();
     _sourceController.dispose();
+    _urlController.dispose();
     super.dispose();
   }
 
@@ -253,57 +256,59 @@ class _AddArticlePageState extends State<AddArticlePage> {
     // 2. Persiapan Data Artikel
     final isPublished = _publicationStatus == 'Published';
     final statusIndo = isPublished ? 'Dipublikasikan' : 'Draft';
+    final title = _titleController.text.trim();
+    final summary = _summaryController.text.trim();
+    final content = _contentController.text.trim();
+    final source = _sourceController.text.trim().isNotEmpty
+        ? _sourceController.text.trim()
+        : 'Osteo Admin';
+    final url = _urlController.text.trim();
 
-    final newArticle = AdminArticleItem(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
-      title: _titleController.text.trim(),
-      category: _selectedCategory!,
-      date: dateFormatted,
-      status: statusIndo,
-      imageAsset: _selectedImageAsset,
-      source: _sourceController.text.trim().isNotEmpty
-          ? _sourceController.text.trim()
-          : 'Osteo Admin',
-      description: _summaryController.text.trim().isNotEmpty
-          ? _summaryController.text.trim()
-          : _contentController.text.trim(),
-      content: _contentController.text.trim(),
-    );
+    try {
+      final newArticle = ArticleModel(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        title: title,
+        category: _selectedCategory!,
+        date: dateFormatted,
+        status: statusIndo,
+        imageAsset: _selectedImageAsset,
+        source: source,
+        description: summary.isNotEmpty ? summary : content,
+        content: content,
+        url: url,
+      );
 
-    // [FIREBASE_INTEGRATION_POINT]
-    // Untuk tahap database nantinya, hubungkan Firestore di sini:
-    // try {
-    //   await FirebaseFirestore.instance.collection('articles').add({
-    //     'title': newArticle.title,
-    //     'category': newArticle.category,
-    //     'date': newArticle.date,
-    //     'status': newArticle.status,
-    //     'imageAsset': newArticle.imageAsset,
-    //     'source': newArticle.source,
-    //     'description': newArticle.description,
-    //     'content': newArticle.content,
-    //     'createdAt': FieldValue.serverTimestamp(),
-    //   });
-    // } catch (e) { ... }
+      // Simpan ke repository bersama (otomatis memperbarui memori lokal dan Firestore)
+      await ArticleRepository().addArticle(newArticle);
 
-    // Simpan ke in-memory store aktif aplikasi
-    AdminArticleStore().addArticle(newArticle);
+      if (!mounted) return;
+      setState(() => _isLoading = false);
 
-    if (!mounted) return;
-    setState(() => _isLoading = false);
+      // Notifikasi berhasil
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Artikel "$title" berhasil disimpan sebagai $statusIndo.'),
+          backgroundColor: const Color(0xFF16A34A),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
 
-    // Notifikasi berhasil
-    ScaffoldMessenger.of(context).hideCurrentSnackBar();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Artikel "${newArticle.title}" berhasil disimpan sebagai $statusIndo.'),
-        backgroundColor: const Color(0xFF16A34A),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
+      // Kembali ke halaman sebelumnya
+      Navigator.pop(context);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isLoading = false);
 
-    // Kembali ke halaman sebelumnya
-    Navigator.pop(context);
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Gagal menyimpan artikel ke Firestore: $e'),
+          backgroundColor: _AddArticleColors.requiredRed,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
 
   @override
@@ -383,6 +388,15 @@ class _AddArticlePageState extends State<AddArticlePage> {
                     _buildTextInput(
                       controller: _sourceController,
                       hintText: 'Masukkan sumber artikel (opsional)',
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    // 5b. Link / Tautan Artikel
+                    _buildFieldLabel('Tautan / Link Artikel (URL)', isRequired: false),
+                    _buildTextInput(
+                      controller: _urlController,
+                      hintText: 'https://www.alodokter.com/... (opsional)',
                     ),
 
                     const SizedBox(height: 16),

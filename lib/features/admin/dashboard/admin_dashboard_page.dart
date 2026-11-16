@@ -2,11 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:oste/features/admin/articles/admin_articles_page.dart';
 import 'package:oste/features/admin/articles/add_article_page.dart';
 import 'package:oste/features/admin/articles/admin_article_store.dart';
+import 'package:oste/features/admin/articles/admin_article_detail_page.dart';
 import 'package:oste/features/admin/chat/admin_doctor_list_page.dart';
 import 'package:oste/features/admin/profile/admin_profile_page.dart';
 import 'package:oste/features/education/articles/article_data.dart';
 import 'package:oste/features/education/articles/article_detail_page.dart';
+import 'package:oste/services/article_service.dart';
 import 'package:oste/services/chat_service.dart';
+import 'package:oste/services/doctor_repository.dart';
 import 'package:oste/services/user_service.dart';
 
 /// Palet warna tema Admin Dashboard Osteoporosis sesuai acuan desain
@@ -115,6 +118,10 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     super.initState();
     final adminUid = UserService().currentUser?.uid ?? 'admin_osteo';
     ChatService().startListeningPatientConversations(adminUid);
+    // Sinkronisasi artikel default ke Firestore jika koleksi masih kosong
+    ArticleService().seedDefaultArticlesIfEmpty();
+    // Sinkronisasi dokter default ke Firestore jika koleksi masih kosong
+    DoctorRepository().seedDefaultDoctorsIfEmpty();
   }
 
   @override
@@ -781,124 +788,166 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
   }
 
   Widget _buildArticleCard(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: _AdminColors.cardSurface,
-        borderRadius: BorderRadius.circular(22),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF0F172A).withValues(alpha: 0.04),
-            blurRadius: 14,
-            offset: const Offset(0, 4),
+    return AnimatedBuilder(
+      animation: AdminArticleStore(),
+      builder: (context, _) {
+        final articles = AdminArticleStore().articles;
+        final latest = articles.isNotEmpty ? articles.first : null;
+
+        final title = latest?.title ?? 'Mengenal Osteoporosis';
+        final status = latest?.status ?? 'Dipublikasikan';
+        final isPublished = latest?.isPublished ?? true;
+        final imageAsset =
+            latest?.imageAsset ?? 'assets/images/osteoporosis_hero.jpg';
+
+        return Container(
+          decoration: BoxDecoration(
+            color: _AdminColors.cardSurface,
+            borderRadius: BorderRadius.circular(22),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF0F172A).withValues(alpha: 0.04),
+                blurRadius: 14,
+                offset: const Offset(0, 4),
+              ),
+            ],
           ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(22),
-          onTap: () {
-            // Jika data artikel tersedia, buka detail artikel
-            if (ArticleData.articles.isNotEmpty) {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => ArticleDetailPage(
-                    article: ArticleData.articles.first,
-                  ),
-                ),
-              );
-            }
-          },
-          child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: Row(
-              children: [
-                // Thumbnail Gambar Tulang Belakang (Osteoporosis Hero)
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(14),
-                  child: Image.asset(
-                    'assets/images/osteoporosis_hero.jpg',
-                    width: 68,
-                    height: 68,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => Container(
-                      width: 68,
-                      height: 68,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFE2E8F0),
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: const Icon(
-                        Icons.image_outlined,
-                        color: _AdminColors.textLight,
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(22),
+              onTap: () {
+                if (latest != null) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => AdminArticleDetailPage(article: latest),
+                    ),
+                  );
+                } else if (ArticleData.articles.isNotEmpty) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => ArticleDetailPage(
+                        article: ArticleData.articles.first,
                       ),
                     ),
-                  ),
-                ),
-                const SizedBox(width: 14),
-
-                // Judul Artikel & Badge Status Dipublikasikan
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Mengenal\nOsteoporosis',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          color: _AdminColors.textHeading,
-                          height: 1.25,
-                        ),
-                      ),
-                      const SizedBox(height: 7),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 3.5,
-                        ),
-                        decoration: BoxDecoration(
-                          color: _AdminColors.badgeGreenBg,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Container(
-                              width: 6.5,
-                              height: 6.5,
-                              decoration: const BoxDecoration(
-                                color: _AdminColors.checkmarkGreen,
-                                shape: BoxShape.circle,
+                  );
+                }
+              },
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Row(
+                  children: [
+                    // Thumbnail Gambar Artikel
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(14),
+                      child: SizedBox(
+                        width: 68,
+                        height: 68,
+                        child: imageAsset.startsWith('http')
+                            ? Image.network(
+                                imageAsset,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) =>
+                                    _buildImagePlaceholder(),
+                              )
+                            : Image.asset(
+                                imageAsset,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) =>
+                                    _buildImagePlaceholder(),
                               ),
-                            ),
-                            const SizedBox(width: 5),
-                            const Text(
-                              'Dipublikasikan',
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                                color: _AdminColors.badgeGreenText,
-                              ),
-                            ),
-                          ],
-                        ),
                       ),
-                    ],
-                  ),
-                ),
+                    ),
+                    const SizedBox(width: 14),
 
-                // Ikon Chevron Panah Kanan
-                const Icon(
-                  Icons.chevron_right_rounded,
-                  color: _AdminColors.textDark,
-                  size: 24,
+                    // Judul Artikel & Badge Status Dipublikasikan
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            title,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color: _AdminColors.textHeading,
+                              height: 1.25,
+                            ),
+                          ),
+                          const SizedBox(height: 7),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 3.5,
+                            ),
+                            decoration: BoxDecoration(
+                              color: isPublished
+                                  ? _AdminColors.badgeGreenBg
+                                  : const Color(0xFFFEF3C7),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Container(
+                                  width: 6.5,
+                                  height: 6.5,
+                                  decoration: BoxDecoration(
+                                    color: isPublished
+                                        ? _AdminColors.checkmarkGreen
+                                        : const Color(0xFFF59E0B),
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                                const SizedBox(width: 5),
+                                Text(
+                                  status,
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                    color: isPublished
+                                        ? _AdminColors.badgeGreenText
+                                        : const Color(0xFFB45309),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // Ikon Chevron Panah Kanan
+                    const Icon(
+                      Icons.chevron_right_rounded,
+                      color: _AdminColors.textDark,
+                      size: 24,
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
-        ),
+        );
+      },
+    );
+  }
+
+  Widget _buildImagePlaceholder() {
+    return Container(
+      width: 68,
+      height: 68,
+      decoration: BoxDecoration(
+        color: const Color(0xFFE2E8F0),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: const Icon(
+        Icons.image_outlined,
+        color: _AdminColors.textLight,
       ),
     );
   }

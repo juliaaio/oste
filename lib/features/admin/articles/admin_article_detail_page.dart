@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../services/article_service.dart';
 import 'admin_article_model.dart';
 import 'admin_article_store.dart';
 import 'edit_article_page.dart';
@@ -636,22 +637,26 @@ class AdminArticleDetailPage extends StatelessWidget {
             ),
           ),
           ElevatedButton(
-            onPressed: () {
-              // Hapus dari store
-              AdminArticleStore().deleteArticle(current.id);
+            onPressed: () async {
+              try {
+                await ArticleRepository().deleteArticle(current.id);
+              } catch (_) {}
               // Tutup dialog
-              Navigator.pop(dialogCtx);
+              if (dialogCtx.mounted) {
+                Navigator.pop(dialogCtx);
+              }
               // Kembali ke halaman Kelola Artikel
-              Navigator.pop(context);
-              // Tampilkan snackbar notifikasi sukses
-              ScaffoldMessenger.of(context).hideCurrentSnackBar();
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Artikel "${current.title}" berhasil dihapus.'),
-                  backgroundColor: _DetailColors.deleteRed,
-                  behavior: SnackBarBehavior.floating,
-                ),
-              );
+              if (context.mounted) {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Artikel "${current.title}" berhasil dihapus.'),
+                    backgroundColor: _DetailColors.deleteRed,
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+              }
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: _DetailColors.deleteRed,

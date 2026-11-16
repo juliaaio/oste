@@ -96,24 +96,43 @@ class ArticleDetailPage extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         child: AspectRatio(
           aspectRatio: 16 / 9,
-          child: Image.asset(
-            article.heroAssetPath,
-            fit: BoxFit.cover,
-            errorBuilder: (context, error, stackTrace) => Image.network(
-              article.thumbnailUrl,
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) => Container(
-                color: const Color(0xFFFFFBEB),
-                child: const Center(
-                  child: Icon(
-                    Icons.image_outlined,
-                    size: 48,
-                    color: Color(0xFFE5A124),
-                  ),
+          child: article.heroAssetPath.startsWith('http')
+              ? Image.network(
+                  article.heroAssetPath,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) =>
+                      _buildHeroFallback(context),
+                )
+              : Image.asset(
+                  article.heroAssetPath,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) =>
+                      _buildHeroFallback(context),
                 ),
-              ),
-            ),
-          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeroFallback(BuildContext context) {
+    if (article.thumbnailUrl.startsWith('http')) {
+      return Image.network(
+        article.thumbnailUrl,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) => _buildHeroPlaceholder(),
+      );
+    }
+    return _buildHeroPlaceholder();
+  }
+
+  Widget _buildHeroPlaceholder() {
+    return Container(
+      color: const Color(0xFFFFFBEB),
+      child: const Center(
+        child: Icon(
+          Icons.image_outlined,
+          size: 48,
+          color: Color(0xFFE5A124),
         ),
       ),
     );
@@ -759,70 +778,72 @@ class ArticleDetailPage extends StatelessWidget {
               color: Color(0xFF1E293B),
             ),
           ),
-          const SizedBox(height: 10),
+          if (article.url.isNotEmpty) ...[
+            const SizedBox(height: 10),
 
-          // Tautan URL Sumber Berwarna Kuning dan tetap bisa diklik
-          Material(
-            color: Colors.transparent,
-            child: InkWell(
-              onTap: () => _launchExternalUrl(article.url),
-              borderRadius: BorderRadius.circular(6),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 4),
-                child: Row(
-                  children: [
-                    const Icon(
-                      Icons.link_rounded,
-                      size: 18,
-                      color: Color(0xFFF59E0B),
-                    ),
-                    const SizedBox(width: 6),
-                    Expanded(
-                      child: Text(
-                        article.url,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 12.5,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFFF59E0B),
-                          decoration: TextDecoration.underline,
-                          decorationColor: Color(0xFFF59E0B),
+            // Tautan URL Sumber Berwarna Kuning dan tetap bisa diklik
+            Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: () => _launchExternalUrl(article.url),
+                borderRadius: BorderRadius.circular(6),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.link_rounded,
+                        size: 18,
+                        color: Color(0xFFF59E0B),
+                      ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          article.url,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFFF59E0B),
+                            decoration: TextDecoration.underline,
+                            decorationColor: Color(0xFFF59E0B),
+                          ),
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
-          ),
-          const SizedBox(height: 14),
+            const SizedBox(height: 14),
 
-          // Tombol Buka Website Eksternal berwarna kuning dan tetap bisa diklik
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              onPressed: () => _launchExternalUrl(article.url),
-              icon: const Icon(Icons.open_in_new_rounded, size: 16, color: Color(0xFF1E293B)),
-              label: Text(
-                article.sourceActionLabel,
-                style: const TextStyle(
-                  fontSize: 13.5,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF1E293B),
+            // Tombol Buka Website Eksternal berwarna kuning dan tetap bisa diklik
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () => _launchExternalUrl(article.url),
+                icon: const Icon(Icons.open_in_new_rounded, size: 16, color: Color(0xFF1E293B)),
+                label: Text(
+                  article.sourceActionLabel,
+                  style: const TextStyle(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF1E293B),
+                  ),
                 ),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFF59E0B),
-                foregroundColor: const Color(0xFF1E293B),
-                elevation: 0,
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFF59E0B),
+                  foregroundColor: const Color(0xFF1E293B),
+                  elevation: 0,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
               ),
             ),
-          ),
+          ],
         ],
       ),
     );

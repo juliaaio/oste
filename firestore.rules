@@ -147,5 +147,15 @@ service cloud.firestore {
       allow read: if isAuthenticated();
       allow write: if isAuthenticated();
     }
+
+    // -------------------------------------------------------------------------
+    // 9. Koleksi Data Dokter (doctors)
+    // -------------------------------------------------------------------------
+    // - Semua pengguna terautentikasi dapat membaca data profil dokter.
+    // - Hanya Admin yang terverifikasi di koleksi admins yang dapat menulis/mengelola dokter.
+    match /doctors/{doctorId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
   }
 }

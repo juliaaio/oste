@@ -16,6 +16,8 @@ import 'package:oste/services/chat_service.dart';
 import 'package:oste/services/history_service.dart';
 import 'package:oste/services/patient_presence_service.dart';
 import 'package:oste/services/user_service.dart';
+import 'package:oste/services/article_repository.dart';
+import 'package:oste/services/article_service.dart';
 
 /// Definisi palet warna resmi Osteo Dashboard sesuai spesifikasi
 class _DashboardColors {
@@ -1533,64 +1535,73 @@ class _ArticleCarouselSectionState extends State<_ArticleCarouselSection> {
 
   @override
   Widget build(BuildContext context) {
-    final articles = ArticleData.articles;
+    return AnimatedBuilder(
+      animation: ArticleRepository(),
+      builder: (context, _) {
+        final articles = ArticleRepository().publishedArticles;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Header
-        const Text(
-          'Artikel Terkait Osteoporosis',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w700,
-            color: _DashboardColors.textDark,
-            letterSpacing: -0.2,
-          ),
-        ),
-        const SizedBox(height: 12),
+        if (_currentPage >= articles.length) {
+          _currentPage = 0;
+        }
 
-        // Carousel horizontal
-        SizedBox(
-          height: 132,
-          child: PageView.builder(
-            controller: _pageController,
-            itemCount: articles.length,
-            onPageChanged: (i) => setState(() => _currentPage = i),
-            itemBuilder: (context, index) {
-              final a = articles[index];
-              return Padding(
-                padding: const EdgeInsets.only(right: 12),
-                child: _ArticleCard(
-                  data: a,
-                  onTap: () => _openArticleDetail(a),
-                ),
-              );
-            },
-          ),
-        ),
-        const SizedBox(height: 12),
-
-        // Dot indicator
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: List.generate(articles.length, (i) {
-            final isActive = i == _currentPage;
-            return AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              margin: const EdgeInsets.symmetric(horizontal: 3),
-              width: isActive ? 18 : 6,
-              height: 6,
-              decoration: BoxDecoration(
-                color: isActive
-                    ? _DashboardColors.orange
-                    : _DashboardColors.abuMuda,
-                borderRadius: BorderRadius.circular(3),
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header
+            const Text(
+              'Artikel Terkait Osteoporosis',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: _DashboardColors.textDark,
+                letterSpacing: -0.2,
               ),
-            );
-          }),
-        ),
-      ],
+            ),
+            const SizedBox(height: 12),
+
+            // Carousel horizontal
+            SizedBox(
+              height: 132,
+              child: PageView.builder(
+                controller: _pageController,
+                itemCount: articles.length,
+                onPageChanged: (i) => setState(() => _currentPage = i),
+                itemBuilder: (context, index) {
+                  final a = articles[index];
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 12),
+                    child: _ArticleCard(
+                      data: a,
+                      onTap: () => _openArticleDetail(a),
+                    ),
+                  );
+                },
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // Dot indicator
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: List.generate(articles.length, (i) {
+                final isActive = i == _currentPage;
+                return AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  margin: const EdgeInsets.symmetric(horizontal: 3),
+                  width: isActive ? 18 : 6,
+                  height: 6,
+                  decoration: BoxDecoration(
+                    color: isActive
+                        ? _DashboardColors.orange
+                        : _DashboardColors.abuMuda,
+                    borderRadius: BorderRadius.circular(3),
+                  ),
+                );
+              }),
+            ),
+          ],
+        );
+      },
     );
   }
 }
@@ -1641,24 +1652,17 @@ class _ArticleCard extends StatelessWidget {
                 child: SizedBox(
                   width: 118,
                   height: double.infinity,
-                  child: Image.asset(
-                    data.heroAssetPath,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, _, _) => Image.network(
-                      data.thumbnailUrl,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, _, _) => Container(
-                        color: _DashboardColors.lightOrange,
-                        child: const Center(
-                          child: Icon(
-                            Icons.article_outlined,
-                            size: 32,
-                            color: _DashboardColors.orange,
-                          ),
+                  child: data.heroAssetPath.startsWith('http')
+                      ? Image.network(
+                          data.heroAssetPath,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, _, _) => _buildFallbackImage(),
+                        )
+                      : Image.asset(
+                          data.heroAssetPath,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, _, _) => _buildFallbackImage(),
                         ),
-                      ),
-                    ),
-                  ),
                 ),
               ),
 
@@ -1785,6 +1789,30 @@ class _ArticleCard extends StatelessWidget {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFallbackImage() {
+    if (data.thumbnailUrl.startsWith('http')) {
+      return Image.network(
+        data.thumbnailUrl,
+        fit: BoxFit.cover,
+        errorBuilder: (_, _, _) => _buildPlaceholder(),
+      );
+    }
+    return _buildPlaceholder();
+  }
+
+  Widget _buildPlaceholder() {
+    return Container(
+      color: _DashboardColors.lightOrange,
+      child: const Center(
+        child: Icon(
+          Icons.article_outlined,
+          size: 32,
+          color: _DashboardColors.orange,
         ),
       ),
     );

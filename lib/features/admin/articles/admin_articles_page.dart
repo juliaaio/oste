@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../services/article_service.dart';
 import 'admin_article_model.dart';
 import 'admin_article_store.dart';
 import 'admin_article_detail_page.dart';
@@ -586,17 +587,23 @@ class _AdminArticlesPageState extends State<AdminArticlesPage> {
             ),
           ),
           ElevatedButton(
-            onPressed: () {
-              AdminArticleStore().deleteArticle(item.id);
-              Navigator.pop(dialogCtx);
-              ScaffoldMessenger.of(context).hideCurrentSnackBar();
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Artikel "${item.title}" berhasil dihapus.'),
-                  backgroundColor: _AdminColors.deleteRed,
-                  behavior: SnackBarBehavior.floating,
-                ),
-              );
+            onPressed: () async {
+              try {
+                await ArticleRepository().deleteArticle(item.id);
+              } catch (_) {}
+              if (dialogCtx.mounted) {
+                Navigator.pop(dialogCtx);
+              }
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Artikel "${item.title}" berhasil dihapus.'),
+                    backgroundColor: _AdminColors.deleteRed,
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+              }
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: _AdminColors.deleteRed,

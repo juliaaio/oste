@@ -1,9 +1,15 @@
 import 'package:flutter/material.dart';
+import '../../../services/article_repository.dart';
 import 'article_model.dart';
 
 /// Repository data artikel edukasi osteoporosis
 class ArticleData {
-  static const List<ArticleModel> articles = [
+  /// Getter artikel aktif yang terhubung dengan single source of truth [ArticleRepository]
+  static List<ArticleModel> get articles =>
+      ArticleRepository().publishedArticles;
+
+  /// Sumber data artikel awal yang digunakan untuk inisialisasi tanpa duplikasi
+  static const List<ArticleModel> initialArticles = [
     // 1. Artikel Utama: Mengenal Osteoporosis (Alodokter)
     ArticleModel(
       id: 'mengenal-osteoporosis',
@@ -11,7 +17,10 @@ class ArticleData {
       sourceColor: Color(0xFF0A7AFF),
       sourceInitial: 'A',
       title: 'Mengenal Osteoporosis',
+      category: 'Edukasi Tulang',
       appBarTitle: 'Osteoporosis',
+      date: '12 Okt 2026',
+      status: 'Dipublikasikan',
       description:
           'Kenali penyebab, gejala, faktor risiko, dan cara mencegah osteoporosis.',
       url: 'https://www.alodokter.com/osteoporosis',
@@ -230,7 +239,10 @@ class ArticleData {
       sourceColor: Color(0xFF00897B),
       sourceInitial: 'K',
       title: 'Jenis Osteoporosis dan Cara Mencegahnya',
+      category: 'Pencegahan',
       appBarTitle: 'Jenis Osteoporosis & Pencegahan',
+      date: '15 Okt 2026',
+      status: 'Dipublikasikan',
       description:
           'Kenali jenis-jenis osteoporosis dan langkah pencegahannya untuk menjaga kesehatan tulang.',
       url:
@@ -308,7 +320,10 @@ class ArticleData {
       sourceColor: Color(0xFF0055B7),
       sourceInitial: 'A',
       title: 'Pencegahan Osteoporosis Sejak Usia Muda',
+      category: 'Gaya Hidup',
       appBarTitle: 'Pencegahan Sejak Dini',
+      date: '18 Okt 2026',
+      status: 'Dipublikasikan',
       description:
           'Pelajari langkah pencegahan osteoporosis sejak dini untuk menjaga kesehatan dan kekuatan tulang.',
       url:
@@ -421,7 +436,10 @@ class ArticleData {
       sourceColor: Color(0xFF018AAC),
       sourceInitial: 'H',
       title: 'Mitos dan Fakta Osteoporosis',
+      category: 'Fakta Medis',
       appBarTitle: 'Mitos & Fakta',
+      date: '20 Okt 2026',
+      status: 'Dipublikasikan',
       description:
           'Kupas tuntas 6 mitos keliru seputar osteoporosis dan fakta medis penting dari Holistic Bodyworks.',
       url:
@@ -548,7 +566,10 @@ class ArticleData {
       sourceColor: Color(0xFF358888),
       sourceInitial: 'R',
       title: 'Skrining & Deteksi Osteoporosis',
+      category: 'Diagnosis',
       appBarTitle: 'Skrining & Deteksi',
+      date: '22 Okt 2026',
+      status: 'Dipublikasikan',
       description:
           'Pelajari faktor risiko, skrining dini, dan pemeriksaan kepadatan tulang untuk mendeteksi osteoporosis.',
       url:

@@ -68,7 +68,7 @@ void main() {
 
       expect(find.byIcon(Icons.arrow_back_rounded), findsOneWidget);
       expect(find.text('Daftar Dokter'), findsOneWidget);
-      expect(find.text('Cari dokter atau spesialisasi'), findsOneWidget);
+      expect(find.text('Cari nama dokter atau spesialisasi'), findsOneWidget);
       expect(find.byType(DoctorCard), findsWidgets);
     });
 

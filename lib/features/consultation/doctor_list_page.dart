@@ -6,6 +6,7 @@ import 'package:oste/features/dashboard/dashboard_page.dart';
 import 'package:oste/models/doctor_model.dart';
 import 'package:oste/services/chat_service.dart';
 import 'package:oste/services/doctor_presence_service.dart';
+import 'package:oste/services/doctor_repository.dart';
 import 'package:oste/services/doctor_review_service.dart';
 import 'package:oste/services/doctor_schedule_service.dart';
 import 'package:oste/services/user_service.dart';
@@ -73,12 +74,15 @@ class _DoctorListPageState extends State<DoctorListPage> {
 
   @override
   Widget build(BuildContext context) {
-    final filtered = _filteredDoctors;
+    return AnimatedBuilder(
+      animation: DoctorRepository(),
+      builder: (context, _) {
+        final filtered = _filteredDoctors;
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFFFFEFA),
-      body: SafeArea(
-        bottom: false,
+        return Scaffold(
+          backgroundColor: const Color(0xFFFFFEFA),
+          body: SafeArea(
+            bottom: false,
         child: Column(
           children: [
             // 1. Header Halaman dengan Tombol Kembali, Judul, Subtitle & Ilustrasi 3D
@@ -499,5 +503,7 @@ class _DoctorListPageState extends State<DoctorListPage> {
         ),
       ),
     );
-  }
+  },
+);
+}
 }
