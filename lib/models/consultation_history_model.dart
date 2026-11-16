@@ -14,6 +14,8 @@ class ConsultationHistory {
   final String nutritionRecommendation;
   final String followUpAdvice;
   final List<ChatMessage> messages;
+  final String? patientName;
+  final String? patientId;
 
   const ConsultationHistory({
     required this.id,
@@ -28,6 +30,8 @@ class ConsultationHistory {
     this.followUpAdvice =
         'Lakukan kontrol berkala atau evaluasi lanjutan dalam 1-3 bulan ke depan.',
     this.messages = const [],
+    this.patientName,
+    this.patientId,
   });
 
   ConsultationHistory copyWith({
@@ -42,6 +46,8 @@ class ConsultationHistory {
     String? nutritionRecommendation,
     String? followUpAdvice,
     List<ChatMessage>? messages,
+    String? patientName,
+    String? patientId,
   }) {
     return ConsultationHistory(
       id: id ?? this.id,
@@ -57,6 +63,8 @@ class ConsultationHistory {
           nutritionRecommendation ?? this.nutritionRecommendation,
       followUpAdvice: followUpAdvice ?? this.followUpAdvice,
       messages: messages ?? this.messages,
+      patientName: patientName ?? this.patientName,
+      patientId: patientId ?? this.patientId,
     );
   }
 }

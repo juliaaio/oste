@@ -51,15 +51,20 @@ class _DoctorChatListTabState extends State<DoctorChatListTab>
 
         // 2. Bagi menjadi 4 kategori saling lepas (mutually exclusive)
         // All: seluruh percakapan pasien
-        // Unread: percakapan berstatus 'unread'
-        // Active: percakapan berstatus 'active'
-        // Completed: percakapan berstatus 'completed'
+        // Unread: chat yang benar-benar belum dibaca dokter (unreadCountDoctor > 0)
+        // Active: konsultasi berlangsung DAN pasien sedang Online
+        // Completed: konsultasi yang statusnya selesai
         final allList = cleanList;
         final unreadList = cleanList
-            .where((c) => c.consultationStatus == 'unread')
+            .where((c) => c.unreadCountDoctor > 0)
             .toList();
         final activeList = cleanList
-            .where((c) => c.consultationStatus == 'active')
+            .where((c) =>
+                c.consultationStatus != 'completed' &&
+                PatientPresenceService().isOnline(
+                  c.patientId,
+                  fallback: c.isOnline,
+                ))
             .toList();
         final completedList = cleanList
             .where((c) => c.consultationStatus == 'completed')
@@ -395,8 +400,9 @@ class _DoctorChatListTabState extends State<DoctorChatListTab>
 
     return InkWell(
       onTap: () async {
-        // Tandai percakapan sebagai sudah dibaca segera saat dokter mengetuk
-        await ChatService().markConversationAsRead(item.chatId);
+        // Tandai percakapan sebagai sudah dibaca SEGERA sebelum buka halaman chat
+        // agar badge hilang instan dan chat keluar dari tab Unread
+        ChatService().markConversationAsRead(item.chatId);
 
         if (!context.mounted) return;
 
@@ -406,7 +412,7 @@ class _DoctorChatListTabState extends State<DoctorChatListTab>
           orElse: () => doctorList[0],
         );
 
-        Navigator.push(
+        await Navigator.push(
           context,
           MaterialPageRoute(
             builder: (_) => ChatPage(
@@ -421,6 +427,9 @@ class _DoctorChatListTabState extends State<DoctorChatListTab>
             ),
           ),
         );
+
+        // Setelah kembali dari chat, pastikan status read tetap tersinkronisasi
+        ChatService().markConversationAsRead(item.chatId);
       },
       borderRadius: BorderRadius.circular(18),
       child: Container(

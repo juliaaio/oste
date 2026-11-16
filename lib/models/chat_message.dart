@@ -11,6 +11,7 @@ class ChatMessage {
   final String receiverId;
   final String senderRole;
   final bool isRead;
+  final String status; // 'sent' | 'delivered' | 'read'
   final DateTime? readAt;
   final DateTime? createdAt;
 
@@ -24,9 +25,11 @@ class ChatMessage {
     this.receiverId = '',
     String? senderRole,
     this.isRead = false,
+    String? status,
     this.readAt,
     this.createdAt,
-  }) : senderRole = senderRole ?? (isFromDoctor ? 'doctor' : 'patient');
+  })  : senderRole = senderRole ?? (isFromDoctor ? 'doctor' : 'patient'),
+        status = status ?? (isRead ? 'read' : 'sent');
 
   /// Apakah pesan ini dikirim oleh Admin
   bool get isFromAdmin => senderRole.toLowerCase() == 'admin';
@@ -41,6 +44,7 @@ class ChatMessage {
     String? receiverId,
     String? senderRole,
     bool? isRead,
+    String? status,
     DateTime? readAt,
     DateTime? createdAt,
   }) {
@@ -54,6 +58,7 @@ class ChatMessage {
       receiverId: receiverId ?? this.receiverId,
       senderRole: senderRole ?? this.senderRole,
       isRead: isRead ?? this.isRead,
+      status: status ?? this.status,
       readAt: readAt ?? this.readAt,
       createdAt: createdAt ?? this.createdAt,
     );
@@ -83,6 +88,11 @@ class ChatMessage {
 
     final isFromDoc = data['isFromDoctor'] as bool? ??
         (data['senderRole']?.toString().toLowerCase() == 'doctor');
+    final isRead = data['isRead'] as bool? ?? false;
+    final rawStatus = data['status']?.toString().toLowerCase().trim() ?? '';
+    final status = isRead
+        ? 'read'
+        : (rawStatus.isNotEmpty ? rawStatus : 'sent');
 
     return ChatMessage(
       id: id,
@@ -94,7 +104,8 @@ class ChatMessage {
       receiverId: data['receiverId']?.toString() ?? '',
       senderRole: data['senderRole']?.toString() ??
           (isFromDoc ? 'doctor' : 'patient'),
-      isRead: data['isRead'] as bool? ?? false,
+      isRead: isRead,
+      status: status,
       readAt: readDt,
       createdAt: dt,
     );
@@ -116,7 +127,8 @@ class ChatMessage {
       'senderId': senderId,
       'receiverId': receiverId,
       'senderRole': senderRole,
-      'isRead': isRead,
+      'isRead': isRead || status == 'read',
+      'status': status,
       if (readAt != null) 'readAt': readAt!.toIso8601String(),
       if (createdAt != null) 'createdAt': createdAt!.toIso8601String(),
     };

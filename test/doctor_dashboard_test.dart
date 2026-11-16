@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oste/features/doctor_dashboard/doctor_dashboard_page.dart';
+import 'package:oste/features/history/models/history_model.dart';
+import 'package:oste/features/screening/hasil_page.dart';
 import 'package:oste/models/user_model.dart';
+import 'package:oste/services/history_service.dart';
 import 'package:oste/services/user_service.dart';
 
 void main() {
@@ -159,6 +162,76 @@ void main() {
       expect(find.text('dr. Intan Permata, Sp.OT'), findsWidgets);
       expect(find.text('intan@osteocare.com'), findsWidgets);
       expect(find.text('Account'), findsOneWidget);
+    });
+
+    testWidgets(
+        'Doctor History displays patient name, is tappable, and opens HasilScreeningPage',
+        (tester) async {
+      final historyService = HistoryService();
+      historyService.clearScreeningHistories();
+
+      // Tambahkan data skrining pasien "Julia Nurul"
+      historyService.addScreening(
+        HistoryModel.fromScreening(
+          id: 'scr_julia_1',
+          tanggal: DateTime(2026, 11, 12),
+          waktu: '10.30 WIB',
+          probabilitas: 75,
+          status: 'Terindikasi Osteoporosis',
+          isPositive: true,
+          riskCategory: 'Risiko Sedang',
+          summary: 'Risiko sedang mengalami osteoporosis.',
+          modelConfidence: 88.5,
+          recommendations: ['Konsultasikan dengan dokter spesialis tulang.'],
+          patientName: 'Julia Nurul',
+          patientId: 'patient_julia',
+        ),
+      );
+
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: DoctorDashboardPage(initialIndex: 1), // Buka tab Riwayat
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Memastikan judul tab Riwayat Pasien termuat
+      expect(find.text('Riwayat Pasien'), findsOneWidget);
+
+      // Memastikan informasi Nama Pasien muncul
+      expect(find.text('Nama Pasien: '), findsWidgets);
+      expect(find.text('Julia Nurul'), findsOneWidget);
+      expect(find.text('Terindikasi Osteoporosis'), findsOneWidget);
+      expect(find.text('Risiko Sedang'), findsOneWidget);
+      expect(find.text('Probabilitas: 75%'), findsOneWidget);
+
+      // Riwayat Skrining harus bisa diklik (tap)
+      await tester.tap(find.text('Julia Nurul'));
+      await tester.pumpAndSettle();
+
+      // Memastikan membuka halaman HasilScreeningPage milik pasien
+      expect(find.byType(HasilScreeningPage), findsOneWidget);
+      expect(find.text('Skrining Penyakit'), findsOneWidget);
+      expect(find.text('75%'), findsWidgets);
+      expect(find.text('risiko sedang'), findsWidgets);
+      expect(find.text('Penjelasan Hasil'), findsOneWidget);
+      expect(find.text('Rekomendasi'), findsOneWidget);
+
+      // Dalam mode baca (read-only), tombol aksi pasien tidak muncul
+      expect(find.text('Skrining Ulang'), findsNothing);
+      expect(find.text('Konsultasi Dokter'), findsNothing);
+
+      // Kembali ke riwayat
+      await tester.tap(find.byIcon(Icons.chevron_left_rounded));
+      await tester.pumpAndSettle();
+      expect(find.text('Riwayat Pasien'), findsOneWidget);
+
+      // Beralih ke tab Konsultasi
+      await tester.tap(find.text('Konsultasi'));
+      await tester.pumpAndSettle();
+
+      // Memastikan riwayat konsultasi juga menampilkan Nama Pasien
+      expect(find.text('Nama Pasien: '), findsWidgets);
     });
   });
 }

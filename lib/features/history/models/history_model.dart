@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/material.dart';
 import 'package:oste/features/screening/hasil_page.dart';
 import 'package:oste/models/consultation_history_model.dart';
 
@@ -28,6 +29,10 @@ class HistoryModel {
   // Detail tambahan khusus riwayat konsultasi
   final ConsultationHistory? consultation;
 
+  // Detail identitas pasien
+  final String? patientName;
+  final String? patientId;
+
   const HistoryModel({
     required this.id,
     required this.tanggal,
@@ -42,6 +47,8 @@ class HistoryModel {
     this.predictionData,
     this.recommendations,
     this.consultation,
+    this.patientName,
+    this.patientId,
   });
 
   /// Factory untuk membuat HistoryModel dari hasil skrining mandiri
@@ -57,6 +64,8 @@ class HistoryModel {
     double? modelConfidence,
     List<PredictionItem>? predictionData,
     List<String>? recommendations,
+    String? patientName,
+    String? patientId,
   }) {
     return HistoryModel(
       id: id,
@@ -71,6 +80,8 @@ class HistoryModel {
       modelConfidence: modelConfidence,
       predictionData: predictionData,
       recommendations: recommendations,
+      patientName: patientName,
+      patientId: patientId,
     );
   }
 
@@ -94,6 +105,8 @@ class HistoryModel {
       type: HistoryType.consultation,
       summary: consultation.summary,
       consultation: consultation,
+      patientName: consultation.patientName,
+      patientId: consultation.patientId,
     );
   }
 
@@ -112,6 +125,8 @@ class HistoryModel {
     List<PredictionItem>? predictionData,
     List<String>? recommendations,
     ConsultationHistory? consultation,
+    String? patientName,
+    String? patientId,
   }) {
     return HistoryModel(
       id: id ?? this.id,
@@ -127,6 +142,8 @@ class HistoryModel {
       predictionData: predictionData ?? this.predictionData,
       recommendations: recommendations ?? this.recommendations,
       consultation: consultation ?? this.consultation,
+      patientName: patientName ?? this.patientName,
+      patientId: patientId ?? this.patientId,
     );
   }
 
@@ -144,6 +161,8 @@ class HistoryModel {
       'summary': summary,
       'modelConfidence': modelConfidence,
       'recommendations': recommendations,
+      'patientName': patientName,
+      'patientId': patientId,
     };
   }
 
@@ -151,6 +170,17 @@ class HistoryModel {
   factory HistoryModel.fromMap(Map<String, dynamic> map) {
     final rawProb = map['probability'] ?? map['probabilitas'];
     final probInt = (rawProb as num?)?.toInt() ?? 0;
+
+    List<PredictionItem>? parsedPredictionData;
+    if (map['input'] is Map<String, dynamic>) {
+      parsedPredictionData = _buildPredictionItemsFromInput(
+        map['input'] as Map<String, dynamic>,
+      );
+    } else if (map['input'] is Map) {
+      parsedPredictionData = _buildPredictionItemsFromInput(
+        Map<String, dynamic>.from(map['input'] as Map),
+      );
+    }
 
     return HistoryModel(
       id: map['id'] as String? ?? '',
@@ -173,9 +203,15 @@ class HistoryModel {
       summary: (map['riskDescription'] as String?) ?? (map['summary'] as String?),
       modelConfidence: (map['confidence'] as num?)?.toDouble() ??
           (map['modelConfidence'] as num?)?.toDouble(),
+      predictionData: parsedPredictionData,
       recommendations: (map['recommendations'] as List<dynamic>?)
           ?.map((e) => e.toString())
           .toList(),
+      patientName: map['patientName'] as String? ??
+          map['userName'] as String? ??
+          map['namaPasien'] as String?,
+      patientId: map['patientId'] as String? ??
+          map['userId'] as String?,
     );
   }
 
@@ -214,4 +250,99 @@ class HistoryModel {
         isPositive.hashCode ^
         type.hashCode;
   }
+}
+
+/// Helper untuk mengonversi Map input skrining ke daftar PredictionItem untuk detail hasil
+List<PredictionItem> _buildPredictionItemsFromInput(Map<String, dynamic> input) {
+  final items = <PredictionItem>[];
+
+  if (input['Age'] != null) {
+    items.add(PredictionItem(
+      icon: Icons.person_outline_rounded,
+      label: 'Usia',
+      value: '${input['Age']} tahun',
+    ));
+  }
+  if (input['Gender'] != null) {
+    items.add(PredictionItem(
+      icon: Icons.female_rounded,
+      label: 'Jenis kelamin',
+      value: input['Gender'].toString(),
+    ));
+  }
+  if (input['Race/Ethnicity'] != null) {
+    items.add(PredictionItem(
+      icon: Icons.public_rounded,
+      label: 'Ras/Etnis',
+      value: input['Race/Ethnicity'].toString(),
+    ));
+  }
+  if (input['Body Weight'] != null) {
+    items.add(PredictionItem(
+      icon: Icons.scale_outlined,
+      label: 'Berat badan',
+      value: input['Body Weight'].toString(),
+    ));
+  }
+  if (input['Calcium Intake'] != null) {
+    items.add(PredictionItem(
+      icon: Icons.science_outlined,
+      label: 'Asupan kalsium',
+      value: input['Calcium Intake'].toString(),
+    ));
+  }
+  if (input['Vitamin D Intake'] != null) {
+    items.add(PredictionItem(
+      icon: Icons.wb_sunny_outlined,
+      label: 'Asupan vitamin D',
+      value: input['Vitamin D Intake'].toString(),
+    ));
+  }
+  if (input['Physical Activity'] != null) {
+    items.add(PredictionItem(
+      icon: Icons.directions_run_rounded,
+      label: 'Aktivitas fisik',
+      value: input['Physical Activity'].toString(),
+    ));
+  }
+  if (input['Smoking'] != null) {
+    final v = input['Smoking'];
+    items.add(PredictionItem(
+      icon: Icons.smoke_free_rounded,
+      label: 'Merokok',
+      value: (v == 1 || v == '1' || v == 'Yes') ? 'Ya' : 'Tidak',
+    ));
+  }
+  if (input['Alcohol Consumption'] != null) {
+    final v = input['Alcohol Consumption'];
+    items.add(PredictionItem(
+      icon: Icons.local_bar_outlined,
+      label: 'Konsumsi alkohol',
+      value: (v == 1 || v == '1' || v == 'Moderate' || v == 'Yes') ? 'Ya' : 'Tidak',
+    ));
+  }
+  if (input['Medical Conditions'] != null) {
+    items.add(PredictionItem(
+      icon: Icons.medical_services_outlined,
+      label: 'Kondisi medis',
+      value: input['Medical Conditions'].toString(),
+    ));
+  }
+  if (input['Medications'] != null) {
+    items.add(PredictionItem(
+      icon: Icons.medication_outlined,
+      label: 'Penggunaan obat',
+      value: input['Medications'].toString(),
+    ));
+  }
+  if (input['Prior Fractures'] != null) {
+    final v = input['Prior Fractures'];
+    items.add(PredictionItem(
+      icon: Icons.healing_rounded,
+      label: 'Riwayat patah tulang',
+      value: (v == 1 || v == '1' || v == 'Yes') ? 'Ya' : 'Tidak',
+    ));
+  }
+
+  return items;
 }

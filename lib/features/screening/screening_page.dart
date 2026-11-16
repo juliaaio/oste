@@ -3,6 +3,7 @@ import 'package:oste/features/screening/hasil_page.dart';
 import 'package:oste/features/history/models/history_model.dart';
 import 'package:oste/services/api_service.dart';
 import 'package:oste/services/history_service.dart';
+import 'package:oste/services/user_service.dart';
 /// Palet warna utama halaman Skrining Osteoporosis
 class _ScreeningColors {
   static const Color background = Color(0xFFFAF9F5);
@@ -200,6 +201,11 @@ class _ScreeningPageState extends State<ScreeningPage> {
       final now = DateTime.now();
       final timeStr =
           'Pukul ${now.hour.toString().padLeft(2, '0')}.${now.minute.toString().padLeft(2, '0')} WIB';
+      final currentUser = UserService().currentUser;
+      final patientName = (currentUser != null && currentUser.name.isNotEmpty)
+          ? currentUser.name
+          : 'Pasien';
+
       HistoryService().addScreening(
         HistoryModel.fromScreening(
           id:              docId,
@@ -213,6 +219,8 @@ class _ScreeningPageState extends State<ScreeningPage> {
           modelConfidence: apiResponse.confidence,
           predictionData:  predictionItems,
           recommendations: interp.recommendations,
+          patientName:     patientName,
+          patientId:       currentUser?.uid,
         ),
       );
 

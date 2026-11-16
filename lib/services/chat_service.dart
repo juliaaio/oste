@@ -1,7 +1,10 @@
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
+import 'package:oste/features/consultation/doctor_data.dart';
 import 'package:oste/models/chat_message.dart';
+import 'package:oste/models/consultation_history_model.dart';
+import 'package:oste/services/consultation_history_service.dart';
 import 'package:oste/services/user_service.dart';
 
 /// Model metadata percakapan chat untuk daftar percakapan pasien-dokter
@@ -136,13 +139,22 @@ class ConversationSummary {
         (data['unreadCountDoctor'] as num?)?.toInt() ??
         0;
     final patientUnread = (data['unreadCountPatient'] as num?)?.toInt() ?? 0;
+    final bool isDocRead = data['isRead'] as bool? ?? (docUnread == 0);
 
     final isAdminChat = (data['isAdminChat'] as bool? ?? false) ||
         (data['lastSenderRole']?.toString().toLowerCase() == 'admin') ||
         (pName.toLowerCase().contains('admin')) ||
         (data['patientId']?.toString().toLowerCase().contains('admin') ?? false);
 
-    final String consultationStatus = data['consultationStatus']?.toString() ?? 'unread';
+    final rawStatus = data['consultationStatus']?.toString().toLowerCase().trim() ?? '';
+    String consultationStatus;
+    if (rawStatus == 'completed') {
+      consultationStatus = 'completed';
+    } else if (docUnread > 0 && !isDocRead) {
+      consultationStatus = 'unread';
+    } else {
+      consultationStatus = 'active';
+    }
 
     return ConversationSummary(
       chatId: doc.id,
@@ -201,17 +213,18 @@ class ChatService extends ChangeNotifier {
     'fajar pratama',
   };
 
-  /// Fungsi verifikasi apakah sebuah percakapan merupakan akun dummy
+  /// Fungsi verifikasi apakah sebuah percakapan merupakan akun dummy.
+  ///
+  /// PENTING: Hanya gunakan exact match untuk chatId agar tidak memutus
+  /// chat real yang kebetulan mengandung nama dummy sebagai substring
+  /// (mis. chatId 'chat_doc1_ahmad_maulana_uid123' bukan dummy).
   static bool isDummyConversation(String chatId, String patientName) {
     final id = chatId.trim().toLowerCase();
     final name = patientName.trim().toLowerCase();
+    // Exact match saja — substring match terlalu agresif dan bisa hapus chat real
     if (dummyChatIds.contains(id)) return true;
-    for (final dummyId in dummyChatIds) {
-      if (id.contains(dummyId)) return true;
-    }
-    for (final dummyName in dummyPatientNames) {
-      if (name.contains(dummyName)) return true;
-    }
+    // Exact match untuk nama pasien dummy (bukan substring)
+    if (dummyPatientNames.contains(name)) return true;
     return false;
   }
 
@@ -317,6 +330,13 @@ class ChatService extends ChangeNotifier {
             .where('doctorId', isEqualTo: id)
             .snapshots(includeMetadataChanges: true)
             .listen((snapshot) {
+          // Handle removed documents agar chat yang dihapus ikut hilang dari list
+          for (final change in snapshot.docChanges) {
+            if (change.type == DocumentChangeType.removed) {
+              _conversations.removeWhere((c) => c.chatId == change.doc.id);
+            }
+          }
+
           for (final doc in snapshot.docs) {
             final summary = ConversationSummary.fromFirestore(doc);
             // Abaikan dan hapus percakapan dummy secara permanen dari Cloud Firestore
@@ -330,6 +350,11 @@ class ChatService extends ChangeNotifier {
               _conversations[idx] = summary;
             } else {
               _conversations.insert(0, summary);
+            }
+
+            // Jika dokter menerima pesan baru yang belum dibaca, perbarui status menjadi 'delivered'
+            if (summary.unreadCountDoctor > 0) {
+              markMessagesAsDelivered(summary.chatId, isDoctorRecipient: true);
             }
           }
           _conversations.sort((a, b) {
@@ -357,8 +382,9 @@ class ChatService extends ChangeNotifier {
   }
 
   /// Total pesan belum dibaca di semua percakapan dokter (untuk badge dokter)
-  int get totalUnreadCount =>
-      _conversations.fold(0, (total, c) => total + c.unreadCount);
+  int get totalUnreadCount => _conversations
+      .where((c) => !isDummyConversation(c.chatId, c.patientName))
+      .fold(0, (total, c) => total + c.unreadCountDoctor);
 
   /// Tandai percakapan sebagai sudah dibaca oleh dokter.
   ///
@@ -390,8 +416,12 @@ class ChatService extends ChangeNotifier {
       bool changed = false;
       for (int i = 0; i < localMsgs.length; i++) {
         final m = localMsgs[i];
-        if (!m.isFromDoctor && !m.isRead) {
-          localMsgs[i] = m.copyWith(isRead: true, readAt: DateTime.now());
+        if (!m.isFromDoctor && (!m.isRead || m.status != 'read')) {
+          localMsgs[i] = m.copyWith(
+            isRead: true,
+            status: 'read',
+            readAt: DateTime.now(),
+          );
           changed = true;
         }
       }
@@ -405,6 +435,7 @@ class ChatService extends ChangeNotifier {
       final Map<String, dynamic> updateData = {
         'unreadCount': 0,
         'unreadCountDoctor': 0,
+        'isRead': true,
       };
       if (targetStatus == 'active') {
         updateData['consultationStatus'] = 'active';
@@ -412,21 +443,35 @@ class ChatService extends ChangeNotifier {
 
       await chatDocRef.set(updateData, SetOptions(merge: true));
 
-      final unreadQuery = await chatDocRef
-          .collection('messages')
-          .where('isFromDoctor', isEqualTo: false)
-          .where('isRead', isEqualTo: false)
-          .get();
-
-      if (unreadQuery.docs.isNotEmpty) {
-        final batch = FirebaseFirestore.instance.batch();
-        for (final doc in unreadQuery.docs) {
-          batch.update(doc.reference, {
-            'isRead': true,
-            'readAt': FieldValue.serverTimestamp(),
-          });
+      final messagesSnap = await chatDocRef.collection('messages').get();
+      if (messagesSnap.docs.isNotEmpty) {
+        WriteBatch? batch;
+        int batchCount = 0;
+        for (final doc in messagesSnap.docs) {
+          final data = doc.data();
+          final bool isFromDoc = data['isFromDoctor'] as bool? ??
+              (data['senderRole']?.toString().toLowerCase() == 'doctor');
+          final String currentStatus =
+              data['status']?.toString().toLowerCase().trim() ?? '';
+          final bool isRead = data['isRead'] as bool? ?? false;
+          if (!isFromDoc && (!isRead || currentStatus != 'read')) {
+            batch ??= FirebaseFirestore.instance.batch();
+            batch.update(doc.reference, {
+              'isRead': true,
+              'status': 'read',
+              'readAt': FieldValue.serverTimestamp(),
+            });
+            batchCount++;
+            if (batchCount >= 400) {
+              await batch.commit();
+              batch = null;
+              batchCount = 0;
+            }
+          }
         }
-        await batch.commit();
+        if (batch != null && batchCount > 0) {
+          await batch.commit();
+        }
       }
     } catch (e) {
       debugPrint('[ChatService] Gagal reset unreadCount di Firestore: $e');
@@ -453,6 +498,10 @@ class ChatService extends ChangeNotifier {
             continue;
           }
           _patientConversations.add(summary);
+          // Jika pasien menerima pesan baru yang belum dibaca, perbarui status menjadi 'delivered'
+          if (summary.unreadCountPatient > 0) {
+            markMessagesAsDelivered(summary.chatId, isDoctorRecipient: false);
+          }
         }
         _patientConversations.sort((a, b) {
           final aTime = a.updatedAt ?? DateTime(0);
@@ -532,8 +581,12 @@ class ChatService extends ChangeNotifier {
       bool changed = false;
       for (int i = 0; i < localMsgs.length; i++) {
         final m = localMsgs[i];
-        if (m.isFromDoctor && !m.isRead) {
-          localMsgs[i] = m.copyWith(isRead: true, readAt: DateTime.now());
+        if (m.isFromDoctor && (!m.isRead || m.status != 'read')) {
+          localMsgs[i] = m.copyWith(
+            isRead: true,
+            status: 'read',
+            readAt: DateTime.now(),
+          );
           changed = true;
         }
       }
@@ -550,26 +603,83 @@ class ChatService extends ChangeNotifier {
         'unreadCountPatient': 0,
       }, SetOptions(merge: true));
 
-      // Update status isRead pada pesan dari dokter
-      final unreadQuery = await chatDocRef
-          .collection('messages')
-          .where('isFromDoctor', isEqualTo: true)
-          .where('isRead', isEqualTo: false)
-          .get();
+      // Update status isRead & status = 'read' pada seluruh pesan dari dokter
+      final msgsSnap = await chatDocRef.collection('messages').get();
 
-      if (unreadQuery.docs.isNotEmpty) {
-        final batch = FirebaseFirestore.instance.batch();
-        for (final doc in unreadQuery.docs) {
-          batch.update(doc.reference, {
-            'isRead': true,
-            'readAt': FieldValue.serverTimestamp(),
-          });
+      if (msgsSnap.docs.isNotEmpty) {
+        WriteBatch? batch;
+        int count = 0;
+        for (final doc in msgsSnap.docs) {
+          final data = doc.data();
+          final bool isFromDoc = data['isFromDoctor'] as bool? ??
+              (data['senderRole']?.toString().toLowerCase() == 'doctor');
+          final String currentStatus =
+              data['status']?.toString().toLowerCase().trim() ?? '';
+          final bool isRead = data['isRead'] as bool? ?? false;
+          if (isFromDoc && (!isRead || currentStatus != 'read')) {
+            batch ??= FirebaseFirestore.instance.batch();
+            batch.update(doc.reference, {
+              'isRead': true,
+              'status': 'read',
+              'readAt': FieldValue.serverTimestamp(),
+            });
+            count++;
+            if (count >= 400) {
+              await batch.commit();
+              batch = null;
+              count = 0;
+            }
+          }
         }
-        await batch.commit();
+        if (batch != null && count > 0) {
+          await batch.commit();
+        }
       }
     } catch (e) {
       debugPrint('[ChatService] Gagal reset unreadCountPatient di Firestore: $e');
     }
+  }
+
+  /// Memperbarui status pesan yang ditujukan kepada penerima menjadi 'delivered'
+  /// ketika aplikasi penerima aktif dan menerima snapshot percakapan.
+  Future<void> markMessagesAsDelivered(
+    String chatId, {
+    required bool isDoctorRecipient,
+  }) async {
+    try {
+      final chatDocRef =
+          FirebaseFirestore.instance.collection('chats').doc(chatId);
+      final msgsSnap = await chatDocRef.collection('messages').get();
+      if (msgsSnap.docs.isNotEmpty) {
+        WriteBatch? batch;
+        int count = 0;
+        for (final doc in msgsSnap.docs) {
+          final data = doc.data();
+          final bool isFromDoc = data['isFromDoctor'] as bool? ??
+              (data['senderRole']?.toString().toLowerCase() == 'doctor');
+          final String currentStatus =
+              data['status']?.toString().toLowerCase().trim() ?? '';
+          final bool isRead = data['isRead'] as bool? ?? false;
+          final bool isTargetMessage =
+              isDoctorRecipient ? !isFromDoc : isFromDoc;
+          if (isTargetMessage && !isRead && currentStatus == 'sent') {
+            batch ??= FirebaseFirestore.instance.batch();
+            batch.update(doc.reference, {
+              'status': 'delivered',
+            });
+            count++;
+            if (count >= 400) {
+              await batch.commit();
+              batch = null;
+              count = 0;
+            }
+          }
+        }
+        if (batch != null && count > 0) {
+          await batch.commit();
+        }
+      }
+    } catch (_) {}
   }
 
   // ── PENGIRIMAN & STREAM PESAN ──────────────────────────────────────────────
@@ -586,13 +696,22 @@ class ChatService extends ChangeNotifier {
           .collection('chats')
           .doc(chatId)
           .collection('messages')
-          .orderBy('createdAt', descending: false)
           .snapshots(includeMetadataChanges: true)
           .map((snapshot) {
         if (snapshot.docs.isNotEmpty) {
           final firestoreMessages = snapshot.docs
               .map((doc) => ChatMessage.fromFirestore(doc))
               .toList();
+
+          // Urutkan berdasarkan waktu pembuatan (createdAt) di Dart secara aman
+          // tanpa risiko dokumen di-drop oleh Firestore karena serverTimestamp pending/null
+          firestoreMessages.sort((a, b) {
+            final aTime = a.createdAt ?? DateTime(0);
+            final bTime = b.createdAt ?? DateTime(0);
+            final cmp = aTime.compareTo(bTime);
+            if (cmp != 0) return cmp;
+            return a.id.compareTo(b.id);
+          });
 
           _localMessages[chatId] = firestoreMessages;
           return firestoreMessages;
@@ -619,6 +738,7 @@ class ChatService extends ChangeNotifier {
     required String chatId,
     required String text,
     required bool isFromDoctor,
+    String? messageId,
     String senderId = '',
     String receiverId = '',
     String senderName = '',
@@ -634,7 +754,8 @@ class ChatService extends ChangeNotifier {
     final hour = now.hour.toString().padLeft(2, '0');
     final minute = now.minute.toString().padLeft(2, '0');
     final timeStr = '$hour:$minute';
-    final messageId = 'msg_${now.millisecondsSinceEpoch}';
+    final effectiveMessageId =
+        messageId ?? 'msg_${now.millisecondsSinceEpoch}';
 
     final currentUser = UserService().currentUser;
     final bool isAdminSender =
@@ -659,7 +780,7 @@ class ChatService extends ChangeNotifier {
         : (isAdminSender ? 'Admin Osteo' : 'Pasien');
 
     final message = ChatMessage(
-      id: messageId,
+      id: effectiveMessageId,
       text: text,
       time: timeStr,
       isFromDoctor: isFromDoctor,
@@ -806,6 +927,7 @@ class ChatService extends ChangeNotifier {
         'unreadCount': isFromDoctor ? 0 : FieldValue.increment(1),
         'unreadCountDoctor': isFromDoctor ? 0 : FieldValue.increment(1),
         'unreadCountPatient': isFromDoctor ? FieldValue.increment(1) : 0,
+        'isRead': isFromDoctor,
       };
 
       // Sinkronisasi consultationStatus ke Firestore:
@@ -836,7 +958,9 @@ class ChatService extends ChangeNotifier {
       if (effectivePatientId.isNotEmpty) {
         chatMeta['patientId'] = effectivePatientId;
       }
-      if (effectivePatientName.isNotEmpty) {
+      if (patientName.isNotEmpty) {
+        chatMeta['patientName'] = patientName;
+      } else if (effectivePatientName.isNotEmpty && effectivePatientName != 'Pasien') {
         chatMeta['patientName'] = effectivePatientName;
       }
 
@@ -845,10 +969,47 @@ class ChatService extends ChangeNotifier {
       await chatDocRef.set(chatMeta, SetOptions(merge: true));
 
       // Simpan dokumen pesan di subkoleksi 'messages'
-      await chatDocRef.collection('messages').doc(messageId).set({
+      await chatDocRef.collection('messages').doc(effectiveMessageId).set({
         ...message.toMap(),
         'createdAt': FieldValue.serverTimestamp(),
       });
+
+      // Jika dokter yang membalas pesan, pastikan semua pesan pasien sebelumnya
+      // di subkoleksi 'messages' ditandai sudah dibaca (isRead = true) di Firestore
+      if (isFromDoctor) {
+        try {
+          final msgsSnap = await chatDocRef.collection('messages').get();
+          if (msgsSnap.docs.isNotEmpty) {
+            WriteBatch? batch;
+            int count = 0;
+            for (final doc in msgsSnap.docs) {
+              final d = doc.data();
+              final bool isMsgFromDoc = d['isFromDoctor'] as bool? ??
+                  (d['senderRole']?.toString().toLowerCase() == 'doctor');
+              final bool isMsgRead = d['isRead'] as bool? ?? false;
+              final String isMsgStatus =
+                  d['status']?.toString().toLowerCase().trim() ?? '';
+              if (!isMsgFromDoc && (!isMsgRead || isMsgStatus != 'read')) {
+                batch ??= FirebaseFirestore.instance.batch();
+                batch.update(doc.reference, {
+                  'isRead': true,
+                  'status': 'read',
+                  'readAt': FieldValue.serverTimestamp(),
+                });
+                count++;
+                if (count >= 400) {
+                  await batch.commit();
+                  batch = null;
+                  count = 0;
+                }
+              }
+            }
+            if (batch != null && count > 0) {
+              await batch.commit();
+            }
+          }
+        } catch (_) {}
+      }
     } catch (e, stack) {
       debugPrint('[ChatService] Gagal sync ke Firestore (berjalan offline): $e\n$stack');
     }
@@ -857,12 +1018,50 @@ class ChatService extends ChangeNotifier {
   /// Menyelesaikan konsultasi: mengubah status percakapan menjadi 'completed'.
   /// Dipanggil ketika dokter menekan tombol "Selesaikan Konsultasi".
   Future<void> completeConsultation(String chatId) async {
+    ConversationSummary? conv;
     final idx = _conversations.indexWhere((c) => c.chatId == chatId);
     if (idx >= 0) {
-      _conversations[idx] = _conversations[idx].copyWith(
+      conv = _conversations[idx];
+      _conversations[idx] = conv.copyWith(
         consultationStatus: 'completed',
       );
       notifyListeners();
+    }
+    if (conv != null && conv.patientName.isNotEmpty) {
+      final doc = doctorList.firstWhere(
+        (d) => d.id == conv!.doctorId,
+        orElse: () => doctorList.first,
+      );
+      final msgs = _localMessages[chatId] ?? [];
+      final now = DateTime.now();
+      const months = [
+        'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+        'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+      ];
+      final dateStr = '${now.day} ${months[now.month - 1]} ${now.year}';
+      final timeStr =
+          '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')} WIB';
+
+      ConsultationHistoryService().addConsultation(
+        ConsultationHistory(
+          id: 'consult_${chatId}_${now.millisecondsSinceEpoch}',
+          doctor: doc,
+          date: dateStr,
+          time: timeStr,
+          summary: conv.lastMessage.isNotEmpty
+              ? conv.lastMessage
+              : 'Sesi konsultasi medis telah diselesaikan.',
+          diagnosis: 'Konsultasi Selesai',
+          doctorNotes: 'Konsultasi selesai dengan ${conv.patientName}.',
+          doctorRecommendation:
+              'Lanjutkan anjuran dokter dan kontrol berkala bila diperlukan.',
+          nutritionRecommendation:
+              'Pertahankan asupan kalsium dan vitamin D seimbang.',
+          messages: msgs,
+          patientName: conv.patientName,
+          patientId: conv.patientId,
+        ),
+      );
     }
     try {
       await FirebaseFirestore.instance
@@ -879,7 +1078,7 @@ class ChatService extends ChangeNotifier {
   List<ConversationSummary> get unreadConversations => List.unmodifiable(
       _conversations.where((c) =>
           !isDummyConversation(c.chatId, c.patientName) &&
-          c.consultationStatus == 'unread'));
+          c.unreadCountDoctor > 0));
 
   List<ConversationSummary> get activeConversations => List.unmodifiable(
       _conversations.where((c) =>

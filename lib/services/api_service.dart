@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:oste/core/constants/app_config.dart';
 import 'package:oste/features/screening/hasil_page.dart';
+import 'package:oste/services/user_service.dart';
 
 // ---------------------------------------------------------------------------
 // Konfigurasi base URL FastAPI
@@ -320,8 +321,17 @@ class ApiService {
         .collection('riwayat_skrining')
         .doc();
 
+    final currentUser = UserService().currentUser;
+    final patientName = (currentUser != null && currentUser.name.isNotEmpty)
+        ? currentUser.name
+        : (FirebaseAuth.instance.currentUser?.displayName ?? 'Pasien');
+
     final data = <String, dynamic>{
       'id': docRef.id,
+      'userId': uid,
+      'patientId': uid,
+      'patientName': patientName,
+      'userName': patientName,
       'createdAt': FieldValue.serverTimestamp(),
       'tanggal': now.toIso8601String(),
       'waktu': timeStr,

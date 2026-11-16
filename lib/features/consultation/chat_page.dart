@@ -231,6 +231,7 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     if (widget.isDoctorPOV) {
+      ChatService().markConversationAsRead(_effectiveChatId);
       PatientPresenceService().stopListeningPatient(_effectivePatientId);
     }
     _messageSubscription?.cancel();
@@ -275,8 +276,9 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
               ? _effectiveChatId.substring('chat_${widget.doctor.id}_'.length)
               : 'patient_current');
 
+      final msgId = 'msg_${DateTime.now().millisecondsSinceEpoch}';
       final doctorMsg = ChatMessage(
-        id: 'doc_${DateTime.now().millisecondsSinceEpoch}',
+        id: msgId,
         text: text,
         time: userTime,
         isFromDoctor: true,
@@ -298,6 +300,7 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
         chatId: _effectiveChatId,
         text: text,
         isFromDoctor: true,
+        messageId: msgId,
         senderId: doctorUid,
         receiverId: targetPatientId,
         patientName: widget.patientName ?? '',
@@ -323,8 +326,9 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
     final senderRole = isAdmin ? 'admin' : 'patient';
     final targetDoctorId = widget.doctor.id;
 
+    final msgId = 'msg_${DateTime.now().millisecondsSinceEpoch}';
     final userMsg = ChatMessage(
-      id: '${isAdmin ? "admin" : "user"}_${DateTime.now().millisecondsSinceEpoch}',
+      id: msgId,
       text: text,
       time: userTime,
       isFromDoctor: false,
@@ -346,6 +350,7 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
       chatId: _effectiveChatId,
       text: text,
       isFromDoctor: false,
+      messageId: msgId,
       senderId: patientUid,
       receiverId: targetDoctorId,
       patientName: patientName,

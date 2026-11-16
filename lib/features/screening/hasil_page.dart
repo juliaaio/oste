@@ -5,6 +5,7 @@ import 'package:oste/features/dashboard/dashboard_page.dart';
 import 'package:oste/features/history/models/history_model.dart';
 import 'package:oste/features/screening/screening_page.dart';
 import 'package:oste/services/history_service.dart';
+import 'package:oste/services/user_service.dart';
 
 /// Palet warna resmi halaman Hasil Skrining Osteoporosis
 class _HasilColors {
@@ -70,6 +71,9 @@ class HasilScreeningPage extends StatefulWidget {
   /// - 'history'   → kembali ke halaman Riwayat
   final String source;
 
+  /// Mode baca saja (read-only), misalnya saat dibuka oleh dokter
+  final bool isReadOnly;
+
   const HasilScreeningPage({
     super.key,
     this.scorePercentage = 58,
@@ -83,6 +87,7 @@ class HasilScreeningPage extends StatefulWidget {
     this.screeningId,
     this.autoSave = true,
     this.source = 'screening',
+    this.isReadOnly = false,
   });
 
   // Data default 13 input pengguna sesuai model terbaru (tanpa perubahan hormonal)
@@ -206,7 +211,7 @@ class _HasilScreeningPageState extends State<HasilScreeningPage> {
   @override
   void initState() {
     super.initState();
-    if (widget.autoSave) {
+    if (widget.autoSave && !widget.isReadOnly) {
       _saveToHistory();
     }
   }
@@ -228,6 +233,11 @@ class _HasilScreeningPageState extends State<HasilScreeningPage> {
             ? HasilScreeningPage._highRiskRecommendations
             : HasilScreeningPage._lowRiskRecommendations);
 
+    final currentUser = UserService().currentUser;
+    final patientName = (currentUser != null && currentUser.name.isNotEmpty)
+        ? currentUser.name
+        : 'Pasien';
+
     final history = HistoryModel.fromScreening(
       id: widget.screeningId ?? 'screen_${now.millisecondsSinceEpoch}',
       tanggal: now,
@@ -240,6 +250,8 @@ class _HasilScreeningPageState extends State<HasilScreeningPage> {
       modelConfidence: effectiveConfidence,
       predictionData: items,
       recommendations: recs,
+      patientName: patientName,
+      patientId: currentUser?.uid,
     );
 
     HistoryService().addScreening(history);
@@ -271,7 +283,9 @@ class _HasilScreeningPageState extends State<HasilScreeningPage> {
             color: _HasilColors.textDark,
           ),
           onPressed: () {
-            if (widget.source == 'history') {
+            if (widget.isReadOnly ||
+                widget.source == 'history' ||
+                Navigator.canPop(context)) {
               Navigator.pop(context);
             } else {
               Navigator.pushReplacement(
@@ -293,117 +307,119 @@ class _HasilScreeningPageState extends State<HasilScreeningPage> {
           ),
         ),
       ),
-      bottomNavigationBar: Container(
-        padding: EdgeInsets.fromLTRB(
-          20,
-          10,
-          20,
-          12 + MediaQuery.of(context).padding.bottom,
-        ),
-        decoration: BoxDecoration(
-          color: _HasilColors.background,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
-              blurRadius: 10,
-              offset: const Offset(0, -3),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: SizedBox(
-                height: 48,
-                child: OutlinedButton(
-                  onPressed: () {
-                    Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const ScreeningPage(),
-                      ),
-                    );
-                  },
-                  style: OutlinedButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    side: const BorderSide(
-                      color: _HasilColors.amberAccent,
-                      width: 1.5,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    elevation: 0,
+      bottomNavigationBar: widget.isReadOnly
+          ? null
+          : Container(
+              padding: EdgeInsets.fromLTRB(
+                20,
+                10,
+                20,
+                12 + MediaQuery.of(context).padding.bottom,
+              ),
+              decoration: BoxDecoration(
+                color: _HasilColors.background,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.04),
+                    blurRadius: 10,
+                    offset: const Offset(0, -3),
                   ),
-                  child: const Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.refresh_rounded,
-                        size: 18,
-                        color: _HasilColors.amberDark,
-                      ),
-                      SizedBox(width: 8),
-                      Text(
-                        'Skrining Ulang',
-                        style: TextStyle(
-                          fontSize: 13.5,
-                          fontWeight: FontWeight.w700,
-                          color: _HasilColors.amberDark,
+                ],
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: SizedBox(
+                      height: 48,
+                      child: OutlinedButton(
+                        onPressed: () {
+                          Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const ScreeningPage(),
+                            ),
+                          );
+                        },
+                        style: OutlinedButton.styleFrom(
+                          backgroundColor: Colors.white,
+                          side: const BorderSide(
+                            color: _HasilColors.amberAccent,
+                            width: 1.5,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          elevation: 0,
+                        ),
+                        child: const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.refresh_rounded,
+                              size: 18,
+                              color: _HasilColors.amberDark,
+                            ),
+                            SizedBox(width: 8),
+                            Text(
+                              'Skrining Ulang',
+                              style: TextStyle(
+                                fontSize: 13.5,
+                                fontWeight: FontWeight.w700,
+                                color: _HasilColors.amberDark,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: SizedBox(
-                height: 48,
-                child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const DoctorListPage(),
-                      ),
-                    );
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _HasilColors.primaryButterYellow,
-                    foregroundColor: _HasilColors.textDark,
-                    elevation: 0,
-                    shadowColor: Colors.transparent,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  child: const Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.person_rounded,
-                        size: 18,
-                        color: _HasilColors.textDark,
-                      ),
-                      SizedBox(width: 8),
-                      Text(
-                        'Konsultasi Dokter',
-                        style: TextStyle(
-                          fontSize: 13.5,
-                          fontWeight: FontWeight.w700,
-                          color: _HasilColors.textDark,
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: SizedBox(
+                      height: 48,
+                      child: ElevatedButton(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const DoctorListPage(),
+                            ),
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: _HasilColors.primaryButterYellow,
+                          foregroundColor: _HasilColors.textDark,
+                          elevation: 0,
+                          shadowColor: Colors.transparent,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.person_rounded,
+                              size: 18,
+                              color: _HasilColors.textDark,
+                            ),
+                            SizedBox(width: 8),
+                            Text(
+                              'Konsultasi Dokter',
+                              style: TextStyle(
+                                fontSize: 13.5,
+                                fontWeight: FontWeight.w700,
+                                color: _HasilColors.textDark,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                    ],
+                    ),
                   ),
-                ),
+                ],
               ),
             ),
-          ],
-        ),
-      ),
       body: SafeArea(
         child: SingleChildScrollView(
           physics: const ClampingScrollPhysics(),

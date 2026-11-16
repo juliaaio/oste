@@ -33,6 +33,7 @@ class ChatBubble extends StatelessWidget {
         bubbleContent = UserChatBubble(
           text: message.text,
           time: message.time,
+          status: message.status,
         );
       } else {
         // Pesan masuk: di sisi KIRI
@@ -290,12 +291,37 @@ class DoctorChatBubble extends StatelessWidget {
 class UserChatBubble extends StatelessWidget {
   final String text;
   final String time;
+  final String status;
 
   const UserChatBubble({
     super.key,
     required this.text,
     required this.time,
+    this.status = 'sent',
   });
+
+  Widget _buildStatusIcon(String status) {
+    final s = status.toLowerCase().trim();
+    if (s == 'read') {
+      return const Icon(
+        Icons.done_all_rounded,
+        size: 15,
+        color: Color(0xFF3B82F6), // ✓✓ biru
+      );
+    } else if (s == 'delivered') {
+      return const Icon(
+        Icons.done_all_rounded,
+        size: 15,
+        color: Color(0xFF94A3B8), // ✓✓ abu-abu
+      );
+    } else {
+      return const Icon(
+        Icons.check_rounded,
+        size: 14,
+        color: Color(0xFF94A3B8), // ✓
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -327,13 +353,21 @@ class UserChatBubble extends StatelessWidget {
                   const SizedBox(height: 4),
                   Align(
                     alignment: Alignment.bottomRight,
-                    child: Text(
-                      time,
-                      style: const TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w400,
-                        color: Color(0xFF94A3B8),
-                      ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Text(
+                          time,
+                          style: const TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w400,
+                            color: Color(0xFF94A3B8),
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        _buildStatusIcon(status),
+                      ],
                     ),
                   ),
                 ],
