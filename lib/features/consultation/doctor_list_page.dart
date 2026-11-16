@@ -6,6 +6,7 @@ import 'package:oste/features/dashboard/dashboard_page.dart';
 import 'package:oste/models/doctor_model.dart';
 import 'package:oste/services/chat_service.dart';
 import 'package:oste/services/doctor_presence_service.dart';
+import 'package:oste/services/doctor_review_service.dart';
 import 'package:oste/services/doctor_schedule_service.dart';
 import 'package:oste/services/user_service.dart';
 
@@ -32,6 +33,9 @@ class _DoctorListPageState extends State<DoctorListPage> {
     // Mulai mendengarkan status online dan jadwal praktik semua dokter secara real-time
     DoctorPresenceService().startListeningAllDoctors();
     DoctorScheduleService().startListening();
+    for (final doc in doctorList) {
+      DoctorReviewService().subscribeToDoctorReviews(doc.id);
+    }
   }
 
   @override

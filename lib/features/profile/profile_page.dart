@@ -315,6 +315,24 @@ class ProfilePage extends StatelessWidget {
                             color: _ProfileColors.divider,
                           ),
 
+                          // ── Hapus Akun ──
+                          _buildAccountTile(
+                            context: context,
+                            icon: Icons.delete_forever_rounded,
+                            iconColor: const Color(0xFFEF4444),
+                            iconBgColor: const Color(0xFFFEE2E2),
+                            title: 'Hapus Akun',
+                            titleColor: const Color(0xFFEF4444),
+                            subtitle: 'Hapus akun dan seluruh data secara permanen',
+                            onTap: () => _showDeleteAccountDialog(context),
+                          ),
+
+                          const Divider(
+                            height: 1,
+                            thickness: 1,
+                            color: _ProfileColors.divider,
+                          ),
+
                           // ── Logout ──
                           _buildAccountTile(
                             context: context,
@@ -396,7 +414,7 @@ class ProfilePage extends StatelessWidget {
     );
   }
 
-  /// Tile untuk section Account (Change Password, Logout, dsb.)
+  /// Tile untuk section Account (Change Password, Hapus Akun, Logout, dsb.)
   Widget _buildAccountTile({
     required BuildContext context,
     required IconData icon,
@@ -405,6 +423,7 @@ class ProfilePage extends StatelessWidget {
     required String title,
     required String subtitle,
     required VoidCallback onTap,
+    Color? titleColor,
   }) {
     return InkWell(
       onTap: onTap,
@@ -431,10 +450,10 @@ class ProfilePage extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
-                      color: _ProfileColors.textDark,
+                      color: titleColor ?? _ProfileColors.textDark,
                     ),
                   ),
                   const SizedBox(height: 2),
@@ -455,6 +474,218 @@ class ProfilePage extends StatelessWidget {
               color: _ProfileColors.textLight,
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  /// Dialog konfirmasi Hapus Akun
+  void _showDeleteAccountDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: _ProfileColors.cardWhite,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        title: const Text(
+          'Hapus Akun',
+          style: TextStyle(
+            fontSize: 17,
+            fontWeight: FontWeight.w700,
+            color: _ProfileColors.textDark,
+          ),
+        ),
+        content: const Text(
+          'Apakah Anda yakin ingin menghapus akun? Seluruh data akun, termasuk riwayat skrining dan riwayat konsultasi, akan dihapus secara permanen dan tidak dapat dipulihkan.',
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w400,
+            color: _ProfileColors.textMuted,
+            height: 1.4,
+          ),
+        ),
+        actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            style: TextButton.styleFrom(
+              foregroundColor: _ProfileColors.textMuted,
+            ),
+            child: const Text(
+              'Batal',
+              style: TextStyle(fontWeight: FontWeight.w600),
+            ),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx); // tutup dialog konfirmasi
+              _performDeleteAccount(context);
+            },
+            style: TextButton.styleFrom(
+              foregroundColor: const Color(0xFFEF4444),
+            ),
+            child: const Text(
+              'Hapus Akun',
+              style: TextStyle(
+                fontWeight: FontWeight.w700,
+                color: Color(0xFFEF4444),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Eksekusi penghapusan akun dengan loading indicator, error handling, dan navigasi bersih
+  Future<void> _performDeleteAccount(BuildContext context) async {
+    // Tampilkan loading indicator dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => PopScope(
+        canPop: false,
+        child: Center(
+          child: Container(
+            margin: const EdgeInsets.symmetric(horizontal: 32),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(18),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.1),
+                  blurRadius: 16,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.5,
+                    color: Color(0xFFEF4444),
+                  ),
+                ),
+                SizedBox(width: 16),
+                Flexible(
+                  child: Text(
+                    'Menghapus akun...',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: _ProfileColors.textDark,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    final result = await UserService().deleteAccount();
+
+    if (!context.mounted) return;
+
+    // Tutup loading dialog
+    Navigator.of(context, rootNavigator: true).pop();
+
+    if (!result.isSuccess) {
+      if (result.isRecentLoginRequired) {
+        // Panduan re-authentication jika sesi sudah lama
+        showDialog(
+          context: context,
+          builder: (reauthCtx) => AlertDialog(
+            backgroundColor: _ProfileColors.cardWhite,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+            title: const Text(
+              'Perlu Login Ulang',
+              style: TextStyle(
+                fontSize: 17,
+                fontWeight: FontWeight.w700,
+                color: _ProfileColors.textDark,
+              ),
+            ),
+            content: Text(
+              result.message,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w400,
+                color: _ProfileColors.textMuted,
+                height: 1.4,
+              ),
+            ),
+            actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(reauthCtx),
+                style: TextButton.styleFrom(
+                  foregroundColor: _ProfileColors.textMuted,
+                ),
+                child: const Text('Batal'),
+              ),
+              ElevatedButton(
+                onPressed: () async {
+                  Navigator.pop(reauthCtx);
+                  await UserService().logout();
+                  if (context.mounted) {
+                    Navigator.pushAndRemoveUntil(
+                      context,
+                      MaterialPageRoute(builder: (_) => const LoginPage()),
+                      (route) => false,
+                    );
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _ProfileColors.orange,
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                child: const Text(
+                  'Login Ulang',
+                  style: TextStyle(fontWeight: FontWeight.w600),
+                ),
+              ),
+            ],
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result.message),
+            backgroundColor: const Color(0xFFE11D48),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
+        );
+      }
+      return;
+    }
+
+    // Berhasil: navigasi ke LoginPage dan hapus seluruh backstack
+    final messenger = ScaffoldMessenger.of(context);
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => const LoginPage()),
+      (route) => false,
+    );
+
+    messenger.showSnackBar(
+      SnackBar(
+        content: const Text('Akun berhasil dihapus.'),
+        backgroundColor: const Color(0xFF10B981),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
         ),
       ),
     );

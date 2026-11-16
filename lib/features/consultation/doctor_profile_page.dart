@@ -20,6 +20,7 @@ class DoctorProfilePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    DoctorReviewService().subscribeToDoctorReviews(doctor.id);
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(

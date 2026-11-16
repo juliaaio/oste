@@ -54,19 +54,54 @@ class DoctorReviewPage extends StatelessWidget {
         ),
       ),
       body: SafeArea(
-        child: ListenableBuilder(
-          listenable: reviewService,
-          builder: (context, _) {
-            final reviews = reviewService.getReviewsForDoctor(currentDoctor.id);
-            final reviewCount = reviewService.getReviewCount(currentDoctor.id);
-            final avgRating = reviewService.getAverageRating(currentDoctor.id);
-            final distribution =
-                reviewService.getStarDistributionPercentages(currentDoctor.id);
+        child: StreamBuilder<List<DoctorReview>>(
+          stream: reviewService.streamReviews(currentDoctor.id),
+          initialData: reviewService.getReviewsForDoctor(currentDoctor.id),
+          builder: (context, snapshot) {
+            final reviews = snapshot.data ??
+                reviewService.getReviewsForDoctor(currentDoctor.id);
+            final reviewCount = reviews.length;
+            final double avgRating = reviews.isEmpty
+                ? 0.0
+                : double.parse(
+                    (reviews.fold<double>(0.0, (sum, r) => sum + r.rating) /
+                            reviews.length)
+                        .toStringAsFixed(1),
+                  );
+
+            final Map<int, double> distribution = {
+              5: 0.0,
+              4: 0.0,
+              3: 0.0,
+              2: 0.0,
+              1: 0.0,
+            };
+            if (reviews.isNotEmpty) {
+              final Map<int, int> counts = {5: 0, 4: 0, 3: 0, 2: 0, 1: 0};
+              for (final r in reviews) {
+                final star = r.rating.round().clamp(1, 5);
+                counts[star] = (counts[star] ?? 0) + 1;
+              }
+              counts.forEach((star, count) {
+                distribution[star] = (count / reviews.length) * 100.0;
+              });
+            }
 
             return ListenableBuilder(
               listenable: userService,
               builder: (context, _) {
                 final currentUser = userService.currentUser;
+                User? firebaseUser;
+                try {
+                  firebaseUser = FirebaseAuth.instance.currentUser;
+                } catch (_) {}
+
+                final currentUid = currentUser?.uid ?? firebaseUser?.uid;
+                final DoctorReview? userReview = currentUid != null
+                    ? reviews
+                        .where((r) => r.userId == currentUid)
+                        .firstOrNull
+                    : null;
 
                 return SingleChildScrollView(
                   physics: const BouncingScrollPhysics(),
@@ -83,8 +118,12 @@ class DoctorReviewPage extends StatelessWidget {
                       ),
                       const SizedBox(height: 16),
 
-                      // ── 2. Tombol Besar "Beri Ulasan" ───────────────────────
-                      _buildAddReviewButton(context, currentDoctor),
+                      // ── 2. Tombol Besar "Beri Ulasan" / "Perbarui Ulasan" ─────
+                      _buildAddReviewButton(
+                        context,
+                        currentDoctor,
+                        userReview: userReview,
+                      ),
                       const SizedBox(height: 18),
 
                       // ── 3. Daftar Ulasan Pasien ──────────────────────────────
@@ -251,8 +290,18 @@ class DoctorReviewPage extends StatelessWidget {
     );
   }
 
-  /// Tombol Besar "Beri Ulasan"
-  Widget _buildAddReviewButton(BuildContext context, Doctor currentDoctor) {
+  /// Tombol Besar "Beri Ulasan" atau "Perbarui Ulasan" jika user sudah pernah mengulas
+  Widget _buildAddReviewButton(
+    BuildContext context,
+    Doctor currentDoctor, {
+    DoctorReview? userReview,
+  }) {
+    final bool hasReviewed = userReview != null;
+    final String label = hasReviewed ? 'Perbarui Ulasan' : 'Beri Ulasan';
+    final IconData icon = hasReviewed
+        ? Icons.edit_note_rounded
+        : Icons.mode_edit_outline_rounded;
+
     return Container(
       width: double.infinity,
       height: 48,
@@ -275,23 +324,26 @@ class DoctorReviewPage extends StatelessWidget {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (_) => WriteReviewPage(doctor: currentDoctor),
+                builder: (_) => WriteReviewPage(
+                  doctor: currentDoctor,
+                  existingReview: userReview,
+                ),
               ),
             );
           },
-          child: const Center(
+          child: Center(
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Icon(
-                  Icons.mode_edit_outline_rounded,
+                  icon,
                   size: 20,
                   color: _textDark,
                 ),
-                SizedBox(width: 8),
+                const SizedBox(width: 8),
                 Text(
-                  'Beri Ulasan',
-                  style: TextStyle(
+                  label,
+                  style: const TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w700,
                     color: _textDark,
@@ -356,18 +408,32 @@ class DoctorReviewPage extends StatelessWidget {
     required DoctorReview review,
     required dynamic currentUser,
   }) {
+    User? firebaseUser;
+    try {
+      firebaseUser = FirebaseAuth.instance.currentUser;
+    } catch (_) {}
+
+    final currentUid = currentUser?.uid ?? firebaseUser?.uid;
+
     // Sinkronisasi dengan user yang sedang login jika review ditulis oleh user saat ini
-    final bool isCurrentUser = currentUser != null &&
-        (review.patientId == currentUser.uid ||
+    final bool isCurrentUser = currentUid != null &&
+        (review.patientId == currentUid ||
+            review.userId == currentUid ||
             review.patientId == 'patient_current');
 
     final String displayName = isCurrentUser
-        ? (currentUser.name.isNotEmpty ? currentUser.name : review.patientName)
-        : review.patientName;
+        ? ((currentUser != null && currentUser.name.trim().isNotEmpty)
+            ? currentUser.name.trim()
+            : (firebaseUser?.displayName?.trim().isNotEmpty == true
+                ? firebaseUser!.displayName!.trim()
+                : (review.userName.isNotEmpty ? review.userName : 'Pengguna')))
+        : (review.userName.isNotEmpty ? review.userName : 'Pengguna');
 
     final String? photoUrl = isCurrentUser
-        ? (FirebaseAuth.instance.currentUser?.photoURL ?? review.patientPhoto)
-        : review.patientPhoto;
+        ? (currentUser?.photoUrl ??
+            firebaseUser?.photoURL ??
+            review.userPhoto)
+        : review.userPhoto;
 
     return Container(
       width: double.infinity,

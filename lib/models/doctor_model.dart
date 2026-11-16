@@ -31,4 +31,39 @@ class Doctor {
     this.schedules = 'Senin - Jumat, 09:00 - 16:00',
     this.todaySchedule = const ['09.00', '13.00', '19.00'],
   });
+
+  Doctor copyWith({
+    String? id,
+    String? name,
+    String? specialist,
+    double? rating,
+    bool? isOnline,
+    String? imageUrl,
+    int? experienceYears,
+    int? patientCount,
+    String? hospital,
+    String? biography,
+    int? consultationFee,
+    String? consultationFeeFormatted,
+    String? schedules,
+    List<String>? todaySchedule,
+  }) {
+    return Doctor(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      specialist: specialist ?? this.specialist,
+      rating: rating ?? this.rating,
+      isOnline: isOnline ?? this.isOnline,
+      imageUrl: imageUrl ?? this.imageUrl,
+      experienceYears: experienceYears ?? this.experienceYears,
+      patientCount: patientCount ?? this.patientCount,
+      hospital: hospital ?? this.hospital,
+      biography: biography ?? this.biography,
+      consultationFee: consultationFee ?? this.consultationFee,
+      consultationFeeFormatted:
+          consultationFeeFormatted ?? this.consultationFeeFormatted,
+      schedules: schedules ?? this.schedules,
+      todaySchedule: todaySchedule ?? this.todaySchedule,
+    );
+  }
 }

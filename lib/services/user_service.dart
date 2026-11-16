@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:oste/models/user_model.dart';
 import 'package:oste/services/doctor_presence_service.dart';
+import 'package:oste/services/history_service.dart';
 import 'package:oste/services/patient_presence_service.dart';
 
 // ---------------------------------------------------------------------------
@@ -506,4 +507,111 @@ class UserService extends ChangeNotifier {
       }
     }
   }
+
+  // ── Delete Account ────────────────────────────────────────────────────────
+
+  /// Menghapus seluruh data pengguna dari Firestore (termasuk subcollection)
+  /// dan menghapus akun dari Firebase Authentication.
+  ///
+  /// Mengembalikan [DeleteAccountResult] yang menandakan status keberhasilan
+  /// atau pesan kesalahan yang ramah pengguna.
+  Future<DeleteAccountResult> deleteAccount() async {
+    User? firebaseUser;
+    try {
+      firebaseUser = FirebaseAuth.instance.currentUser;
+    } catch (_) {}
+
+    final uid = _currentUser?.uid ?? firebaseUser?.uid;
+    if (uid == null || uid.isEmpty) {
+      return const DeleteAccountResult.error('Pengguna tidak ditemukan atau sesi telah berakhir.');
+    }
+
+    try {
+      // 1. Matikan presence dokter / pasien jika aktif
+      try {
+        if (_currentUser?.isDoctor == true) {
+          await DoctorPresenceService().setOffline(uid);
+        } else {
+          await PatientPresenceService().setOffline(uid);
+        }
+      } catch (_) {}
+
+      // 2. Hapus seluruh data pengguna pada Firestore
+      try {
+        final firestore = FirebaseFirestore.instance;
+        final userDocRef = firestore.collection(_kUsersCollection).doc(uid);
+
+        // Hapus subcollection riwayat_skrining
+        final screeningSnap = await userDocRef.collection('riwayat_skrining').get();
+        for (final doc in screeningSnap.docs) {
+          await doc.reference.delete();
+        }
+
+        // Hapus subcollection riwayat_konsultasi jika ada
+        final consultationSnap = await userDocRef.collection('riwayat_konsultasi').get();
+        for (final doc in consultationSnap.docs) {
+          await doc.reference.delete();
+        }
+
+        // Hapus status presence
+        await firestore.collection('patient_presence').doc(uid).delete().catchError((_) {});
+        await firestore.collection('doctor_presence').doc(uid).delete().catchError((_) {});
+
+        // Hapus dari koleksi admins jika ada
+        await firestore.collection(_kAdminsCollection).doc(uid).delete().catchError((_) {});
+
+        // Hapus dokumen utama users/{uid}
+        await userDocRef.delete();
+      } catch (e) {
+        if (e is FirebaseException && e.code == 'permission-denied') {
+          return const DeleteAccountResult.error(
+            'Gagal menghapus data: Izin ditolak. Silakan coba lagi nanti.',
+          );
+        }
+      }
+
+      // 3. Hapus akun pengguna dari Firebase Authentication
+      if (firebaseUser != null) {
+        await firebaseUser.delete();
+      }
+
+      // 4. Bersihkan state in-memory dan listener
+      _currentUser = null;
+      try {
+        HistoryService().clearScreeningHistories();
+      } catch (_) {}
+      notifyListeners();
+
+      return const DeleteAccountResult.success();
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'requires-recent-login') {
+        return const DeleteAccountResult.error(
+          'Demi keamanan akun Anda, tindakan ini memerlukan autentikasi terbaru. Silakan logout dan login kembali sebelum menghapus akun.',
+          isRecentLoginRequired: true,
+        );
+      }
+      return DeleteAccountResult.error(_friendlyAuthError(e));
+    } catch (e) {
+      return const DeleteAccountResult.error(
+        'Gagal menghapus akun. Silakan periksa koneksi internet Anda dan coba lagi.',
+      );
+    }
+  }
+}
+
+/// Hasil eksekusi penghapusan akun.
+class DeleteAccountResult {
+  final bool isSuccess;
+  final String message;
+  final bool isRecentLoginRequired;
+
+  const DeleteAccountResult.success()
+      : isSuccess = true,
+        message = '',
+        isRecentLoginRequired = false;
+
+  const DeleteAccountResult.error(
+    this.message, {
+    this.isRecentLoginRequired = false,
+  }) : isSuccess = false;
 }

@@ -18,11 +18,13 @@ class DoctorCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    DoctorReviewService().subscribeToDoctorReviews(doctor.id);
     return ListenableBuilder(
       listenable: Listenable.merge([
         ChatService(),
         DoctorPresenceService(), // re-build saat status online berubah
         DoctorScheduleService(), // re-build saat status praktik dokter berubah
+        DoctorReviewService(),   // re-build saat rating ulasan berubah
       ]),
       builder: (context, _) {
         final unreadCount =

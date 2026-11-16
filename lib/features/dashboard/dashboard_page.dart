@@ -67,31 +67,35 @@ class _DashboardPageState extends State<DashboardPage>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
 
-    final patientUid = FirebaseAuth.instance.currentUser?.uid ?? '';
-    if (patientUid.isNotEmpty) {
-      PatientPresenceService().setOnline(
-        patientUid,
-        patientName: UserService().currentUser?.name ?? '',
-      );
-      ChatService().startListeningPatientConversations(patientUid);
-    }
+    try {
+      final patientUid = FirebaseAuth.instance.currentUser?.uid ?? '';
+      if (patientUid.isNotEmpty) {
+        PatientPresenceService().setOnline(
+          patientUid,
+          patientName: UserService().currentUser?.name ?? '',
+        );
+        ChatService().startListeningPatientConversations(patientUid);
+      }
+    } catch (_) {}
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    final patientUid = FirebaseAuth.instance.currentUser?.uid ?? '';
-    if (patientUid.isEmpty) return;
+    try {
+      final patientUid = FirebaseAuth.instance.currentUser?.uid ?? '';
+      if (patientUid.isEmpty) return;
 
-    if (state == AppLifecycleState.paused ||
-        state == AppLifecycleState.detached ||
-        state == AppLifecycleState.inactive) {
-      PatientPresenceService().setOffline(patientUid);
-    } else if (state == AppLifecycleState.resumed) {
-      PatientPresenceService().setOnline(
-        patientUid,
-        patientName: UserService().currentUser?.name ?? '',
-      );
-    }
+      if (state == AppLifecycleState.paused ||
+          state == AppLifecycleState.detached ||
+          state == AppLifecycleState.inactive) {
+        PatientPresenceService().setOffline(patientUid);
+      } else if (state == AppLifecycleState.resumed) {
+        PatientPresenceService().setOnline(
+          patientUid,
+          patientName: UserService().currentUser?.name ?? '',
+        );
+      }
+    } catch (_) {}
   }
 
   @override

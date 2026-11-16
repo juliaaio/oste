@@ -253,24 +253,52 @@ class _EditPageState extends State<EditPage> {
                                 ? cleanName[0].toUpperCase()
                                 : 'A';
 
-                        return Container(
-                          width: 74,
-                          height: 74,
-                          decoration: const BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Color(0xFFF59E0B),
-                          ),
-                          child: Center(
-                            child: Text(
-                              avatarLetter,
-                              style: const TextStyle(
-                                fontSize: 30,
-                                fontWeight: FontWeight.w700,
-                                color: Colors.white,
-                                letterSpacing: 0,
+                        return Stack(
+                          children: [
+                            Container(
+                              width: 74,
+                              height: 74,
+                              decoration: const BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: Color(0xFFF59E0B),
+                              ),
+                              child: Center(
+                                child: Text(
+                                  avatarLetter,
+                                  style: const TextStyle(
+                                    fontSize: 30,
+                                    fontWeight: FontWeight.w700,
+                                    color: Colors.white,
+                                    letterSpacing: 0,
+                                  ),
+                                ),
                               ),
                             ),
-                          ),
+                            Positioned(
+                              right: 0,
+                              bottom: 0,
+                              child: Container(
+                                width: 26,
+                                height: 26,
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  shape: BoxShape.circle,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withValues(alpha: 0.1),
+                                      blurRadius: 4,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                                child: const Icon(
+                                  Icons.photo_camera_rounded,
+                                  size: 15,
+                                  color: _textDark,
+                                ),
+                              ),
+                            ),
+                          ],
                         );
                       },
                     ),

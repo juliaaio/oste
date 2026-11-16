@@ -1,11 +1,9 @@
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:oste/features/admin/dashboard/admin_dashboard_page.dart';
 import 'package:oste/features/dashboard/dashboard_page.dart';
 import 'package:oste/features/doctor_dashboard/doctor_dashboard_page.dart';
 import 'package:oste/features/auth/register/register_page.dart';
 import 'package:oste/features/auth/forgot_password/forgot_password_page.dart';
-import 'package:oste/features/auth/login/google_login/google_account_picker_page.dart';
 import 'package:oste/services/user_service.dart';
 
 /// Palet warna halaman Login
@@ -175,15 +173,7 @@ class _LoginPageState extends State<LoginPage> {
 
                   // Tombol Utama "Masuk →"
                   _buildLoginButton(),
-                  const SizedBox(height: 20),
-
-                  // Divider "atau"
-                  _buildDivider(),
-                  const SizedBox(height: 20),
-
-                  // Tombol "Masuk dengan Google"
-                  _buildGoogleSignInButton(),
-                  const SizedBox(height: 22),
+                  const SizedBox(height: 28),
 
                   // Teks "Belum punya akun? Daftar"
                   _buildRegisterPrompt(),
@@ -524,96 +514,6 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  /// Widget Pembatas "atau"
-  Widget _buildDivider() {
-    return const Row(
-      children: [
-        Expanded(
-          child: Divider(
-            color: Color(0xFFECEFF1),
-            thickness: 1.2,
-          ),
-        ),
-        Padding(
-          padding: EdgeInsets.symmetric(horizontal: 14),
-          child: Text(
-            'atau',
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w400,
-              color: _LoginColors.textLight,
-            ),
-          ),
-        ),
-        Expanded(
-          child: Divider(
-            color: Color(0xFFECEFF1),
-            thickness: 1.2,
-          ),
-        ),
-      ],
-    );
-  }
-
-  /// Widget Tombol "Masuk dengan Google"
-  Widget _buildGoogleSignInButton() {
-    return Container(
-      width: double.infinity,
-      height: 52,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(28),
-        border: Border.all(
-          color: _LoginColors.inputBorder,
-          width: 1.2,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.02),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(28),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(28),
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => const GoogleAccountPickerPage(),
-              ),
-            );
-          },
-          child: const Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              SizedBox(
-                width: 20,
-                height: 20,
-                child: CustomPaint(
-                  painter: _GoogleLogoPainter(),
-                ),
-              ),
-              SizedBox(width: 12),
-              Text(
-                'Masuk dengan Google',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: _LoginColors.textDark,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
   /// Widget "Belum punya akun? Daftar"
   Widget _buildRegisterPrompt() {
     return Row(
@@ -839,69 +739,6 @@ class _OsteocareLogoPainter extends CustomPainter {
     path.quadraticBezierTo(center.dx, center.dy, center.dx, center.dy - size);
     path.close();
     canvas.drawPath(path, paint);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
-
-// =============================================================================
-// LOGO GOOGLE (CUSTOM PAINTER OTENTIK 4 WARNA)
-// =============================================================================
-class _GoogleLogoPainter extends CustomPainter {
-  const _GoogleLogoPainter();
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height / 2);
-    final radius = size.width / 2;
-    const strokeWidth = 3.6;
-
-    final rect = Rect.fromCircle(center: center, radius: radius - strokeWidth / 2);
-
-    // 1. Busur Biru Google (Kanan & Atas)
-    final bluePaint = Paint()
-      ..color = const Color(0xFF4285F4)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = strokeWidth
-      ..strokeCap = StrokeCap.butt;
-    canvas.drawArc(rect, -math.pi / 4, math.pi / 2, false, bluePaint);
-
-    // 2. Busur Hijau Google (Kanan Bawah)
-    final greenPaint = Paint()
-      ..color = const Color(0xFF34A853)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = strokeWidth
-      ..strokeCap = StrokeCap.butt;
-    canvas.drawArc(rect, math.pi / 4, math.pi / 2, false, greenPaint);
-
-    // 3. Busur Kuning Google (Kiri Bawah)
-    final yellowPaint = Paint()
-      ..color = const Color(0xFFFBBC05)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = strokeWidth
-      ..strokeCap = StrokeCap.butt;
-    canvas.drawArc(rect, 3 * math.pi / 4, math.pi / 2, false, yellowPaint);
-
-    // 4. Busur Merah Google (Kiri Atas)
-    final redPaint = Paint()
-      ..color = const Color(0xFFEA4335)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = strokeWidth
-      ..strokeCap = StrokeCap.butt;
-    canvas.drawArc(rect, 5 * math.pi / 4, math.pi / 2, false, redPaint);
-
-    // 5. Garis horizontal biru tengah huruf 'G'
-    final barPaint = Paint()
-      ..color = const Color(0xFF4285F4)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = strokeWidth
-      ..strokeCap = StrokeCap.butt;
-    canvas.drawLine(
-      Offset(center.dx - 1, center.dy),
-      Offset(size.width - strokeWidth / 2, center.dy),
-      barPaint,
-    );
   }
 
   @override
