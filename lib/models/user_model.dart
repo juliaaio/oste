@@ -45,10 +45,10 @@ class UserModel {
     return r == 'admin' || r == 'administrator';
   }
 
-  /// Mengidentifikasi apakah pengguna adalah pasien normal
+  /// Mengidentifikasi apakah pengguna adalah pasien atau user normal
   bool get isPatient {
     final r = role.trim().toLowerCase();
-    return r == 'patient' || r == 'pasien';
+    return r == 'patient' || r == 'pasien' || r == 'user' || r == 'pengguna';
   }
 
   /// Apakah pengguna memiliki peran valid yang dikenali di sistem
@@ -84,6 +84,33 @@ class UserModel {
 
   /// Buat UserModel dari Map (misalnya dari Firestore data() tanpa DocumentSnapshot).
   factory UserModel.fromMap(String uid, Map<String, dynamic> data) {
+    String parsedRole = _parseString(
+      data['role'] ??
+          data['Role'] ??
+          data['ROLE'] ??
+          data['user_role'] ??
+          data['userRole'] ??
+          data['type'],
+    ).trim();
+
+    if (parsedRole.isEmpty) {
+      if (data['isAdmin'] == true ||
+          data['is_admin'] == true ||
+          data['admin'] == true) {
+        parsedRole = 'admin';
+      } else if (data['isDoctor'] == true ||
+          data['is_doctor'] == true ||
+          data['doctor'] == true) {
+        parsedRole = 'doctor';
+      } else if (data['isPatient'] == true ||
+          data['is_patient'] == true ||
+          data['patient'] == true ||
+          data['isUser'] == true ||
+          data['is_user'] == true) {
+        parsedRole = 'patient';
+      }
+    }
+
     return UserModel(
       uid: uid,
       name: _parseString(data['name']),
@@ -93,7 +120,7 @@ class UserModel {
       birthDate: _parseString(data['birth_date'] ?? data['birthDate']),
       weight: _parseNum(data['weight']),
       height: _parseNum(data['height']),
-      role: _parseString(data['role']).isNotEmpty ? _parseString(data['role']) : 'patient',
+      role: parsedRole,
       specialist: _parseString(data['specialist']),
       linkedDoctorId: _parseString(data['linkedDoctorId']),
     );

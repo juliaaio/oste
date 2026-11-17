@@ -127,9 +127,43 @@ void main() {
 
       // Memastikan Dashboard Admin dirender untuk role Admin
       expect(find.byType(AdminDashboardPage), findsOneWidget);
-      expect(find.text('Osteo Admin'), findsOneWidget);
+      expect(find.text('Dashboard Admin'), findsOneWidget);
       expect(find.text('Halo, Admin!'), findsOneWidget);
       expect(find.byType(DashboardPage), findsNothing);
+      expect(find.byType(DoctorDashboardPage), findsNothing);
+    });
+
+    testWidgets('User with role "user" is routed to DashboardPage (User POV)', (tester) async {
+      UserService().setCurrentUserForTesting(
+        const UserModel(
+          uid: 'user_test_uid',
+          name: 'Budi Santoso',
+          email: 'budi@gmail.com',
+          role: 'user',
+        ),
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Builder(
+            builder: (context) {
+              final user = UserService().currentUser;
+              if (user?.isAdmin == true) {
+                return const AdminDashboardPage();
+              } else if (user?.isDoctor == true) {
+                return const DoctorDashboardPage();
+              } else {
+                return const DashboardPage();
+              }
+            },
+          ),
+        ),
+      );
+      await tester.pump();
+
+      // Memastikan Dashboard Pasien/User dirender untuk role "user"
+      expect(find.byType(DashboardPage), findsOneWidget);
+      expect(find.byType(AdminDashboardPage), findsNothing);
       expect(find.byType(DoctorDashboardPage), findsNothing);
     });
 

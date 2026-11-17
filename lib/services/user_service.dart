@@ -131,31 +131,32 @@ class UserService extends ChangeNotifier {
   Future<UserModel?> _doLoadUserFromFirestore(String uid) async {
     debugPrint('[AUTH-TRACE] Memulai verifikasi role untuk UID: $uid');
     try {
-      // 1. Prioritas 1: Periksa koleksi 'admins/{uid}' dan 'admin/{uid}' (jamak & tunggal)
-      for (final col in [_kAdminsCollection, 'admin']) {
+      final fbUser = FirebaseAuth.instance.currentUser;
+
+      // 0. Sinkronisasi token otentikasi Firebase Auth & periksa Custom Claims
+      if (fbUser != null && fbUser.uid == uid) {
         try {
-          debugPrint('[AUTH-TRACE] Memeriksa dokumen di koleksi "$col/$uid" ...');
-          final adminDoc = await FirebaseFirestore.instance
-              .collection(col)
-              .doc(uid)
-              .get();
+          // Paksa refresh token ID agar Firestore client memiliki token valid terkini
+          await fbUser.getIdToken(true);
+        } catch (e) {
+          debugPrint('[AUTH-TRACE] Peringatan refresh token auth: $e');
+        }
 
-          debugPrint('[AUTH-TRACE] Hasil $col/$uid: exists=${adminDoc.exists}');
-          if (adminDoc.exists && adminDoc.data() != null) {
-            final adminData = adminDoc.data()!;
-            final roleVal = adminData['role']?.toString().toLowerCase().trim() ?? '';
-            debugPrint('[AUTH-TRACE] Data $col/$uid ditemukan: role="$roleVal"');
+        try {
+          final tokenResult = await fbUser.getIdTokenResult();
+          final claims = tokenResult.claims;
+          if (claims != null) {
+            final claimRole = claims['role']?.toString().toLowerCase().trim() ?? '';
+            final isAdminClaim = claimRole == 'admin' ||
+                claimRole == 'administrator' ||
+                claims['admin'] == true ||
+                claims['isAdmin'] == true;
 
-            final isDocAdmin = roleVal == 'admin' || roleVal == 'administrator' || roleVal.isEmpty;
-
-            if (isDocAdmin) {
-              final fbUser = FirebaseAuth.instance.currentUser;
-              final adminName = (adminData['name'] != null && adminData['name'].toString().isNotEmpty)
-                  ? adminData['name'].toString()
-                  : (fbUser?.displayName ?? 'Admin Osteo');
-              final adminEmail = (adminData['email'] != null && adminData['email'].toString().isNotEmpty)
-                  ? adminData['email'].toString()
-                  : (fbUser?.email ?? '');
+            if (isAdminClaim) {
+              final adminName = fbUser.displayName?.isNotEmpty == true
+                  ? fbUser.displayName!
+                  : 'Admin Osteo';
+              final adminEmail = fbUser.email ?? '';
 
               _currentUser = UserModel(
                 uid: uid,
@@ -163,83 +164,109 @@ class UserService extends ChangeNotifier {
                 email: adminEmail,
                 role: 'admin',
               );
-              debugPrint('[AUTH-TRACE] Berhasil diverifikasi sebagai ADMIN dari koleksi $col!');
+              debugPrint('[AUTH-TRACE] Berhasil diverifikasi sebagai ADMIN via Firebase Auth Custom Claims!');
               notifyListeners();
               return _currentUser;
             }
           }
-        } on FirebaseException catch (e) {
-          if (e.code == 'permission-denied') {
-            debugPrint(
-              '[AUTH-TRACE] ⚠️ PERMISSION-DENIED saat mengakses "$col/$uid". '
-              'Firestore Security Rules di Firebase Console memblokir akses ke koleksi "$col".',
-            );
-          } else {
-            debugPrint('[AUTH-TRACE] FirebaseException pada $col/$uid: ${e.code} - ${e.message}');
-          }
         } catch (e) {
-          debugPrint('[AUTH-TRACE] Error lain saat memeriksa $col/$uid: $e');
+          debugPrint('[AUTH-TRACE] Pengecekan custom claims dilewati: $e');
         }
       }
 
-      // 2. Prioritas 1b: Pencarian cadangan jika ID dokumen di 'admins' belum menggunakan UID
-      for (final col in [_kAdminsCollection, 'admin']) {
-        try {
-          final queryByUid = await FirebaseFirestore.instance
-              .collection(col)
-              .where('uid', isEqualTo: uid)
-              .limit(1)
-              .get();
+      // 1. Prioritas 1: Periksa koleksi 'admins/{uid}'
+      try {
+        debugPrint('[AUTH-TRACE] Memeriksa dokumen di koleksi "$_kAdminsCollection/$uid" ...');
+        var adminDoc = await FirebaseFirestore.instance
+            .collection(_kAdminsCollection)
+            .doc(uid)
+            .get();
 
-          if (queryByUid.docs.isNotEmpty) {
-            final adminDoc = queryByUid.docs.first;
-            final adminData = adminDoc.data();
-            final roleVal = adminData['role']?.toString().toLowerCase().trim() ?? '';
-            final isDocAdmin = roleVal == 'admin' || roleVal == 'administrator' || roleVal.isEmpty;
+        debugPrint('[AUTH-TRACE] Hasil $_kAdminsCollection/$uid: exists=${adminDoc.exists}');
+        if (adminDoc.exists && adminDoc.data() != null) {
+          final adminData = adminDoc.data()!;
+          final roleVal = adminData['role']?.toString().toLowerCase().trim() ?? '';
+          debugPrint('[AUTH-TRACE] Data $_kAdminsCollection/$uid ditemukan: role="$roleVal"');
 
-            if (isDocAdmin) {
-              debugPrint(
-                '[AUTH-TRACE] Dokumen admin ditemukan dengan custom ID "${adminDoc.id}" di $col.',
-              );
+          final isDocAdmin = roleVal == 'admin' ||
+              roleVal == 'administrator' ||
+              roleVal.isEmpty ||
+              adminData['isAdmin'] == true ||
+              adminData['is_admin'] == true ||
+              adminData['admin'] == true;
 
-              final fbUser = FirebaseAuth.instance.currentUser;
-              final adminName = (adminData['name'] != null && adminData['name'].toString().isNotEmpty)
-                  ? adminData['name'].toString()
-                  : (fbUser?.displayName ?? 'Admin Osteo');
-              final adminEmail = (adminData['email'] != null && adminData['email'].toString().isNotEmpty)
-                  ? adminData['email'].toString()
-                  : (fbUser?.email ?? '');
+          if (isDocAdmin) {
+            final adminName = (adminData['name'] != null && adminData['name'].toString().isNotEmpty)
+                ? adminData['name'].toString()
+                : (fbUser?.displayName ?? 'Admin Osteo');
+            final adminEmail = (adminData['email'] != null && adminData['email'].toString().isNotEmpty)
+                ? adminData['email'].toString()
+                : (fbUser?.email ?? '');
 
-              _currentUser = UserModel(
-                uid: uid,
-                name: adminName,
-                email: adminEmail,
-                role: 'admin',
-              );
-
-              // Sinkronkan dokumen dengan ID = UID
-              try {
-                await FirebaseFirestore.instance
-                    .collection(_kAdminsCollection)
-                    .doc(uid)
-                    .set({
-                  ...adminData,
-                  'uid': uid,
-                  'role': 'admin',
-                }, SetOptions(merge: true));
-              } catch (_) {}
-
-              debugPrint('[AUTH-TRACE] Berhasil diverifikasi sebagai ADMIN via fallback query!');
-              notifyListeners();
-              return _currentUser;
-            }
+            _currentUser = UserModel(
+              uid: uid,
+              name: adminName,
+              email: adminEmail,
+              role: 'admin',
+            );
+            debugPrint('[AUTH-TRACE] Berhasil diverifikasi sebagai ADMIN dari koleksi $_kAdminsCollection!');
+            notifyListeners();
+            return _currentUser;
           }
-        } catch (_) {}
+        }
+      } on FirebaseException catch (e) {
+        if (e.code == 'permission-denied') {
+          debugPrint(
+            '[AUTH-TRACE] ⚠️ PERMISSION-DENIED saat mengakses "$_kAdminsCollection/$uid". '
+            'Mencoba refresh token auth dan mengulang sekali lagi...',
+          );
+          try {
+            await Future.delayed(const Duration(milliseconds: 200));
+            await fbUser?.getIdToken(true);
+            final retryDoc = await FirebaseFirestore.instance
+                .collection(_kAdminsCollection)
+                .doc(uid)
+                .get();
+            if (retryDoc.exists && retryDoc.data() != null) {
+              final adminData = retryDoc.data()!;
+              final roleVal = adminData['role']?.toString().toLowerCase().trim() ?? '';
+              final isDocAdmin = roleVal == 'admin' ||
+                  roleVal == 'administrator' ||
+                  roleVal.isEmpty ||
+                  adminData['isAdmin'] == true;
+
+              if (isDocAdmin) {
+                final adminName = (adminData['name'] != null && adminData['name'].toString().isNotEmpty)
+                    ? adminData['name'].toString()
+                    : (fbUser?.displayName ?? 'Admin Osteo');
+                final adminEmail = (adminData['email'] != null && adminData['email'].toString().isNotEmpty)
+                    ? adminData['email'].toString()
+                    : (fbUser?.email ?? '');
+
+                _currentUser = UserModel(
+                  uid: uid,
+                  name: adminName,
+                  email: adminEmail,
+                  role: 'admin',
+                );
+                debugPrint('[AUTH-TRACE] Berhasil diverifikasi sebagai ADMIN pada percobaan ulang!');
+                notifyListeners();
+                return _currentUser;
+              }
+            }
+          } catch (retryErr) {
+            debugPrint('[AUTH-TRACE] Percobaan ulang ke $_kAdminsCollection/$uid selesai: $retryErr');
+          }
+        } else {
+          debugPrint('[AUTH-TRACE] FirebaseException pada $_kAdminsCollection/$uid: ${e.code} - ${e.message}');
+        }
+      } catch (e) {
+        debugPrint('[AUTH-TRACE] Error lain saat memeriksa $_kAdminsCollection/$uid: $e');
       }
 
-      // 3. Prioritas 2: Periksa koleksi 'users/{uid}'
+      // 2. Prioritas 2: Periksa koleksi 'users/{uid}'
       try {
-        debugPrint('[AUTH-TRACE] Memeriksa koleksi "users/$uid" ...');
+        debugPrint('[AUTH-TRACE] Memeriksa koleksi "$_kUsersCollection/$uid" ...');
         final userDoc = await FirebaseFirestore.instance
             .collection(_kUsersCollection)
             .doc(uid)
@@ -247,36 +274,44 @@ class UserService extends ChangeNotifier {
 
         debugPrint('[AUTH-TRACE] Hasil users/$uid: exists=${userDoc.exists}');
         if (userDoc.exists && userDoc.data() != null) {
+          final rawData = userDoc.data()!;
           final loadedUser = UserModel.fromFirestore(userDoc);
           debugPrint('[AUTH-TRACE] Data users/$uid: role="${loadedUser.role}"');
 
-          // Jika pada users memiliki role admin
-          if (loadedUser.isAdmin) {
-            _currentUser = loadedUser;
+          // Periksa apakah dokumen users menandai akun sebagai admin
+          final isUserDocAdmin = loadedUser.isAdmin ||
+              rawData['isAdmin'] == true ||
+              rawData['is_admin'] == true ||
+              rawData['admin'] == true;
 
-            // Sinkronkan ke koleksi admins jika rules mengizinkan
-            try {
-              await FirebaseFirestore.instance
-                  .collection(_kAdminsCollection)
-                  .doc(uid)
-                  .set({
-                'uid': uid,
-                'name': loadedUser.name,
-                'email': loadedUser.email,
-                'role': 'admin',
-              }, SetOptions(merge: true));
-            } catch (_) {}
-
+          if (isUserDocAdmin) {
+            _currentUser = loadedUser.copyWith(role: 'admin');
             debugPrint('[AUTH-TRACE] Berhasil diverifikasi sebagai ADMIN dari koleksi users!');
             notifyListeners();
             return _currentUser;
           }
 
-          // Pasien atau Dokter terverifikasi
-          _currentUser = loadedUser;
-          debugPrint('[AUTH-TRACE] Terverifikasi sebagai non-admin: role="${loadedUser.role}"');
+          // Periksa apakah dokter terverifikasi
+          if (loadedUser.isDoctor) {
+            _currentUser = loadedUser;
+            debugPrint('[AUTH-TRACE] Berhasil diverifikasi sebagai DOKTER: role="${loadedUser.role}"');
+            notifyListeners();
+            return _currentUser;
+          }
+
+          // Periksa apakah pasien / user terverifikasi
+          if (loadedUser.isPatient) {
+            _currentUser = loadedUser;
+            debugPrint('[AUTH-TRACE] Terverifikasi sebagai PASIEN/USER: role="${loadedUser.role}"');
+            notifyListeners();
+            return _currentUser;
+          }
+
+          // Dokumen users ditemukan tetapi role tidak valid / belum dikenali
+          debugPrint('[AUTH-TRACE] ⚠️ Dokumen users/$uid ada namun role ("${loadedUser.role}") tidak dikenali.');
+          _currentUser = null;
           notifyListeners();
-          return _currentUser;
+          return null;
         }
       } catch (e) {
         debugPrint('[AUTH-TRACE] Error memeriksa users/$uid: $e');

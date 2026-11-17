@@ -10,6 +10,69 @@ class ArticleData {
 
   /// Sumber data artikel awal yang digunakan untuk inisialisasi tanpa duplikasi
   static const List<ArticleModel> initialArticles = [
+    // 0a. Artikel Screenshot 1: Mengenal Osteoporosis: Penyebab, Gejala, dan Pencegahan
+    ArticleModel(
+      id: 'mengenal-osteoporosis-penyebab-gejala',
+      source: 'Osteo Care',
+      sourceColor: Color(0xFFF59E0B),
+      sourceInitial: 'O',
+      title: 'Mengenal Osteoporosis: Penyebab, Gejala, dan Pencegahan',
+      category: 'Edukasi Tulang',
+      appBarTitle: 'Mengenal Osteoporosis',
+      date: '10 Nov 2026',
+      status: 'Dipublikasikan',
+      description:
+          'Kenali penyebab berkurangnya kepadatan tulang, gejala yang sering tidak disadari, serta langkah pencegahan terbaik.',
+      url: 'https://www.alodokter.com/osteoporosis',
+      thumbnailUrl: '',
+      heroAssetPath: 'assets/images/osteoporosis_hero.jpg',
+      bannerBottomText: 'KENALI TANDA & PENCEGAHAN SEJAK DINI',
+      sourceActionLabel: 'Baca Panduan Medis',
+      sections: [],
+    ),
+
+    // 0b. Artikel Screenshot 2: Makanan yang Baik untuk Kesehatan Tulang
+    ArticleModel(
+      id: 'makanan-baik-untuk-kesehatan-tulang',
+      source: 'Kementerian Kesehatan RI',
+      sourceColor: Color(0xFF00897B),
+      sourceInitial: 'K',
+      title: 'Makanan yang Baik untuk Kesehatan Tulang',
+      category: 'Nutrisi & Makanan',
+      appBarTitle: 'Nutrisi Tulang Sehat',
+      date: '5 Nov 2026',
+      status: 'Dipublikasikan',
+      description:
+          'Pilihan asupan gizi seimbang kaya kalsium, fosfor, dan vitamin untuk menjaga tulang tetap padat dan kokoh.',
+      url: 'https://keslan.kemkes.go.id',
+      thumbnailUrl: '',
+      heroAssetPath: 'assets/images/calcium_rich_foods.png',
+      bannerBottomText: 'GIZI LENGKAP UNTUK TULANG KUAT',
+      sourceActionLabel: 'Baca Panduan Gizi',
+      sections: [],
+    ),
+
+    // 0c. Artikel Screenshot 3: Pentingnya Aktivitas Fisik di Usia Dewasa
+    ArticleModel(
+      id: 'pentingnya-aktivitas-fisik-usia-dewasa',
+      source: 'Osteo Fit',
+      sourceColor: Color(0xFF0A7AFF),
+      sourceInitial: 'O',
+      title: 'Pentingnya Aktivitas Fisik di Usia Dewasa',
+      category: 'Aktivitas Fisik',
+      appBarTitle: 'Aktivitas Fisik Dewasa',
+      date: '1 Nov 2026',
+      status: 'Dipublikasikan',
+      description:
+          'Menjaga kebugaran dan kekuatan otot lewat latihan fisik rutin di usia dewasa guna meminimalkan risiko kerapuhan tulang.',
+      url: 'https://keslan.kemkes.go.id',
+      thumbnailUrl: '',
+      heroAssetPath: 'assets/images/elderly_50plus_bone.png',
+      bannerBottomText: 'AKTIVITAS FISIK UNTUK TULANG SEHAT',
+      sourceActionLabel: 'Baca Panduan Latihan',
+      sections: [],
+    ),
+
     // 1. Artikel Utama: Mengenal Osteoporosis (Alodokter)
     ArticleModel(
       id: 'mengenal-osteoporosis',

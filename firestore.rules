@@ -12,7 +12,13 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      return isAuthenticated() && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+      return isAuthenticated() && (
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid)) ||
+        (
+          exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role.matches('(?i)^(admin|administrator)$')
+        )
+      );
     }
 
     function isDoctor() {
@@ -156,6 +162,16 @@ service cloud.firestore {
     match /doctors/{doctorId} {
       allow read: if isAuthenticated();
       allow write: if isAdmin();
+    }
+
+    // -------------------------------------------------------------------------
+    // 10. Koleksi Materi Edukasi (education)
+    // -------------------------------------------------------------------------
+    // - Materi edukasi dapat dibaca publik/seluruh pengguna aplikasi.
+    // - Admin dan pengguna terautentikasi dapat menulis/mengelola materi edukasi.
+    match /education/{educationId} {
+      allow read: if true;
+      allow write: if isAuthenticated();
     }
   }
 }

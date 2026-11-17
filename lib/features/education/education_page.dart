@@ -5,39 +5,17 @@ import 'package:oste/features/education/olahraga/olahraga_page.dart';
 import 'package:oste/features/education/vitamin/vitamin_page.dart';
 import 'package:oste/features/history/history_page.dart';
 import 'package:oste/features/profile/profile_page.dart';
+import 'package:oste/models/education_model.dart';
+import 'package:oste/services/education_repository.dart';
 
 class EducationPage extends StatelessWidget {
   const EducationPage({super.key});
 
-  static final List<_EducationTopic> _topics = [
-    _EducationTopic(
-      icon: Icons.directions_run_rounded,
-      category: 'Aktivitas Fisik',
-      title: 'Gerakan untuk Tulang Lebih Kuat',
-      description:
-          'Temukan panduan olahraga yang aman dan bermanfaat untuk menjaga serta meningkatkan kepadatan tulang.',
-      pageBuilder: (_) => const OlahragaPage(),
-    ),
-    _EducationTopic(
-      icon: Icons.restaurant_rounded,
-      category: 'Nutrisi & Makanan',
-      title: 'Pilihan Makanan & Minuman untuk Tulang Sehat',
-      description:
-          'Ketahui asupan gizi kaya kalsium dan nutrisi seimbang untuk mendukung kekuatan kerangka tubuh.',
-      pageBuilder: (_) => const NutrisiPage(),
-    ),
-    _EducationTopic(
-      icon: Icons.medication_rounded,
-      category: 'Vitamin & Suplemen',
-      title: 'Vitamin & Suplemen yang Direkomendasikan',
-      description:
-          'Pelajari vitamin D, vitamin K, dan mikronutrien esensial untuk menjaga ketahanan tulang dan sendi.',
-      pageBuilder: (_) => const VitaminPage(),
-    ),
-  ];
-
   @override
   Widget build(BuildContext context) {
+    final repo = EducationRepository();
+    repo.ensureListener();
+
     return Scaffold(
       backgroundColor: const Color(0xFFFAF9F5),
       appBar: AppBar(
@@ -56,29 +34,68 @@ class EducationPage extends StatelessWidget {
         ),
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
-          padding: const EdgeInsets.fromLTRB(20, 6, 20, 24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // 1. Hero Section Atas
-              _buildHeroBanner(),
-              const SizedBox(height: 22),
+        child: AnimatedBuilder(
+          animation: repo,
+          builder: (context, _) {
+            final educations = repo.allEducations;
 
-              // 2. Section Header Topik Pembahasan
-              _buildSectionHeader(),
-              const SizedBox(height: 14),
+            return SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(20, 6, 20, 24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // 1. Hero Section Atas
+                  _buildHeroBanner(),
+                  const SizedBox(height: 22),
 
-              // 3. Tiga Card Topik Edukasi
-              ..._topics.map(
-                (topic) => Padding(
-                  padding: const EdgeInsets.only(bottom: 14),
-                  child: _EducationCard(topic: topic),
-                ),
+                  // 2. Section Header Topik Pembahasan
+                  _buildSectionHeader(educations.length),
+                  const SizedBox(height: 14),
+
+                  // 3. Card Topik Edukasi Berdasarkan EducationRepository
+                  if (educations.isEmpty)
+                    const Center(
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(vertical: 40),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.menu_book_outlined,
+                              size: 48,
+                              color: Color(0xFF94A3B8),
+                            ),
+                            SizedBox(height: 12),
+                            Text(
+                              'Belum ada materi edukasi',
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF64748B),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                  else
+                    ListView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: educations.length,
+                      itemBuilder: (context, index) {
+                        final item = educations[index];
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 14),
+                          child: _EducationCard(education: item),
+                        );
+                      },
+                    ),
+                ],
               ),
-            ],
-          ),
+            );
+          },
         ),
       ),
       bottomNavigationBar: _buildBottomNavigationBar(context),
@@ -193,7 +210,7 @@ class EducationPage extends StatelessWidget {
     );
   }
 
-  Widget _buildSectionHeader() {
+  Widget _buildSectionHeader(int count) {
     return Row(
       children: [
         Container(
@@ -221,9 +238,9 @@ class EducationPage extends StatelessWidget {
             color: const Color(0xFFF1F5F9),
             borderRadius: BorderRadius.circular(12),
           ),
-          child: const Text(
-            '3 Topik',
-            style: TextStyle(
+          child: Text(
+            '$count Topik',
+            style: const TextStyle(
               fontSize: 11.5,
               fontWeight: FontWeight.w600,
               color: Color(0xFF64748B),
@@ -320,29 +337,42 @@ class EducationPage extends StatelessWidget {
   }
 }
 
-class _EducationTopic {
-  final IconData icon;
-  final String category;
-  final String title;
-  final String description;
-  final Widget Function(BuildContext) pageBuilder;
-
-  const _EducationTopic({
-    required this.icon,
-    required this.category,
-    required this.title,
-    required this.description,
-    required this.pageBuilder,
-  });
-}
-
 class _EducationCard extends StatelessWidget {
-  final _EducationTopic topic;
+  final EducationModel education;
 
-  const _EducationCard({required this.topic});
+  const _EducationCard({required this.education});
+
+  IconData _getCategoryIcon(String category) {
+    final cat = category.toLowerCase().trim();
+    if (cat.contains('latih') || cat.contains('olahraga') || cat.contains('fisik')) {
+      return Icons.directions_run_rounded;
+    }
+    if (cat.contains('nutrisi') || cat.contains('makan')) {
+      return Icons.restaurant_rounded;
+    }
+    if (cat.contains('vitamin') || cat.contains('suplemen')) {
+      return Icons.medication_rounded;
+    }
+    return Icons.menu_book_rounded;
+  }
+
+  Widget _getDestinationPage(String category) {
+    final cat = category.toLowerCase().trim();
+    if (cat.contains('nutrisi') || cat.contains('makan')) {
+      return const NutrisiPage();
+    }
+    if (cat.contains('vitamin') || cat.contains('suplemen')) {
+      return const VitaminPage();
+    }
+    return const OlahragaPage();
+  }
 
   @override
   Widget build(BuildContext context) {
+    final displayDescription = education.description.isNotEmpty
+        ? education.description
+        : education.content;
+
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -366,7 +396,9 @@ class _EducationCard extends StatelessWidget {
           onTap: () {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: topic.pageBuilder),
+              MaterialPageRoute(
+                builder: (_) => _getDestinationPage(education.category),
+              ),
             );
           },
           child: Padding(
@@ -388,7 +420,7 @@ class _EducationCard extends StatelessWidget {
                   ),
                   child: Center(
                     child: Icon(
-                      topic.icon,
+                      _getCategoryIcon(education.category),
                       color: const Color(0xFFD97706),
                       size: 28,
                     ),
@@ -402,7 +434,9 @@ class _EducationCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        topic.category,
+                        education.category.isNotEmpty
+                            ? education.category
+                            : 'Edukasi',
                         style: const TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w700,
@@ -412,7 +446,7 @@ class _EducationCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 3),
                       Text(
-                        topic.title,
+                        education.title,
                         style: const TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.bold,
@@ -420,17 +454,19 @@ class _EducationCard extends StatelessWidget {
                           height: 1.3,
                         ),
                       ),
-                      const SizedBox(height: 5),
-                      Text(
-                        topic.description,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Color(0xFF64748B),
-                          height: 1.45,
+                      if (displayDescription.isNotEmpty) ...[
+                        const SizedBox(height: 5),
+                        Text(
+                          displayDescription,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Color(0xFF64748B),
+                            height: 1.45,
+                          ),
                         ),
-                      ),
+                      ],
                     ],
                   ),
                 ),
