@@ -13,8 +13,12 @@ class DoctorReviewService extends ChangeNotifier {
 
   final List<DoctorReview> _reviews = [];
   final Map<String, List<DoctorReview>> _reviewsByDoctor = {};
+  final Map<String, double> _doctorAverageRatings = {};
+  final Map<String, int> _doctorReviewCounts = {};
   final Map<String, StreamSubscription<QuerySnapshot<Map<String, dynamic>>>>
       _subscriptions = {};
+  final Map<String, StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>>
+      _doctorDocSubscriptions = {};
 
   /// Referensi subcollection reviews pada Firestore:
   /// doctors/{doctorId}/reviews
@@ -25,35 +29,76 @@ class DoctorReviewService extends ChangeNotifier {
         .collection('reviews');
   }
 
-  /// Berlangganan data ulasan dokter secara realtime dari Firestore
+  /// Referensi dokumen dokter pada Firestore:
+  /// doctors/{doctorId}
+  DocumentReference<Map<String, dynamic>> _doctorDocRef(String doctorId) {
+    return FirebaseFirestore.instance.collection('doctors').doc(doctorId);
+  }
+
+  /// Berlangganan data ulasan dan dokumen dokter secara realtime dari Firestore
   void subscribeToDoctorReviews(String doctorId) {
-    if (_subscriptions.containsKey(doctorId)) return;
+    // 1. Subscribe ke subcollection reviews
+    if (!_subscriptions.containsKey(doctorId)) {
+      try {
+        final sub = _reviewsRef(doctorId).snapshots().listen((snapshot) {
+          final List<DoctorReview> firestoreReviews = snapshot.docs
+              .map((doc) => DoctorReview.fromFirestore(doc, doctorId))
+              .toList();
 
-    try {
-      final sub = _reviewsRef(doctorId).snapshots().listen((snapshot) {
-        final List<DoctorReview> firestoreReviews = snapshot.docs
-            .map((doc) => DoctorReview.fromFirestore(doc, doctorId))
-            .toList();
+          firestoreReviews.sort((a, b) {
+            final dateA = a.updatedAt ?? a.createdAt;
+            final dateB = b.updatedAt ?? b.createdAt;
+            return dateB.compareTo(dateA);
+          });
 
-        firestoreReviews.sort((a, b) {
-          final dateA = a.updatedAt ?? a.createdAt;
-          final dateB = b.updatedAt ?? b.createdAt;
-          return dateB.compareTo(dateA);
+          _reviewsByDoctor[doctorId] = firestoreReviews;
+
+          // Sinkronisasi dengan list global _reviews
+          _reviews.removeWhere((r) => r.doctorId == doctorId);
+          _reviews.addAll(firestoreReviews);
+
+          // Update cached stats jika belum ada dari doc dokter
+          if (!_doctorReviewCounts.containsKey(doctorId)) {
+            _doctorReviewCounts[doctorId] = firestoreReviews.length;
+            if (firestoreReviews.isNotEmpty) {
+              final total = firestoreReviews.fold<double>(
+                  0.0, (sum, r) => sum + r.rating);
+              _doctorAverageRatings[doctorId] = double.parse(
+                  (total / firestoreReviews.length).toStringAsFixed(1));
+            } else {
+              _doctorAverageRatings[doctorId] = 0.0;
+            }
+          }
+
+          notifyListeners();
+        }, onError: (e) {
+          // Abaikan error saat offline/testing, tetap gunakan data lokal
         });
 
-        _reviewsByDoctor[doctorId] = firestoreReviews;
+        _subscriptions[doctorId] = sub;
+      } catch (_) {}
+    }
 
-        // Sinkronisasi dengan list global _reviews
-        _reviews.removeWhere((r) => r.doctorId == doctorId);
-        _reviews.addAll(firestoreReviews);
-
-        notifyListeners();
-      }, onError: (e) {
-        // Abaikan error saat offline/testing, tetap gunakan data lokal
-      });
-
-      _subscriptions[doctorId] = sub;
-    } catch (_) {}
+    // 2. Subscribe ke dokumen doctors/{doctorId} untuk statistik (averageRating & reviewCount)
+    if (!_doctorDocSubscriptions.containsKey(doctorId)) {
+      try {
+        final docSub = _doctorDocRef(doctorId).snapshots().listen((docSnap) {
+          if (docSnap.exists && docSnap.data() != null) {
+            final data = docSnap.data()!;
+            if (data.containsKey('averageRating')) {
+              _doctorAverageRatings[doctorId] =
+                  (data['averageRating'] as num).toDouble();
+            }
+            if (data.containsKey('reviewCount')) {
+              _doctorReviewCounts[doctorId] =
+                  (data['reviewCount'] as num).toInt();
+            }
+            notifyListeners();
+          }
+        }, onError: (_) {});
+        _doctorDocSubscriptions[doctorId] = docSub;
+      } catch (_) {}
+    }
   }
 
   /// Stream realtime ulasan dokter dari Firestore
@@ -106,6 +151,10 @@ class DoctorReviewService extends ChangeNotifier {
 
   /// Menyimpan ulasan baru (set) jika belum ada, atau memperbarui ulasan (update) jika sudah ada.
   ///
+  /// Menggunakan Firestore Transaction / Batch untuk memperbarui dokumen ulasan
+  /// sekaligus menghitung dan menyimpan statistik `averageRating` & `reviewCount`
+  /// pada dokumen `doctors/{doctorId}`.
+  ///
   /// Mengembalikan `true` jika review baru dibuat, atau `false` jika review lama diperbarui.
   Future<bool> saveOrUpdateReview({
     required String doctorId,
@@ -118,87 +167,127 @@ class DoctorReviewService extends ChangeNotifier {
     final now = DateTime.now();
 
     try {
-      final docRef = _reviewsRef(doctorId).doc(userId);
-      final docSnap = await docRef.get();
-      final bool isExisting = docSnap.exists;
+      final firestore = FirebaseFirestore.instance;
+      final reviewDocRef = _reviewsRef(doctorId).doc(userId);
+      final doctorRef = _doctorDocRef(doctorId);
 
-      if (!isExisting) {
-        // Buat document baru dengan userId sebagai document ID
-        await docRef.set({
-          'rating': rating,
-          'comment': comment,
-          'createdAt': FieldValue.serverTimestamp(),
-          'updatedAt': FieldValue.serverTimestamp(),
-          'userId': userId,
-          'userName': userName,
-          'userPhoto': userPhoto,
-        });
+      // Gunakan Transaction agar data konsisten (ACID)
+      final bool isNew = await firestore.runTransaction<bool>((transaction) async {
+        final reviewSnap = await transaction.get(reviewDocRef);
+        final bool isExisting = reviewSnap.exists;
 
-        final newReview = DoctorReview(
-          userId: userId,
-          doctorId: doctorId,
-          userName: userName,
-          userPhoto: userPhoto,
-          rating: rating,
-          comment: comment,
-          createdAt: now,
-          updatedAt: now,
-        );
+        // Ambil semua review untuk dokter ini guna menghitung statistik baru secara akurat
+        final allReviewsSnap = await _reviewsRef(doctorId).get();
 
-        _reviewsByDoctor.putIfAbsent(doctorId, () => []);
-        _reviewsByDoctor[doctorId]!.removeWhere((r) => r.userId == userId);
-        _reviewsByDoctor[doctorId]!.insert(0, newReview);
+        double totalRating = 0.0;
+        int count = 0;
+        bool foundUserReviewInQuery = false;
 
-        _reviews
-            .removeWhere((r) => r.doctorId == doctorId && r.userId == userId);
-        _reviews.insert(0, newReview);
-
-        notifyListeners();
-        return true;
-      } else {
-        // Update document yang sudah ada tanpa membuat document baru
-        await docRef.update({
-          'rating': rating,
-          'comment': comment,
-          'updatedAt': FieldValue.serverTimestamp(),
-          'userName': userName,
-          if (userPhoto != null) 'userPhoto': userPhoto,
-        });
-
-        final updatedReview = DoctorReview(
-          userId: userId,
-          doctorId: doctorId,
-          userName: userName,
-          userPhoto: userPhoto,
-          rating: rating,
-          comment: comment,
-          createdAt: now,
-          updatedAt: now,
-        );
-
-        if (_reviewsByDoctor.containsKey(doctorId)) {
-          final idx = _reviewsByDoctor[doctorId]!
-              .indexWhere((r) => r.userId == userId);
-          if (idx != -1) {
-            _reviewsByDoctor[doctorId]![idx] = updatedReview;
+        for (final doc in allReviewsSnap.docs) {
+          if (doc.id == userId) {
+            foundUserReviewInQuery = true;
+            totalRating += rating; // gunakan rating baru
+            count++;
           } else {
-            _reviewsByDoctor[doctorId]!.insert(0, updatedReview);
+            final data = doc.data();
+            final r = (data['rating'] as num?)?.toDouble() ?? 0.0;
+            totalRating += r;
+            count++;
           }
         }
 
-        final globalIdx = _reviews
-            .indexWhere((r) => r.doctorId == doctorId && r.userId == userId);
-        if (globalIdx != -1) {
-          _reviews[globalIdx] = updatedReview;
-        } else {
-          _reviews.insert(0, updatedReview);
+        if (!foundUserReviewInQuery) {
+          totalRating += rating;
+          count++;
         }
 
-        notifyListeners();
-        return false;
+        final double newAvgRating = count > 0
+            ? double.parse((totalRating / count).toStringAsFixed(1))
+            : 0.0;
+
+        if (!isExisting) {
+          // 1. Simpan dokumen review baru
+          transaction.set(reviewDocRef, {
+            'rating': rating,
+            'comment': comment,
+            'createdAt': FieldValue.serverTimestamp(),
+            'updatedAt': FieldValue.serverTimestamp(),
+            'userId': userId,
+            'userName': userName,
+            'userPhoto': userPhoto,
+          });
+        } else {
+          // 2. Perbarui dokumen review yang ada
+          transaction.update(reviewDocRef, {
+            'rating': rating,
+            'comment': comment,
+            'updatedAt': FieldValue.serverTimestamp(),
+            'userName': userName,
+            if (userPhoto != null) 'userPhoto': userPhoto,
+          });
+        }
+
+        // 3. Simpan statistik rating pada dokumen doctors/{doctorId}
+        transaction.set(
+          doctorRef,
+          {
+            'averageRating': newAvgRating,
+            'reviewCount': count,
+            'updatedAt': FieldValue.serverTimestamp(),
+          },
+          SetOptions(merge: true),
+        );
+
+        return !isExisting;
+      });
+
+      final review = DoctorReview(
+        userId: userId,
+        doctorId: doctorId,
+        userName: userName,
+        userPhoto: userPhoto,
+        rating: rating,
+        comment: comment,
+        createdAt: now,
+        updatedAt: now,
+      );
+
+      _reviewsByDoctor.putIfAbsent(doctorId, () => []);
+      if (isNew) {
+        _reviewsByDoctor[doctorId]!.removeWhere((r) => r.userId == userId);
+        _reviewsByDoctor[doctorId]!.insert(0, review);
+        _reviews.removeWhere((r) => r.doctorId == doctorId && r.userId == userId);
+        _reviews.insert(0, review);
+      } else {
+        final idx = _reviewsByDoctor[doctorId]!.indexWhere((r) => r.userId == userId);
+        if (idx != -1) {
+          _reviewsByDoctor[doctorId]![idx] = review;
+        } else {
+          _reviewsByDoctor[doctorId]!.insert(0, review);
+        }
+        final gIdx = _reviews.indexWhere((r) => r.doctorId == doctorId && r.userId == userId);
+        if (gIdx != -1) {
+          _reviews[gIdx] = review;
+        } else {
+          _reviews.insert(0, review);
+        }
       }
+
+      // Update local cached statistics
+      final list = _reviewsByDoctor[doctorId] ?? [];
+      _doctorReviewCounts[doctorId] = list.length;
+      if (list.isNotEmpty) {
+        final total = list.fold<double>(0.0, (sum, r) => sum + r.rating);
+        _doctorAverageRatings[doctorId] =
+            double.parse((total / list.length).toStringAsFixed(1));
+      } else {
+        _doctorAverageRatings[doctorId] = 0.0;
+      }
+
+      notifyListeners();
+      return isNew;
     } catch (e) {
-      // Fallback jika Firebase tidak tersedia (misal offline atau testing)
+      // Fallback jika Firebase tidak tersedia (misal offline atau unit testing)
       final existingIndex = _reviewsByDoctor[doctorId]
               ?.indexWhere((r) => r.userId == userId) ??
           -1;
@@ -219,16 +308,25 @@ class DoctorReviewService extends ChangeNotifier {
       if (!isExisting) {
         _reviewsByDoctor[doctorId]!.insert(0, review);
         _reviews.insert(0, review);
-        notifyListeners();
-        return true;
       } else {
         _reviewsByDoctor[doctorId]![existingIndex] = review;
         final gIdx = _reviews
             .indexWhere((r) => r.doctorId == doctorId && r.userId == userId);
         if (gIdx != -1) _reviews[gIdx] = review;
-        notifyListeners();
-        return false;
       }
+
+      final list = _reviewsByDoctor[doctorId] ?? [];
+      _doctorReviewCounts[doctorId] = list.length;
+      if (list.isNotEmpty) {
+        final total = list.fold<double>(0.0, (sum, r) => sum + r.rating);
+        _doctorAverageRatings[doctorId] =
+            double.parse((total / list.length).toStringAsFixed(1));
+      } else {
+        _doctorAverageRatings[doctorId] = 0.0;
+      }
+
+      notifyListeners();
+      return !isExisting;
     }
   }
 
@@ -245,13 +343,20 @@ class DoctorReviewService extends ChangeNotifier {
     return List<DoctorReview>.from(list);
   }
 
-  /// Mengambil jumlah ulasan untuk dokter tertentu
+  /// Mengambil jumlah ulasan untuk dokter tertentu dari dokumen doctors/{doctorId} atau cache
   int getReviewCount(String doctorId) {
+    if (_doctorReviewCounts.containsKey(doctorId)) {
+      return _doctorReviewCounts[doctorId]!;
+    }
     return getReviewsForDoctor(doctorId).length;
   }
 
-  /// Menghitung rating rata-rata untuk dokter tertentu (skala 0.0 - 5.0)
+  /// Menghitung / mengambil rating rata-rata untuk dokter tertentu (skala 0.0 - 5.0)
+  /// dari dokumen doctors/{doctorId} atau cache
   double getAverageRating(String doctorId) {
+    if (_doctorAverageRatings.containsKey(doctorId)) {
+      return _doctorAverageRatings[doctorId]!;
+    }
     final doctorReviews = getReviewsForDoctor(doctorId);
     if (doctorReviews.isEmpty) return 0.0;
     final total = doctorReviews.fold<double>(0.0, (sum, r) => sum + r.rating);
@@ -301,6 +406,10 @@ class DoctorReviewService extends ChangeNotifier {
       sub.cancel();
     }
     _subscriptions.clear();
+    for (final sub in _doctorDocSubscriptions.values) {
+      sub.cancel();
+    }
+    _doctorDocSubscriptions.clear();
     super.dispose();
   }
 }

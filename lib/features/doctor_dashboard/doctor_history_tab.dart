@@ -111,7 +111,6 @@ class _DoctorHistoryTabState extends State<DoctorHistoryTab> {
   @override
   Widget build(BuildContext context) {
     final historyService = HistoryService();
-    final consultationService = ConsultationHistoryService();
     final chatService = ChatService();
 
     Stream<QuerySnapshot<Map<String, dynamic>>>? screeningStream;
@@ -123,165 +122,162 @@ class _DoctorHistoryTabState extends State<DoctorHistoryTab> {
       screeningStream = null;
     }
 
+    Stream<QuerySnapshot<Map<String, dynamic>>>? consultationStream;
+    try {
+      consultationStream = FirebaseFirestore.instance
+          .collectionGroup('riwayat_konsultasi')
+          .snapshots();
+    } catch (_) {
+      consultationStream = null;
+    }
+
     return SafeArea(
       child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
         stream: screeningStream,
         builder: (context, firestoreSnapshot) {
-          return AnimatedBuilder(
-            animation: Listenable.merge([historyService, consultationService, chatService]),
-            builder: (context, _) {
-              List<HistoryModel> liveScreenings = [];
+          return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+            stream: consultationStream,
+            builder: (context, consultationSnapshot) {
+              return AnimatedBuilder(
+                animation: Listenable.merge([historyService, chatService]),
+                builder: (context, _) {
+                  List<HistoryModel> liveScreenings = [];
 
-              if (firestoreSnapshot.hasData &&
-                  firestoreSnapshot.data!.docs.isNotEmpty) {
-                liveScreenings = firestoreSnapshot.data!.docs.map((doc) {
-                  final data = doc.data();
-                  data['id'] = doc.id;
-                  final parentUid = doc.reference.parent.parent?.id ?? '';
-                  final patientId =
-                      (data['patientId'] ?? data['userId'] ?? parentUid).toString();
+                  if (firestoreSnapshot.hasData &&
+                      firestoreSnapshot.data!.docs.isNotEmpty) {
+                    liveScreenings = firestoreSnapshot.data!.docs.map((doc) {
+                      final data = doc.data();
+                      data['id'] = doc.id;
+                      final parentUid = doc.reference.parent.parent?.id ?? '';
+                      final patientId =
+                          (data['patientId'] ?? data['userId'] ?? parentUid).toString();
 
-                  String pName = (data['patientName'] ??
-                          data['userName'] ??
-                          data['namaPasien'] ??
-                          '')
-                      .toString();
-                  if (pName.isEmpty && patientId.isNotEmpty) {
-                    pName = _patientNamesCache[patientId] ?? '';
-                    if (pName.isEmpty) {
-                      _fetchAndCachePatientName(patientId);
+                      String pName = (data['patientName'] ??
+                              data['userName'] ??
+                              data['namaPasien'] ??
+                              '')
+                          .toString();
+                      if (pName.isEmpty && patientId.isNotEmpty) {
+                        pName = _patientNamesCache[patientId] ?? '';
+                        if (pName.isEmpty) {
+                          _fetchAndCachePatientName(patientId);
+                        }
+                      }
+                      data['patientName'] = pName;
+                      data['patientId'] = patientId;
+
+                      return HistoryModel.fromMap(data);
+                    }).toList();
+
+                    // Urutkan dari yang terbaru
+                    liveScreenings.sort((a, b) => b.tanggal.compareTo(a.tanggal));
+                  }
+
+                  // Jika snapshot kosong atau offline, gunakan data HistoryService
+                  if (liveScreenings.isEmpty) {
+                    liveScreenings = historyService.screeningHistories;
+                  }
+
+                  // Sinkronkan cache percakapan dari ChatService
+                  for (final conv in chatService.conversations) {
+                    if (conv.patientId.isNotEmpty && conv.patientName.isNotEmpty) {
+                      _patientNamesCache.putIfAbsent(conv.patientId, () => conv.patientName);
                     }
                   }
-                  data['patientName'] = pName;
-                  data['patientId'] = patientId;
 
-                  return HistoryModel.fromMap(data);
-                }).toList();
+                  // Riwayat konsultasi murni dari Firestore collectionGroup('riwayat_konsultasi')
+                  final List<ConsultationHistory> consultations = [];
+                  if (consultationSnapshot.hasData &&
+                      consultationSnapshot.data!.docs.isNotEmpty) {
+                    consultations.addAll(consultationSnapshot.data!.docs.map((doc) {
+                      return ConsultationHistory.fromFirestore(doc);
+                    }));
 
-                // Urutkan dari yang terbaru
-                liveScreenings.sort((a, b) => b.tanggal.compareTo(a.tanggal));
-              }
+                    consultations.sort((a, b) {
+                      final aTime = a.completedAt ?? a.createdAt;
+                      final bTime = b.completedAt ?? b.createdAt;
+                      if (aTime != null && bTime != null) {
+                        return bTime.compareTo(aTime);
+                      }
+                      return b.id.compareTo(a.id);
+                    });
+                  }
 
-              // Jika snapshot kosong atau offline, gunakan data HistoryService
-              if (liveScreenings.isEmpty) {
-                liveScreenings = historyService.screeningHistories;
-              }
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // ── Header Riwayat Dokter ───────────────────────────────
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 16, 20, 6),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: const [
+                            Text(
+                              'Riwayat Pasien',
+                              style: TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.w800,
+                                color: DoctorThemeColors.textDark,
+                                letterSpacing: -0.3,
+                              ),
+                            ),
+                            SizedBox(height: 4),
+                            Text(
+                              'Pantau riwayat skrining dan konsultasi pasien',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: DoctorThemeColors.textMuted,
+                                fontWeight: FontWeight.w400,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
 
-              // Sinkronkan cache percakapan dari ChatService
-              for (final conv in chatService.conversations) {
-                if (conv.patientId.isNotEmpty && conv.patientName.isNotEmpty) {
-                  _patientNamesCache.putIfAbsent(conv.patientId, () => conv.patientName);
-                }
-              }
+                      const SizedBox(height: 12),
 
-              // Gabungkan riwayat konsultasi dari ConsultationHistoryService dan ChatService yang telah selesai
-              final List<ConsultationHistory> consultations = [];
-              consultations.addAll(consultationService.allConsultations);
-
-              for (final conv in chatService.completedConversations) {
-                final alreadyExists = consultations.any(
-                  (c) => c.id == conv.chatId || c.id.contains(conv.chatId),
-                );
-                if (!alreadyExists) {
-                  final doc = doctorList.firstWhere(
-                    (d) => d.id == conv.doctorId,
-                    orElse: () => doctorList.first,
-                  );
-                  consultations.add(
-                    ConsultationHistory(
-                      id: conv.chatId,
-                      doctor: doc,
-                      date: conv.time,
-                      time: '',
-                      summary: conv.lastMessage.isNotEmpty
-                          ? conv.lastMessage
-                          : 'Sesi konsultasi medis telah diselesaikan.',
-                      diagnosis: 'Konsultasi Selesai',
-                      doctorNotes: 'Konsultasi selesai dengan ${conv.patientName}.',
-                      doctorRecommendation:
-                          'Ikuti anjuran dokter dan kontrol berkala bila perlu.',
-                      nutritionRecommendation:
-                          'Pertahankan asupan kalsium dan vitamin D harian.',
-                      patientName: conv.patientName,
-                      patientId: conv.patientId,
-                    ),
-                  );
-                }
-              }
-
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // ── Header Riwayat Dokter ───────────────────────────────
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 6),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: const [
-                        Text(
-                          'Riwayat Pasien',
-                          style: TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.w800,
-                            color: DoctorThemeColors.textDark,
-                            letterSpacing: -0.3,
+                      // ── Tab Bar (Skrining Pasien vs Konsultasi) ───────────────
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: Container(
+                          height: 44,
+                          padding: const EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF1F5F9),
+                            borderRadius: BorderRadius.circular(22),
+                          ),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: _buildTabButton(
+                                  title: 'Skrining Pasien',
+                                  isSelected: _selectedTabIndex == 0,
+                                  onTap: () => setState(() => _selectedTabIndex = 0),
+                                ),
+                              ),
+                              Expanded(
+                                child: _buildTabButton(
+                                  title: 'Konsultasi',
+                                  isSelected: _selectedTabIndex == 1,
+                                  onTap: () => setState(() => _selectedTabIndex = 1),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                        SizedBox(height: 4),
-                        Text(
-                          'Pantau riwayat skrining dan konsultasi pasien',
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: DoctorThemeColors.textMuted,
-                            fontWeight: FontWeight.w400,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 12),
-
-                  // ── Tab Bar (Skrining Pasien vs Konsultasi) ───────────────
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: Container(
-                      height: 44,
-                      padding: const EdgeInsets.all(4),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF1F5F9),
-                        borderRadius: BorderRadius.circular(22),
                       ),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: _buildTabButton(
-                              title: 'Skrining Pasien',
-                              isSelected: _selectedTabIndex == 0,
-                              onTap: () => setState(() => _selectedTabIndex = 0),
-                            ),
-                          ),
-                          Expanded(
-                            child: _buildTabButton(
-                              title: 'Konsultasi',
-                              isSelected: _selectedTabIndex == 1,
-                              onTap: () => setState(() => _selectedTabIndex = 1),
-                            ),
-                          ),
-                        ],
+
+                      const SizedBox(height: 14),
+
+                      // ── Daftar Riwayat Berdasarkan Tab Terpilih ─────────────
+                      Expanded(
+                        child: _selectedTabIndex == 0
+                            ? _buildScreeningHistoryList(liveScreenings)
+                            : _buildConsultationHistoryList(consultations),
                       ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 14),
-
-                  // ── Daftar Riwayat Berdasarkan Tab Terpilih ─────────────
-                  Expanded(
-                    child: _selectedTabIndex == 0
-                        ? _buildScreeningHistoryList(liveScreenings)
-                        : _buildConsultationHistoryList(consultations),
-                  ),
-                ],
+                    ],
+                  );
+                },
               );
             },
           );
@@ -594,6 +590,7 @@ class _DoctorHistoryTabState extends State<DoctorHistoryTab> {
                 context,
                 MaterialPageRoute(
                   builder: (_) => ConsultationSummaryPage(
+                    consultation: c is ConsultationHistory ? c : null,
                     doctor: c.doctor,
                     messages: c.messages,
                   ),

@@ -88,17 +88,46 @@ class _WriteReviewPageState extends State<WriteReviewPage> {
   }
 
   Future<void> _submitReview() async {
-    final comment = _commentController.text.trim();
-    if (comment.isEmpty) {
+    // 1. Validasi rating
+    if (_selectedRating <= 0.0) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Silakan tulis ulasan Anda terlebih dahulu.'),
+          content: Text('Silakan pilih rating (1–5 bintang) terlebih dahulu.'),
           backgroundColor: Color(0xFFDC2626),
           behavior: SnackBarBehavior.floating,
         ),
       );
       return;
     }
+
+    final comment = _commentController.text.trim();
+
+    // 2. Validasi komentar minimal 10 karakter
+    if (comment.length < 10) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Komentar ulasan minimal 10 karakter.'),
+          backgroundColor: Color(0xFFDC2626),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    // 3. Validasi komentar maksimal 500 karakter
+    if (comment.length > 500) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Komentar ulasan maksimal 500 karakter.'),
+          backgroundColor: Color(0xFFDC2626),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    // Cegah double submit jika proses sedang berlangsung
+    if (_isSubmitting) return;
 
     setState(() {
       _isSubmitting = true;
@@ -372,44 +401,47 @@ class _WriteReviewPageState extends State<WriteReviewPage> {
                     const SizedBox(height: 28),
 
                     // Tombol Simpan / Perbarui Ulasan
-                    Container(
-                      width: double.infinity,
-                      height: 50,
-                      decoration: BoxDecoration(
-                        color: _butterYellow,
-                        borderRadius: BorderRadius.circular(24),
-                        boxShadow: [
-                          BoxShadow(
-                            color: _butterYellow.withValues(alpha: 0.35),
-                            blurRadius: 12,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: Material(
-                        color: Colors.transparent,
-                        child: InkWell(
+                    Opacity(
+                      opacity: _isSubmitting ? 0.7 : 1.0,
+                      child: Container(
+                        width: double.infinity,
+                        height: 50,
+                        decoration: BoxDecoration(
+                          color: _butterYellow,
                           borderRadius: BorderRadius.circular(24),
-                          onTap: _isSubmitting ? null : _submitReview,
-                          child: Center(
-                            child: _isSubmitting
-                                ? const SizedBox(
-                                    width: 22,
-                                    height: 22,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2.5,
-                                      color: _textDark,
+                          boxShadow: [
+                            BoxShadow(
+                              color: _butterYellow.withValues(alpha: 0.35),
+                              blurRadius: 12,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(24),
+                            onTap: _isSubmitting ? null : _submitReview,
+                            child: Center(
+                              child: _isSubmitting
+                                  ? const SizedBox(
+                                      width: 22,
+                                      height: 22,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2.5,
+                                        valueColor: AlwaysStoppedAnimation<Color>(_textDark),
+                                      ),
+                                    )
+                                  : Text(
+                                      _isEditing ? 'Perbarui Ulasan' : 'Simpan',
+                                      style: const TextStyle(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w700,
+                                        color: _textDark,
+                                        letterSpacing: -0.2,
+                                      ),
                                     ),
-                                  )
-                                : Text(
-                                    _isEditing ? 'Perbarui Ulasan' : 'Simpan',
-                                    style: const TextStyle(
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.w700,
-                                      color: _textDark,
-                                      letterSpacing: -0.2,
-                                    ),
-                                  ),
+                            ),
                           ),
                         ),
                       ),

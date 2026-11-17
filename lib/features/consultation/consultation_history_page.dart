@@ -1,8 +1,11 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:oste/features/consultation/consultation_history_card.dart';
 import 'package:oste/features/consultation/consultation_summary_page.dart';
+import 'package:oste/models/consultation_history_model.dart';
 import 'package:oste/models/doctor_model.dart';
-import 'package:oste/services/consultation_history_service.dart';
+import 'package:oste/services/user_service.dart';
 
 /// Halaman Riwayat Konsultasi (Dapat difilter khusus dokter tertentu atau menampilkan semua)
 class ConsultationHistoryPage extends StatelessWidget {
@@ -15,7 +18,24 @@ class ConsultationHistoryPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final historyService = ConsultationHistoryService();
+    String uid = '';
+    try {
+      uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    } catch (_) {}
+    if (uid.isEmpty) {
+      uid = UserService().currentUser?.uid ?? '';
+    }
+
+    Stream<QuerySnapshot<Map<String, dynamic>>> stream = const Stream.empty();
+    if (uid.isNotEmpty) {
+      try {
+        stream = FirebaseFirestore.instance
+            .collection('users')
+            .doc(uid)
+            .collection('riwayat_konsultasi')
+            .snapshots();
+      } catch (_) {}
+    }
 
     final title = doctor != null
         ? 'Riwayat: ${doctor!.name}'
@@ -48,12 +68,33 @@ class ConsultationHistoryPage extends StatelessWidget {
         ),
       ),
       body: SafeArea(
-        child: AnimatedBuilder(
-          animation: historyService,
-          builder: (context, _) {
-            final histories = doctor != null
-                ? historyService.getConsultationsByDoctorId(doctor!.id)
-                : historyService.allConsultations;
+        child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+          stream: stream,
+          builder: (context, snapshot) {
+            List<ConsultationHistory> histories = [];
+
+            if (snapshot.hasData && snapshot.data!.docs.isNotEmpty) {
+              histories = snapshot.data!.docs.map((doc) {
+                return ConsultationHistory.fromFirestore(doc);
+              }).toList();
+
+              // Filter khusus dokter tertentu jika diberikan parameter
+              if (doctor != null) {
+                histories = histories
+                    .where((item) => item.doctorId == doctor!.id)
+                    .toList();
+              }
+
+              // Urutkan riwayat dari yang terbaru ke terlama
+              histories.sort((a, b) {
+                final aTime = a.completedAt ?? a.createdAt;
+                final bTime = b.completedAt ?? b.createdAt;
+                if (aTime != null && bTime != null) {
+                  return bTime.compareTo(aTime);
+                }
+                return b.id.compareTo(a.id);
+              });
+            }
 
             if (histories.isEmpty) {
               return Center(

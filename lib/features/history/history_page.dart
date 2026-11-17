@@ -14,6 +14,7 @@ import 'package:oste/features/history/widgets/screening_history_card.dart';
 import 'package:oste/features/profile/profile_page.dart';
 import 'package:oste/features/screening/hasil_page.dart';
 import 'package:oste/features/screening/screening_page.dart';
+import 'package:oste/models/consultation_history_model.dart';
 import 'package:oste/services/consultation_history_service.dart';
 import 'package:oste/services/history_service.dart';
 import 'package:oste/services/user_service.dart';
@@ -57,110 +58,148 @@ class _HistoryPageState extends State<HistoryPage> {
   @override
   Widget build(BuildContext context) {
     final historyService = HistoryService();
-    final consultationService = ConsultationHistoryService();
-    final uid = FirebaseAuth.instance.currentUser?.uid ??
-        UserService().currentUser?.uid ??
-        '';
+    String uid = '';
+    try {
+      uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    } catch (_) {}
+    if (uid.isEmpty) {
+      uid = UserService().currentUser?.uid ?? '';
+    }
+
+    Stream<QuerySnapshot<Map<String, dynamic>>> screeningStream = const Stream.empty();
+    Stream<QuerySnapshot<Map<String, dynamic>>> consultationStream = const Stream.empty();
+    if (uid.isNotEmpty) {
+      try {
+        screeningStream = FirebaseFirestore.instance
+            .collection('users')
+            .doc(uid)
+            .collection('riwayat_skrining')
+            .snapshots();
+      } catch (_) {}
+      try {
+        consultationStream = FirebaseFirestore.instance
+            .collection('users')
+            .doc(uid)
+            .collection('riwayat_konsultasi')
+            .snapshots();
+      } catch (_) {}
+    }
 
     return Scaffold(
       backgroundColor: const Color(0xFFFAF9F5),
       body: SafeArea(
         child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-          stream: uid.isNotEmpty
-              ? FirebaseFirestore.instance
-                  .collection('users')
-                  .doc(uid)
-                  .collection('riwayat_skrining')
-                  .snapshots()
-              : const Stream.empty(),
-          builder: (context, firestoreSnapshot) {
-            return AnimatedBuilder(
-              animation:
-                  Listenable.merge([historyService, consultationService]),
-              builder: (context, _) {
-                // Ambil data skrining dari Firestore jika ada, atau fallback ke memory
-                List<HistoryModel> screeningList = [];
-                if (firestoreSnapshot.hasData &&
-                    firestoreSnapshot.data!.docs.isNotEmpty) {
-                  screeningList = firestoreSnapshot.data!.docs.map((doc) {
-                    final data = doc.data();
-                    data['id'] = doc.id;
-                    return HistoryModel.fromMap(data);
-                  }).toList();
-                  // Urutkan dari yang terbaru ke terlama untuk daftar riwayat
-                  screeningList
-                      .sort((a, b) => b.tanggal.compareTo(a.tanggal));
-                } else {
-                  screeningList = historyService.screeningHistories;
-                }
+          stream: screeningStream,
+          builder: (context, screeningSnapshot) {
+            return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+              stream: consultationStream,
+              builder: (context, consultationSnapshot) {
+                return AnimatedBuilder(
+                  animation: historyService,
+                  builder: (context, _) {
+                    // Ambil data skrining dari Firestore jika ada, atau fallback ke memory
+                    List<HistoryModel> screeningList = [];
+                    if (screeningSnapshot.hasData &&
+                        screeningSnapshot.data!.docs.isNotEmpty) {
+                      screeningList = screeningSnapshot.data!.docs.map((doc) {
+                        final data = doc.data();
+                        data['id'] = doc.id;
+                        return HistoryModel.fromMap(data);
+                      }).toList();
+                      // Urutkan dari yang terbaru ke terlama untuk daftar riwayat
+                      screeningList
+                          .sort((a, b) => b.tanggal.compareTo(a.tanggal));
+                    } else if (historyService.screeningHistories.isNotEmpty) {
+                      screeningList = historyService.screeningHistories;
+                    }
 
-                final consultationList = consultationService.allConsultations;
-                final latestScreening = screeningList.isNotEmpty
-                    ? screeningList.first
-                    : historyService.latestScreening;
+                    // Ambil data riwayat konsultasi murni dari Firestore secara realtime
+                    List<ConsultationHistory> consultationList = [];
+                    if (consultationSnapshot.hasData &&
+                        consultationSnapshot.data!.docs.isNotEmpty) {
+                      consultationList = consultationSnapshot.data!.docs.map((doc) {
+                        return ConsultationHistory.fromFirestore(doc);
+                      }).toList();
 
-                // Perhitungan Ringkasan Riwayat
-                final totalScreenings = screeningList.length;
-                final latestResult = latestScreening != null
-                    ? '${latestScreening.probabilitas}%'
-                    : '-';
-                final latestDate = latestScreening != null
-                    ? _formatShortDate(latestScreening.tanggal)
-                    : '-';
+                      // Urutkan riwayat konsultasi dari yang terbaru ke terlama
+                      consultationList.sort((a, b) {
+                        final aTime = a.completedAt ?? a.createdAt;
+                        final bTime = b.completedAt ?? b.createdAt;
+                        if (aTime != null && bTime != null) {
+                          return bTime.compareTo(aTime);
+                        }
+                        return b.id.compareTo(a.id);
+                      });
+                    }
 
-                return CustomScrollView(
-                  physics: const AlwaysScrollableScrollPhysics(
-                    parent: BouncingScrollPhysics(),
-                  ),
-                  slivers: [
-                    // ── Header Riwayat ──────────────────────────────────
-                    const SliverToBoxAdapter(
-                      child: HistoryHeader(),
-                    ),
+                    final latestScreening = screeningList.isNotEmpty
+                        ? screeningList.first
+                        : historyService.latestScreening;
 
-                    const SliverToBoxAdapter(
-                      child: SizedBox(height: 20),
-                    ),
+                    // Perhitungan Ringkasan Riwayat
+                    final totalScreenings = screeningList.length;
+                    final latestResult = latestScreening != null
+                        ? '${latestScreening.probabilitas}%'
+                        : '-';
+                    final latestDate = latestScreening != null
+                        ? _formatShortDate(latestScreening.tanggal)
+                        : '-';
 
-                    // ── Card Ringkasan Riwayat ──────────────────────────
-                    SliverToBoxAdapter(
-                      child: HistorySummaryCard(
-                        totalScreening: totalScreenings,
-                        latestResult: latestResult,
-                        latestDate: latestDate,
+                    return CustomScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(
+                        parent: BouncingScrollPhysics(),
                       ),
-                    ),
+                      slivers: [
+                        // ── Header Riwayat ──────────────────────────────────
+                        const SliverToBoxAdapter(
+                          child: HistoryHeader(),
+                        ),
 
-                    const SliverToBoxAdapter(
-                      child: SizedBox(height: 22),
-                    ),
+                        const SliverToBoxAdapter(
+                          child: SizedBox(height: 20),
+                        ),
 
-                    // ── Tab Bar (Skrining & Konsultasi Dokter) ───────────
-                    SliverToBoxAdapter(
-                      child: HistoryTabBar(
-                        selectedIndex: _selectedTabIndex,
-                        onTabSelected: (index) {
-                          setState(() {
-                            _selectedTabIndex = index;
-                          });
-                        },
-                      ),
-                    ),
+                        // ── Card Ringkasan Riwayat ──────────────────────────
+                        SliverToBoxAdapter(
+                          child: HistorySummaryCard(
+                            totalScreening: totalScreenings,
+                            latestResult: latestResult,
+                            latestDate: latestDate,
+                          ),
+                        ),
 
-                    const SliverToBoxAdapter(
-                      child: SizedBox(height: 16),
-                    ),
+                        const SliverToBoxAdapter(
+                          child: SizedBox(height: 22),
+                        ),
 
-                    // ── Konten Tab Aktif ────────────────────────────────
-                    if (_selectedTabIndex == 0)
-                      _buildScreeningTabContent(screeningList)
-                    else
-                      _buildConsultationTabContent(consultationList),
+                        // ── Tab Bar (Skrining & Konsultasi Dokter) ───────────
+                        SliverToBoxAdapter(
+                          child: HistoryTabBar(
+                            selectedIndex: _selectedTabIndex,
+                            onTabSelected: (index) {
+                              setState(() {
+                                _selectedTabIndex = index;
+                              });
+                            },
+                          ),
+                        ),
 
-                    const SliverToBoxAdapter(
-                      child: SizedBox(height: 24),
-                    ),
-                  ],
+                        const SliverToBoxAdapter(
+                          child: SizedBox(height: 16),
+                        ),
+
+                        // ── Konten Tab Aktif ────────────────────────────────
+                        if (_selectedTabIndex == 0)
+                          _buildScreeningTabContent(screeningList)
+                        else
+                          _buildConsultationTabContent(consultationList),
+
+                        const SliverToBoxAdapter(
+                          child: SizedBox(height: 24),
+                        ),
+                      ],
+                    );
+                  },
                 );
               },
             );

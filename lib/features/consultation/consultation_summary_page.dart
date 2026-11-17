@@ -1,9 +1,11 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:oste/features/dashboard/dashboard_page.dart';
 import 'package:oste/models/chat_message.dart';
 import 'package:oste/models/consultation_history_model.dart';
 import 'package:oste/models/doctor_model.dart';
 import 'package:oste/services/consultation_history_service.dart';
+import 'package:oste/services/user_service.dart';
 
 /// Halaman Ringkasan Konsultasi Medis Reusable
 /// Dapat menampilkan riwayat yang tersimpan (Read-Only) atau hasil konsultasi baru
@@ -104,10 +106,16 @@ class _ConsultationSummaryPageState extends State<ConsultationSummaryPage> {
   }
 
   void _handleBackToDashboard() {
-    // Jika merupakan konsultasi baru, otomatis simpan ke ConsultationHistoryService
+    // Jika merupakan konsultasi baru, otomatis simpan ke ConsultationHistoryService & Firestore
     if (!_isFromExistingRecord) {
+      final currentUid = FirebaseAuth.instance.currentUser?.uid ??
+          UserService().currentUser?.uid ??
+          '';
+      final currentUserName = UserService().currentUser?.name ?? '';
+      final now = DateTime.now();
+
       final newHistory = ConsultationHistory(
-        id: 'hist_${DateTime.now().millisecondsSinceEpoch}',
+        id: 'hist_${now.millisecondsSinceEpoch}',
         doctor: _doctor,
         date: _date,
         time: _time,
@@ -118,6 +126,10 @@ class _ConsultationSummaryPageState extends State<ConsultationSummaryPage> {
         nutritionRecommendation: _nutritionRecommendation,
         followUpAdvice: _followUpAdvice,
         messages: _messages,
+        patientId: currentUid,
+        patientName: currentUserName,
+        createdAt: now,
+        completedAt: now,
       );
 
       ConsultationHistoryService().addConsultation(newHistory);

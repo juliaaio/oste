@@ -186,9 +186,11 @@ class DoctorReviewPage extends StatelessWidget {
                   ),
                   const SizedBox(width: 6),
                   Text(
-                    avgRating == 0.0 ? '0.0' : avgRating.toStringAsFixed(1),
-                    style: const TextStyle(
-                      fontSize: 34,
+                    avgRating == 0.0 && reviewCount == 0
+                        ? '—'
+                        : avgRating.toStringAsFixed(1),
+                    style: TextStyle(
+                      fontSize: avgRating == 0.0 && reviewCount == 0 ? 32 : 34,
                       fontWeight: FontWeight.w800,
                       color: _textDark,
                       letterSpacing: -0.5,
@@ -198,7 +200,9 @@ class DoctorReviewPage extends StatelessWidget {
               ),
               const SizedBox(height: 6),
               Text(
-                'Berdasarkan\n$reviewCount ulasan',
+                reviewCount == 0
+                    ? 'Belum ada ulasan'
+                    : 'Berdasarkan\n$reviewCount ulasan',
                 style: const TextStyle(
                   fontSize: 12.5,
                   fontWeight: FontWeight.w500,

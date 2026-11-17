@@ -188,27 +188,57 @@ class DoctorCard extends StatelessWidget {
                           // Rating & Status Online
                           Row(
                             children: [
-                              const Icon(
-                                Icons.star_rounded,
-                                size: 16,
-                                color: Color(0xFFFFB703),
-                              ),
-                              const SizedBox(width: 3),
                               ListenableBuilder(
                                 listenable: DoctorReviewService(),
                                 builder: (context, _) {
-                                  final avg = DoctorReviewService()
-                                      .getAverageRating(doctor.id);
-                                  final ratingText = avg == 0.0
-                                      ? doctor.rating.toStringAsFixed(1)
-                                      : avg.toStringAsFixed(1);
-                                  return Text(
-                                    ratingText,
-                                    style: const TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w700,
-                                      color: Color(0xFFFFB703),
-                                    ),
+                                  final reviewService = DoctorReviewService();
+                                  final count = reviewService.getReviewCount(doctor.id);
+                                  final avg = reviewService.getAverageRating(doctor.id);
+                                  final bool hasReviews = count > 0;
+                                  final ratingText = hasReviews ? avg.toStringAsFixed(1) : '—';
+                                  return Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        Icons.star_rounded,
+                                        size: 16,
+                                        color: hasReviews
+                                            ? const Color(0xFFFFB703)
+                                            : const Color(0xFF94A3B8),
+                                      ),
+                                      const SizedBox(width: 3),
+                                      Text(
+                                        ratingText,
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w700,
+                                          color: hasReviews
+                                              ? const Color(0xFFFFB703)
+                                              : const Color(0xFF64748B),
+                                        ),
+                                      ),
+                                      if (!hasReviews) ...[
+                                        const SizedBox(width: 4),
+                                        const Text(
+                                          '(Belum ada ulasan)',
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w500,
+                                            color: Color(0xFF94A3B8),
+                                          ),
+                                        ),
+                                      ] else ...[
+                                        const SizedBox(width: 3),
+                                        Text(
+                                          '($count)',
+                                          style: const TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w600,
+                                            color: Color(0xFF8A9AB5),
+                                          ),
+                                        ),
+                                      ],
+                                    ],
                                   );
                                 },
                               ),

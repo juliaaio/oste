@@ -1027,42 +1027,97 @@ class ChatService extends ChangeNotifier {
       );
       notifyListeners();
     }
-    if (conv != null && conv.patientName.isNotEmpty) {
-      final doc = doctorList.firstWhere(
-        (d) => d.id == conv!.doctorId,
-        orElse: () => doctorList.first,
-      );
-      final msgs = _localMessages[chatId] ?? [];
-      final now = DateTime.now();
-      const months = [
-        'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
-        'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
-      ];
-      final dateStr = '${now.day} ${months[now.month - 1]} ${now.year}';
-      final timeStr =
-          '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')} WIB';
 
-      ConsultationHistoryService().addConsultation(
-        ConsultationHistory(
-          id: 'consult_${chatId}_${now.millisecondsSinceEpoch}',
-          doctor: doc,
-          date: dateStr,
-          time: timeStr,
-          summary: conv.lastMessage.isNotEmpty
-              ? conv.lastMessage
-              : 'Sesi konsultasi medis telah diselesaikan.',
-          diagnosis: 'Konsultasi Selesai',
-          doctorNotes: 'Konsultasi selesai dengan ${conv.patientName}.',
-          doctorRecommendation:
-              'Lanjutkan anjuran dokter dan kontrol berkala bila diperlukan.',
-          nutritionRecommendation:
-              'Pertahankan asupan kalsium dan vitamin D seimbang.',
-          messages: msgs,
-          patientName: conv.patientName,
-          patientId: conv.patientId,
-        ),
+    String patientId = conv?.patientId ?? '';
+    String patientName = conv?.patientName ?? '';
+    String doctorId = conv?.doctorId ?? '';
+    String doctorName = conv?.doctorName ?? '';
+    String doctorPhoto = conv?.doctorImageUrl ?? '';
+    String doctorSpecialist = conv?.doctorSpecialist ?? '';
+    String lastMsg = conv?.lastMessage ?? '';
+
+    // Ambil data percakapan dari Firestore jika metadata lokal belum lengkap
+    try {
+      final chatDoc = await FirebaseFirestore.instance.collection('chats').doc(chatId).get();
+      if (chatDoc.exists && chatDoc.data() != null) {
+        final data = chatDoc.data()!;
+        if (patientId.isEmpty) patientId = data['patientId']?.toString() ?? '';
+        if (patientName.isEmpty) patientName = data['patientName']?.toString() ?? '';
+        if (doctorId.isEmpty) doctorId = data['doctorId']?.toString() ?? '';
+        if (doctorName.isEmpty) doctorName = data['doctorName']?.toString() ?? '';
+        if (doctorPhoto.isEmpty) {
+          doctorPhoto = (data['doctorPhoto'] ?? data['doctorImageUrl'])?.toString() ?? '';
+        }
+        if (doctorSpecialist.isEmpty) doctorSpecialist = data['doctorSpecialist']?.toString() ?? '';
+        if (lastMsg.isEmpty) lastMsg = data['lastMessage']?.toString() ?? '';
+      }
+    } catch (e) {
+      debugPrint('[ChatService] Error mengambil metadata chat: $e');
+    }
+
+    final docMatch = doctorList.firstWhere(
+      (d) => d.id == doctorId,
+      orElse: () => doctorList.first,
+    );
+    if (doctorId.isEmpty) doctorId = docMatch.id;
+    if (doctorName.isEmpty) doctorName = docMatch.name;
+    if (doctorPhoto.isEmpty) doctorPhoto = docMatch.imageUrl;
+    if (doctorSpecialist.isEmpty) doctorSpecialist = docMatch.specialist;
+
+    final msgs = _localMessages[chatId] ?? [];
+    final messageCount = msgs.length;
+    final now = DateTime.now();
+    const months = [
+      'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+      'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+    ];
+    final dateStr = '${now.day} ${months[now.month - 1]} ${now.year}';
+    final timeStr =
+        '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')} WIB';
+
+    final consultationId = 'consult_${chatId}_${now.millisecondsSinceEpoch}';
+
+    final historyItem = ConsultationHistory(
+      id: consultationId,
+      chatId: chatId,
+      doctorId: doctorId,
+      doctorName: doctorName,
+      doctorPhoto: doctorPhoto,
+      doctorImageUrl: doctorPhoto,
+      doctorSpecialist: doctorSpecialist,
+      doctorHospital: docMatch.hospital,
+      patientId: patientId,
+      patientName: patientName,
+      date: dateStr,
+      time: timeStr,
+      summary: lastMsg.isNotEmpty
+          ? lastMsg
+          : 'Sesi konsultasi medis telah diselesaikan.',
+      diagnosis: 'Konsultasi Selesai',
+      doctorNotes: 'Konsultasi selesai dengan ${patientName.isNotEmpty ? patientName : 'pasien'}.',
+      doctorRecommendation:
+          'Lanjutkan anjuran dokter dan kontrol berkala bila diperlukan.',
+      nutritionRecommendation:
+          'Pertahankan asupan kalsium dan vitamin D seimbang.',
+      consultationStatus: 'completed',
+      messageCount: messageCount,
+      messages: msgs,
+      createdAt: now,
+      completedAt: now,
+    );
+
+    // 1. Simpan consultation history ke ConsultationHistoryService (in-memory update)
+    ConsultationHistoryService().addConsultation(historyItem);
+
+    // 2. Simpan consultation history langsung ke Firestore: users/{uid}/riwayat_konsultasi/{consultationId}
+    if (patientId.isNotEmpty) {
+      await ConsultationHistoryService().saveConsultation(
+        historyItem,
+        targetUserId: patientId,
       );
     }
+
+    // 3. Update status chats/{chatId} di Firestore
     try {
       await FirebaseFirestore.instance
           .collection('chats')

@@ -14,18 +14,83 @@ import 'package:oste/services/consultation_history_service.dart';
 
 void main() {
   group('Consultation Models & Service Tests', () {
-    test('ConsultationHistoryService maintains initial seed and supports doctor filtering', () {
+    test('ConsultationHistory has no dummy data initially', () {
       final service = ConsultationHistoryService();
-      final all = service.allConsultations;
-      expect(all.isNotEmpty, isTrue);
+      service.clear();
+      expect(service.allConsultations.isEmpty, isTrue);
+    });
 
-      final andiHistories = service.getConsultationsByDoctorId('doc_1');
-      expect(andiHistories.length, greaterThanOrEqualTo(3));
-      expect(andiHistories.every((item) => item.doctor.id == 'doc_1'), isTrue);
+    test('ConsultationHistory converts to and from Firestore map properly', () {
+      final now = DateTime(2026, 11, 17, 10, 0);
+      final item = ConsultationHistory(
+        id: 'test_c_1',
+        chatId: 'chat_123',
+        doctorId: 'doc_1',
+        doctorName: 'dr. Andi Wijaya, Sp.OT',
+        doctorPhoto: 'https://example.com/doc.jpg',
+        patientId: 'patient_456',
+        patientName: 'Aulia',
+        diagnosis: 'Pemulihan Kepadatan Tulang',
+        summary: 'Ringkasan konsultasi kesehatan tulang.',
+        doctorNotes: 'Kondisi membaik.',
+        doctorRecommendation: 'Rutin jalan pagi.',
+        nutritionRecommendation: 'Kalsium cukup.',
+        consultationStatus: 'completed',
+        messageCount: 5,
+        createdAt: now,
+        completedAt: now,
+        date: '17 November 2026',
+        time: '10:00 WIB',
+      );
+
+      final map = item.toFirestore();
+      expect(map['consultationId'], 'test_c_1');
+      expect(map['chatId'], 'chat_123');
+      expect(map['doctorId'], 'doc_1');
+      expect(map['doctorName'], 'dr. Andi Wijaya, Sp.OT');
+      expect(map['doctorPhoto'], 'https://example.com/doc.jpg');
+      expect(map['patientId'], 'patient_456');
+      expect(map['diagnosis'], 'Pemulihan Kepadatan Tulang');
+      expect(map['summary'], 'Ringkasan konsultasi kesehatan tulang.');
+      expect(map['consultationStatus'], 'completed');
+      expect(map['messageCount'], 5);
+
+      final fromMapItem = ConsultationHistory.fromMap('test_c_1', {
+        'consultationId': 'test_c_1',
+        'chatId': 'chat_123',
+        'doctorId': 'doc_1',
+        'doctorName': 'dr. Andi Wijaya, Sp.OT',
+        'doctorPhoto': 'https://example.com/doc.jpg',
+        'patientId': 'patient_456',
+        'patientName': 'Aulia',
+        'diagnosis': 'Pemulihan Kepadatan Tulang',
+        'summary': 'Ringkasan konsultasi kesehatan tulang.',
+        'doctorNotes': 'Kondisi membaik.',
+        'doctorRecommendation': 'Rutin jalan pagi.',
+        'nutritionRecommendation': 'Kalsium cukup.',
+        'consultationStatus': 'completed',
+        'messageCount': 5,
+        'date': '17 November 2026',
+        'time': '10:00 WIB',
+      });
+
+      expect(fromMapItem.id, 'test_c_1');
+      expect(fromMapItem.doctorId, 'doc_1');
+      expect(fromMapItem.doctorName, 'dr. Andi Wijaya, Sp.OT');
+      expect(fromMapItem.doctorPhoto, 'https://example.com/doc.jpg');
+      expect(fromMapItem.patientId, 'patient_456');
+      expect(fromMapItem.patientName, 'Aulia');
+      expect(fromMapItem.diagnosis, 'Pemulihan Kepadatan Tulang');
+      expect(fromMapItem.summary, 'Ringkasan konsultasi kesehatan tulang.');
+      expect(fromMapItem.consultationStatus, 'completed');
+      expect(fromMapItem.messageCount, 5);
+      expect(fromMapItem.date, '17 November 2026');
+      expect(fromMapItem.time, '10:00 WIB');
     });
 
     test('ConsultationHistoryService adds new consultation properly', () {
       final service = ConsultationHistoryService();
+      service.clear();
       final initialCount = service.allConsultations.length;
 
       final testConsultation = ConsultationHistory(
@@ -153,7 +218,7 @@ void main() {
       expect(find.text('Konsultasi telah selesai'), findsOneWidget);
     });
 
-    testWidgets('ConsultationHistoryPage renders list of cards for doctor', (tester) async {
+    testWidgets('ConsultationHistoryPage renders empty state when no consultations exist', (tester) async {
       final testDoctor = doctorList[0];
 
       await tester.pumpWidget(
@@ -161,14 +226,25 @@ void main() {
           home: ConsultationHistoryPage(doctor: testDoctor),
         ),
       );
+      await tester.pumpAndSettle();
 
       expect(find.text('Riwayat: ${testDoctor.name}'), findsOneWidget);
-      expect(find.byType(ConsultationHistoryCard), findsWidgets);
+      expect(find.text('Belum ada riwayat konsultasi dengan ${testDoctor.name}'), findsOneWidget);
     });
 
     testWidgets('ConsultationSummaryPage displays stored consultation details with follow-up advice', (tester) async {
-      final service = ConsultationHistoryService();
-      final storedItem = service.allConsultations.first;
+      final testDoctor = doctorList[0];
+      final storedItem = ConsultationHistory(
+        id: 'test_hist_summary',
+        doctor: testDoctor,
+        date: '20 September 2026',
+        time: '14:15 WIB',
+        summary: 'Evaluasi respon terapi suplemen kalsium.',
+        diagnosis: 'Pemulihan Kepadatan Tulang Terkontrol',
+        doctorNotes: 'Kondisi kepadatan tulang terpantau membaik.',
+        doctorRecommendation: 'Lanjutkan latihan beban tubuh ringan.',
+        nutritionRecommendation: 'Pertahankan konsumsi kalsium 1000 mg/hari.',
+      );
 
       await tester.pumpWidget(
         MaterialApp(

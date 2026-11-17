@@ -251,4 +251,56 @@ void main() {
     expect(find.text('Bagus sekali'), findsOneWidget);
     expect(find.text('Cukup bagus'), findsOneWidget);
   });
+
+  testWidgets('Validation prevents submitting review with comment under 10 chars or over 500 chars', (tester) async {
+    const docId = 'doc_validation_test';
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: WriteReviewPage(
+            doctor: testDoctor.copyWith(id: docId),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // 1. Komentar terlalu pendek (< 10 karakter)
+    await tester.enterText(find.byType(TextField), 'Pendek');
+    await tester.tap(find.widgetWithText(InkWell, 'Simpan'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Komentar ulasan minimal 10 karakter.'), findsOneWidget);
+
+    // Tunggu SnackBar pertama hilang
+    await tester.pump(const Duration(seconds: 4));
+    await tester.pumpAndSettle();
+
+    // 2. Komentar terlalu panjang (> 500 karakter)
+    final longComment = 'A' * 501;
+    await tester.enterText(find.byType(TextField), longComment);
+    await tester.tap(find.widgetWithText(InkWell, 'Simpan'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Komentar ulasan maksimal 500 karakter.'), findsOneWidget);
+  });
+
+  testWidgets('Empty reviews state displays "—" and "Belum ada ulasan" without dummy rating fallback', (tester) async {
+    const docId = 'doc_empty_test';
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: DoctorProfilePage(
+            doctor: testDoctor.copyWith(id: docId),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('—'), findsOneWidget);
+    expect(find.text('Belum ada ulasan'), findsOneWidget);
+  });
 }

@@ -56,8 +56,8 @@ void main() {
     await tester.tap(find.text('Konsultasi Dokter'));
     await tester.pumpAndSettle();
 
-    // Consultation list should be displayed (seeded by ConsultationHistoryService)
-    expect(find.text('Topik Konsultasi'), findsWidgets);
-    expect(find.text('Selesai'), findsWidgets);
+    // Verify empty state is displayed when no consultations exist in Firestore
+    expect(find.text('Belum ada riwayat konsultasi'), findsOneWidget);
+    expect(find.text('Konsultasi yang telah selesai akan tersimpan secara otomatis di sini.'), findsOneWidget);
   });
 }

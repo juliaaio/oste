@@ -87,13 +87,8 @@ class HistoryModel {
 
   /// Factory untuk membuat HistoryModel dari data riwayat konsultasi
   factory HistoryModel.fromConsultation(ConsultationHistory consultation) {
-    // Parse tanggal konsultasi jika memungkinkan
-    DateTime dateParsed;
-    try {
-      dateParsed = DateTime.now();
-    } catch (_) {
-      dateParsed = DateTime.now();
-    }
+    final dateParsed =
+        consultation.completedAt ?? consultation.createdAt ?? DateTime.now();
 
     return HistoryModel(
       id: consultation.id,

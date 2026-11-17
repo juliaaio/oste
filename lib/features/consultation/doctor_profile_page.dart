@@ -261,15 +261,16 @@ class DoctorProfilePage extends StatelessWidget {
                             listenable: DoctorReviewService(),
                             builder: (context, _) {
                               final reviewService = DoctorReviewService();
-                              final avg =
-                                  reviewService.getAverageRating(doctor.id);
-                              final ratingText =
-                                  avg == 0.0 ? '0.0' : avg.toStringAsFixed(1);
+                              final count = reviewService.getReviewCount(doctor.id);
+                              final avg = reviewService.getAverageRating(doctor.id);
+                              final ratingText = count == 0 ? '—' : avg.toStringAsFixed(1);
                               return _buildStatItem(
                                 icon: Icons.star_rounded,
-                                iconColor: const Color(0xFFF59E0B),
+                                iconColor: count == 0
+                                    ? const Color(0xFF94A3B8)
+                                    : const Color(0xFFF59E0B),
                                 value: ratingText,
-                                label: 'Rating',
+                                label: count == 0 ? 'Belum ada ulasan' : 'Rating ($count)',
                               );
                             },
                           ),

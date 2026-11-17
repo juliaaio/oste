@@ -1,17 +1,24 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
-import 'package:oste/features/consultation/doctor_data.dart';
-import 'package:oste/models/chat_message.dart';
 import 'package:oste/models/consultation_history_model.dart';
+import 'package:oste/services/user_service.dart';
 
-/// Layanan singleton untuk mengelola penyimpanan & riwayat konsultasi medis
+/// Layanan untuk mengelola penyimpanan & riwayat konsultasi medis via Firebase Firestore
 class ConsultationHistoryService extends ChangeNotifier {
   static final ConsultationHistoryService _instance =
       ConsultationHistoryService._internal();
 
   factory ConsultationHistoryService() => _instance;
 
-  ConsultationHistoryService._internal() {
-    _seedInitialHistory();
+  ConsultationHistoryService._internal();
+
+  FirebaseFirestore? get _firestore {
+    try {
+      return FirebaseFirestore.instance;
+    } catch (_) {
+      return null;
+    }
   }
 
   final List<ConsultationHistory> _histories = [];
@@ -19,16 +26,131 @@ class ConsultationHistoryService extends ChangeNotifier {
   List<ConsultationHistory> get allConsultations =>
       List.unmodifiable(_histories);
 
-  /// Mengambil daftar riwayat khusus dokter tertentu
-  List<ConsultationHistory> getConsultationsByDoctorId(String doctorId) {
-    return _histories
-        .where((item) => item.doctor.id == doctorId)
-        .toList();
+  /// Helper untuk mendapatkan path collection: users/{uid}/riwayat_konsultasi
+  CollectionReference<Map<String, dynamic>>? _userHistoryRef(String uid) {
+    return _firestore?.collection('users').doc(uid).collection('riwayat_konsultasi');
   }
 
-  /// Menambahkan riwayat konsultasi baru ke urutan teratas
+  /// Helper untuk mendapatkan UID aktif
+  String _getActiveUserId() {
+    try {
+      return FirebaseAuth.instance.currentUser?.uid ??
+          UserService().currentUser?.uid ??
+          '';
+    } catch (_) {
+      return UserService().currentUser?.uid ?? '';
+    }
+  }
+
+  /// Stream riwayat konsultasi untuk user/pasien secara realtime dari Firestore
+  Stream<List<ConsultationHistory>> streamUserConsultations([String? userId]) {
+    final uid = userId ?? _getActiveUserId();
+    final ref = uid.isNotEmpty ? _userHistoryRef(uid) : null;
+    if (ref == null) {
+      return Stream.value(const []);
+    }
+
+    return ref.snapshots().map((snapshot) {
+      final list = snapshot.docs.map((doc) {
+        return ConsultationHistory.fromFirestore(doc);
+      }).toList();
+
+      // Urutkan dari yang terbaru (completedAt atau createdAt atau DateTime.now())
+      list.sort((a, b) {
+        final aTime = a.completedAt ?? a.createdAt;
+        final bTime = b.completedAt ?? b.createdAt;
+        if (aTime != null && bTime != null) {
+          return bTime.compareTo(aTime);
+        }
+        return b.id.compareTo(a.id);
+      });
+
+      // Update cache in-memory untuk listeners lokal
+      _histories.clear();
+      _histories.addAll(list);
+
+      return list;
+    });
+  }
+
+  /// Stream riwayat konsultasi untuk dokter via collectionGroup('riwayat_konsultasi')
+  Stream<List<ConsultationHistory>> streamDoctorConsultations({String? doctorId}) {
+    final fs = _firestore;
+    if (fs == null) {
+      return Stream.value(const []);
+    }
+
+    try {
+      Query<Map<String, dynamic>> query =
+          fs.collectionGroup('riwayat_konsultasi');
+
+      if (doctorId != null && doctorId.isNotEmpty) {
+        query = query.where('doctorId', isEqualTo: doctorId);
+      }
+
+      return query.snapshots().map((snapshot) {
+        final list = snapshot.docs.map((doc) {
+          return ConsultationHistory.fromFirestore(doc);
+        }).toList();
+
+        list.sort((a, b) {
+          final aTime = a.completedAt ?? a.createdAt;
+          final bTime = b.completedAt ?? b.createdAt;
+          if (aTime != null && bTime != null) {
+            return bTime.compareTo(aTime);
+          }
+          return b.id.compareTo(a.id);
+        });
+
+        return list;
+      });
+    } catch (e) {
+      debugPrint('[ConsultationHistoryService] Error stream doctor history: $e');
+      return Stream.value(const []);
+    }
+  }
+
+  /// Menyimpan riwayat konsultasi ke Firestore: users/{uid}/riwayat_konsultasi/{consultationId}
+  Future<void> saveConsultation(
+    ConsultationHistory consultation, {
+    String? targetUserId,
+  }) async {
+    final uid = targetUserId ??
+        (consultation.patientId.isNotEmpty
+            ? consultation.patientId
+            : _getActiveUserId());
+
+    if (uid.isEmpty) {
+      debugPrint(
+          '[ConsultationHistoryService] Gagal simpan: UID pasien tidak ditemukan.');
+      return;
+    }
+
+    final ref = _userHistoryRef(uid);
+    if (ref == null) {
+      debugPrint(
+          '[ConsultationHistoryService] Firestore belum diinisialisasi.');
+      return;
+    }
+
+    try {
+      final data = consultation.toFirestore();
+      await ref.doc(consultation.id).set(
+            data,
+            SetOptions(merge: true),
+          );
+
+      debugPrint(
+          '[ConsultationHistoryService] Berhasil menyimpan riwayat konsultasi: ${consultation.id} untuk user: $uid');
+    } catch (e, stack) {
+      debugPrint(
+          '[ConsultationHistoryService] Error saat menyimpan riwayat ke Firestore: $e\n$stack');
+    }
+  }
+
+  /// Menambahkan riwayat konsultasi baru (update memory lokal & persist ke Firestore)
   void addConsultation(ConsultationHistory consultation) {
-    // Hindari duplikasi jika sudah ada dengan id yang sama
+    // Perbarui in-memory list
     final existingIndex =
         _histories.indexWhere((item) => item.id == consultation.id);
     if (existingIndex >= 0) {
@@ -37,6 +159,16 @@ class ConsultationHistoryService extends ChangeNotifier {
       _histories.insert(0, consultation);
     }
     notifyListeners();
+
+    // Simpan ke Firestore
+    saveConsultation(consultation);
+  }
+
+  /// Mengambil daftar riwayat khusus dokter tertentu (dari memory cache jika ada)
+  List<ConsultationHistory> getConsultationsByDoctorId(String doctorId) {
+    return _histories
+        .where((item) => item.doctorId == doctorId)
+        .toList();
   }
 
   /// Mencari riwayat konsultasi berdasarkan ID
@@ -48,114 +180,9 @@ class ConsultationHistoryService extends ChangeNotifier {
     }
   }
 
-  /// Inisialisasi data riwayat bawaan sesuai spesifikasi
-  void _seedInitialHistory() {
-    final docAndi = doctorList.firstWhere(
-      (d) => d.id == 'doc_1',
-      orElse: () => doctorList[0],
-    );
-
-    _histories.addAll([
-      ConsultationHistory(
-        id: 'hist_andi_3',
-        doctor: docAndi,
-        date: '20 September 2026',
-        time: '14:15 WIB',
-        summary: 'Evaluasi respon terapi suplemen kalsium dan perkembangan nyeri sendi.',
-        diagnosis: 'Pemulihan Kepadatan Tulang Terkontrol (Osteopenia Stabil)',
-        doctorNotes:
-            'Kondisi kepadatan tulang terpantau membaik. Nyeri pada pergelangan kaki berkurang secara signifikan.',
-        doctorRecommendation:
-            'Lanjutkan latihan beban tubuh ringan (bodyweight) 3x seminggu. Hindari aktivitas melompat.',
-        nutritionRecommendation:
-            'Pertahankan konsumsi kalsium 1000 mg/hari dan paparan sinar matahari pagi selama 15 menit.',
-        messages: const [
-          ChatMessage(
-            id: 'm1',
-            text: 'Halo dr. Andi, saya ingin kontrol evaluasi rutin minggu ini.',
-            time: '14:00',
-            isFromDoctor: false,
-          ),
-          ChatMessage(
-            id: 'm2',
-            text:
-                'Selamat siang. Bagaimana rasa nyeri sendi setelah rutin jalan pagi dan konsumsi suplemen?',
-            time: '14:02',
-            isFromDoctor: true,
-          ),
-          ChatMessage(
-            id: 'm3',
-            text: 'Sudah jauh berkurang dok, jalan kaki sudah lebih nyaman.',
-            time: '14:05',
-            isFromDoctor: false,
-          ),
-          ChatMessage(
-            id: 'm4',
-            text:
-                'Bagus sekali. Pertahankan rutinitas latihan fisik ringan dan asupan nutrisi Anda.',
-            time: '14:08',
-            isFromDoctor: true,
-          ),
-        ],
-      ),
-      ConsultationHistory(
-        id: 'hist_andi_2',
-        doctor: docAndi,
-        date: '17 September 2026',
-        time: '10:30 WIB',
-        summary: 'Konsultasi lanjutan keluhan nyeri pinggang dan review asupan vitamin D.',
-        diagnosis: 'Indikasi Osteoporosis Ringan dengan Spasme Otot Punggung Bawah',
-        doctorNotes:
-            'Pasien mengeluhkan ngilu di area lumbar saat bangun tidur. Diperlukan koreksi postur duduk saat bekerja.',
-        doctorRecommendation:
-            'Gunakan kursi ergonomis dengan bantalan lumbar. Lakukan peregangan pinggang tiap 45 menit duduk.',
-        nutritionRecommendation:
-            'Tingkatkan asupan magnesium dan vitamin D3 1000 IU harian untuk relaksasi otot dan penyerapan kalsium.',
-        messages: const [
-          ChatMessage(
-            id: 'm1',
-            text: 'Selamat pagi dok, akhir-akhir ini pinggang saya sering kaku saat bangun tidur.',
-            time: '10:20',
-            isFromDoctor: false,
-          ),
-          ChatMessage(
-            id: 'm2',
-            text:
-                'Pagi. Apakah posisi tidur Anda sering melengkung atau kasur terlalu empuk?',
-            time: '10:22',
-            isFromDoctor: true,
-          ),
-        ],
-      ),
-      ConsultationHistory(
-        id: 'hist_andi_1',
-        doctor: docAndi,
-        date: '10 September 2026',
-        time: '09:00 WIB',
-        summary: 'Konsultasi awal skrining risiko osteoporosis dan edukasi pencegahan.',
-        diagnosis: 'Risiko Osteoporosis Sedang (Skrining Awal)',
-        doctorNotes:
-            'Pemeriksaan skrining mandiri menunjukkan skor risiko sedang karena gaya hidup kurang bergerak (sedentary).',
-        doctorRecommendation:
-            'Mulai program jalan santai harian 30 menit dan lakukan tes BMD (Bone Mineral Density) jika gejala menetap.',
-        nutritionRecommendation:
-            'Konsumsi susu tinggi kalsium atau olahan kedelai, brokoli, dan kurangi kafein berlebih.',
-        messages: const [
-          ChatMessage(
-            id: 'm1',
-            text: 'Halo dr. Andi, hasil skrining mandiri saya terindikasi risiko osteoporosis.',
-            time: '08:50',
-            isFromDoctor: false,
-          ),
-          ChatMessage(
-            id: 'm2',
-            text:
-                'Selamat pagi. Jangan cemas, pada usia produktif kita masih bisa meningkatkan masa tulang secara optimal.',
-            time: '08:52',
-            isFromDoctor: true,
-          ),
-        ],
-      ),
-    ]);
+  /// Menghapus cache lokal
+  void clear() {
+    _histories.clear();
+    notifyListeners();
   }
 }
